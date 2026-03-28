@@ -33,8 +33,15 @@ internal sealed class Program
         app.UseSwagger();
         app.UseSwaggerUI();
 
+        app.UseDefaultFiles(); // Looks for index.html
+        app.UseStaticFiles();  // Allows access to files in wwwroot
+
+        app.UseRouting();
         app.MapControllers();
 
+        // Important: Redirects all unknown routes to Angular (index.html)
+        app.MapFallbackToFile("index.html");
+        
         app.Run();
     }
 }

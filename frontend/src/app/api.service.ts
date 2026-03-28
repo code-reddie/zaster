@@ -11,7 +11,7 @@ export interface HelloResponse {
 })
 export class ApiService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:5000/hello';
+  private apiUrl = '/hello';
   
   getHello(): Observable<string> {
     console.log('API-Request: GET', this.apiUrl);
