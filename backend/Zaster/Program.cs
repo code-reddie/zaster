@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Zaster;
@@ -25,6 +26,10 @@ internal sealed class Program
         // Add Swagger services
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+        builder.Services.Configure<RouteOptions>(options =>
+        {
+            options.LowercaseUrls = true;
+        });
 
         var app = builder.Build();
         app.UseCors("AllowAngularFrontend");
@@ -41,7 +46,7 @@ internal sealed class Program
 
         // Important: Redirects all unknown routes to Angular (index.html)
         app.MapFallbackToFile("index.html");
-        
+
         app.Run();
     }
 }
