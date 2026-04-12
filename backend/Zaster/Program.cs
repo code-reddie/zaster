@@ -13,10 +13,12 @@ internal sealed class Program
         builder.Services.AddControllers();
         builder.Services.AddSwagger();
         builder.Services.AddAngularFrontend();
+        builder.Services.AddDatabase(builder);
 
         var app = builder.Build();
         app.AddSwagger();
         app.AddAngularFrontend();
+        app.AddDatabase();
         app.UseRouting();
         app.MapControllers();
 

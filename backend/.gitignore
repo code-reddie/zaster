@@ -43,11 +43,6 @@ secrets.json
 *.pfx
 *.p12
 
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
 # Rider (JetBrains)
 .idea/
 
@@ -57,5 +52,7 @@ coverage/
 *.coverage
 *.coveragexml
 
-# Entity Framework Migrations (optional – auskommentieren wenn du Migrations brauchst)
-# Migrations/
+# Database
+*.db
+*.db-shm
+*.db-wal
