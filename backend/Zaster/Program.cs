@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Zaster.Database;
 
 namespace Zaster;
 
@@ -11,41 +11,14 @@ internal sealed class Program
         var builder = WebApplication.CreateBuilder();
 
         builder.Services.AddControllers();
-        builder.Services.AddCors(options =>
-        {
-            options.AddPolicy("AllowAngularFrontend",
-            policy =>
-            {
-                policy.WithOrigins("http://localhost:4200")
-                      .AllowAnyHeader()
-                      .AllowAnyMethod()
-                      .AllowCredentials();
-            });
-        });
-
-        // Add Swagger services
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
-        builder.Services.Configure<RouteOptions>(options =>
-        {
-            options.LowercaseUrls = true;
-        });
+        builder.Services.AddSwagger();
+        builder.Services.AddAngularFrontend();
 
         var app = builder.Build();
-        app.UseCors("AllowAngularFrontend");
-
-        // Enable Swagger middleware
-        app.UseSwagger();
-        app.UseSwaggerUI();
-
-        app.UseDefaultFiles(); // Looks for index.html
-        app.UseStaticFiles();  // Allows access to files in wwwroot
-
+        app.AddSwagger();
+        app.AddAngularFrontend();
         app.UseRouting();
         app.MapControllers();
-
-        // Important: Redirects all unknown routes to Angular (index.html)
-        app.MapFallbackToFile("index.html");
 
         app.Run();
     }
