@@ -10,7 +10,3 @@ public sealed record User : Entity
 
     public List<Account> Accounts { get; init; } = [];
 }
-
-public sealed record CreateUser(string Name, string Password);
-
-public sealed record LoginRequest(string Name, string Password);
