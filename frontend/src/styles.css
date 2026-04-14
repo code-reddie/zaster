@@ -1,1 +1,61 @@
 @import "tailwindcss";
+
+.btn-primary {
+  @apply rounded-md bg-slate-500 px-3 py-1.5 text-sm/6 font-semibold text-white 
+  hover:bg-slate-400 
+  active:scale-98 
+  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 
+  disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-slate-500 disabled:active:scale-100;
+}
+
+.btn-secondary {
+  @apply rounded-md bg-white/5 px-3 py-1.5 text-sm/6 font-semibold text-white 
+  hover:bg-white/10 
+  active:scale-98 
+  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 
+  disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white/5 disabled:active:scale-100;
+}
+
+.form-input {
+  @apply rounded-md bg-white/5 px-3 py-1.5 sm:text-sm/6 transition-all text-base text-white outline-1 -outline-offset-1 outline-white/10 
+  placeholder:text-gray-500 
+  focus:outline-2 focus:-outline-offset-2 focus:outline-slate-500;
+}
+
+.text-white {
+  @apply text-slate-100;
+}
+
+.link-primary {
+  @apply font-semibold text-slate-400 
+  hover:text-slate-300
+}
+
+.text-danger {
+  @apply text-red-300;
+}
+
+.bg-dark {
+  @apply bg-slate-950;
+}
+
+.dialog{
+ @apply bg-slate-900 border border-white/10 p-6 rounded-xl shadow-2xl
+}
+
+.icon-info {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  background-color: currentColor;
+  mask-image: url('./assets/icons/info.svg');
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.bg-login {
+  background-image: url('./assets/images/login-background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}

@@ -1,0 +1,127 @@
+<div class="flex min-h-screen items-center justify-center bg-login">
+  <div class="w-full max-w-md dialog">
+    <h2 class="text-2xl font-bold text-center text-white mb-6">Neuen Benutzer anlegen</h2>
+    <form [formGroup]="formGroup" class="space-y-6" (ngSubmit)="onSubmit()">
+      <div class="relative">
+        @let showNameError =
+          (formGroup.get('name')?.invalid && formGroup.get('name')?.touched) ||
+          formGroup.hasError('alreadyExists') ||
+          formGroup.hasError('registrationFailed');
+        <label for="name" class="block text-sm/6 font-medium text-white">Name</label>
+        <div class="mt-2">
+          <input
+            id="name"
+            type="text"
+            name="name"
+            required
+            autocomplete="name"
+            formControlName="name"
+            appAutoFocus
+            class="block w-full form-input"
+            [class.!outline-red-300]="showNameError"
+          />
+        </div>
+        @if (showNameError) {
+          <div class="absolute -bottom-5 left-0 text-danger animate-fade-in">
+            <span class="icon-info text-[13px] translate-y-[2px]"></span>
+            <span class="text-[11px]">
+              @if (formGroup.get('name')?.hasError('minlength')) {
+                Der Name muss mindestens
+                {{ formGroup.get('name')?.errors?.['minlength']?.requiredLength }} Zeichen lang
+                sein.
+              } @else if (formGroup.hasError('alreadyExists')) {
+                Es existiert bereits ein Benutzer mit diesem Namen.
+              } @else if (formGroup.hasError('registrationFailed')) {
+                Die Registrierung ist fehlgeschlagen.
+              } @else {
+                Bitte gib einen Namen ein.
+              }
+            </span>
+          </div>
+        }
+      </div>
+
+      <div class="relative">
+        @let showPasswordError =
+          (formGroup.get('password')?.invalid && formGroup.get('password')?.touched) ||
+          formGroup.hasError('registrationFailed');
+        <div class="flex items-center justify-between">
+          <label for="password" class="block text-sm/6 font-medium text-white">Passwort</label>
+        </div>
+        <div class="mt-2">
+          <input
+            id="password"
+            type="password"
+            name="password"
+            required
+            autocomplete="current-password"
+            formControlName="password"
+            class="block w-full form-input"
+            [class.!outline-red-300]="showPasswordError"
+          />
+        </div>
+        @if (showPasswordError) {
+          <div class="absolute -bottom-5 left-0 text-danger animate-fade-in">
+            <span class="icon-info text-[13px] translate-y-[2px]"></span>
+            <span class="text-[11px]">
+              @if (formGroup.get('password')?.hasError('minlength')) {
+                Das Passwort muss mindestens 6 Zeichen lang sein.
+              } @else if (formGroup.hasError('registrationFailed')) {
+                Die Registrierung ist fehlgeschlagen.
+              } @else {
+                Bitte gib ein Passwort ein.
+              }
+            </span>
+          </div>
+        }
+      </div>
+
+      <div class="relative">
+        @let showConfirmPasswordError =
+          (formGroup.get('confirmPassword')?.invalid &&
+            formGroup.get('confirmPassword')?.touched) ||
+          formGroup.hasError('registrationFailed') ||
+          formGroup.hasError('passwordMismatch');
+        <div class="flex items-center justify-between">
+          <label for="confirmPassword" class="block text-sm/6 font-medium text-white"
+            >Passwort bestätigen</label
+          >
+        </div>
+        <div class="mt-2">
+          <input
+            id="confirmPassword"
+            type="password"
+            name="confirmPassword"
+            required
+            autocomplete="current-password"
+            formControlName="confirmPassword"
+            class="block w-full form-input"
+            [class.!outline-red-300]="showConfirmPasswordError"
+          />
+        </div>
+        @if (showConfirmPasswordError) {
+          <div class="absolute -bottom-5 left-0 text-danger animate-fade-in">
+            <span class="icon-info text-[13px] translate-y-[2px]"></span>
+            <span class="text-[11px]">
+              @if (formGroup.get('confirmPassword')?.hasError('minlength')) {
+                Das Passwort muss mindestens 6 Zeichen lang sein.
+              } @else if (formGroup.hasError('passwordMismatch')) {
+                Die Passwörter stimmen nicht überein.
+              } @else if (formGroup.hasError('registrationFailed')) {
+                Die Registrierung ist fehlgeschlagen.
+              } @else {
+                Bitte gib ein Passwort ein.
+              }
+            </span>
+          </div>
+        }
+      </div>
+
+      <div>
+        <button type="submit" class="btn-primary mt-10 flex w-full justify-center">
+          Registrieren
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
