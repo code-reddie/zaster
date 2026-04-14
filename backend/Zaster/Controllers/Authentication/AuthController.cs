@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Zaster.Controllers.Authentication.Models;
 using Zaster.Database;
@@ -17,10 +18,11 @@ namespace Zaster.Controllers.Authentication;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(AppDbContext context, IConfiguration config) : ControllerBase
+public partial class AuthController(ILogger<AuthController> logger, AppDbContext context, IConfiguration config) : ControllerBase
 {
     private readonly AppDbContext _context = context;
     private readonly IConfiguration _config = config;
+    private readonly ILogger<AuthController> _logger = logger;
 
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register(
@@ -31,6 +33,8 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
 
         if (existingUser != null)
         {
+            LogUserAlreadyExists(_logger, request.Name);
+
             return Conflict(new
             {
                 code = "USER_ALREADY_EXISTS",
@@ -48,11 +52,27 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
         _context.Users.Add(user);
         await _context.SaveChangesAsync(cancellationToken);
 
+        string token;
+        try
+        {
+            token = CreateToken(user);
+        }
+        catch
+        {
+            LogTokenCreationFailed(_logger, user.Name);
+
+            return StatusCode(500, new
+            {
+                code = "TOKEN_CREATION_FAILED",
+                message = "An error occurred while creating the authentication token.",
+            });
+        }
+
         return Ok(new AuthResponse
         {
             UserId = user.Id,
             UserName = user.Name,
-            Token = CreateToken(user)
+            Token = token
         });
     }
 
@@ -65,6 +85,8 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
 
         if (user == null)
         {
+            LogUserNotFound(_logger, request.Name);
+
             return Unauthorized();
         }
 
@@ -72,14 +94,32 @@ public class AuthController(AppDbContext context, IConfiguration config) : Contr
 
         if (!isCorrect)
         {
+            LogInvalidPassword(_logger, request.Name);
+
             return Unauthorized();
+        }
+
+        string token;
+        try
+        {
+            token = CreateToken(user);
+        }
+        catch
+        {
+            LogTokenCreationFailed(_logger, user.Name);
+
+            return StatusCode(500, new
+            {
+                code = "TOKEN_CREATION_FAILED",
+                message = "An error occurred while creating the authentication token.",
+            });
         }
 
         return Ok(new AuthResponse
         {
             UserId = user.Id,
             UserName = user.Name,
-            Token = CreateToken(user)
+            Token = token
         });
     }
 
