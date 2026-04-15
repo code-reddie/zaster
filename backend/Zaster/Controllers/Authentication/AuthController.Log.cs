@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Zaster.Models;
 
 namespace Zaster.Controllers.Authentication;
 
