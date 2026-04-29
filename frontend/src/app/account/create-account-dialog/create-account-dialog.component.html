@@ -1,0 +1,40 @@
+<div class="w-full max-w-md dialog">
+  <h2 class="text-2xl font-bold text-center text-white mb-6">Bankkonto hinzufügen</h2>
+  <form [formGroup]="formGroup" class="space-y-6" (ngSubmit)="onSubmit()">
+    <div class="relative">
+      @let showNameError =
+        (formGroup.get('name')?.invalid && formGroup.get('name')?.touched) ||
+        formGroup.hasError('creationFailed');
+      <label for="name" class="block text-sm/6 font-medium text-white">Kontoname</label>
+      <div class="mt-2">
+        <input
+          id="name"
+          type="text"
+          name="name"
+          required
+          autocomplete="name"
+          formControlName="name"
+          appAutoFocus
+          class="block w-full form-input"
+          [class.!outline-red-300]="showNameError"
+        />
+      </div>
+      @if (showNameError) {
+        <div class="absolute -bottom-5 left-0 text-danger animate-fade-in">
+          <span class="icon-info text-[13px] translate-y-[2px]"></span>
+          <span class="text-[11px]">
+            @if (formGroup.hasError('creationFailed')) {
+              Fehler beim Erstellen des Kontos.
+            } @else {
+              Bitte gib einen Kontoname ein.
+            }
+          </span>
+        </div>
+      }
+    </div>
+    <div class="mt-10 space-x-4 justify-end flex">
+      <button type="button" class="btn-secondary" (click)="dialogRef.close()">Abbrechen</button>
+      <button type="submit" class="btn-primary" [loading]="loading()">Konto hinzufügen</button>
+    </div>
+  </form>
+</div>
