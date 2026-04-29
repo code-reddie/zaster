@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../authentication/auth.service';
 import { Router } from '@angular/router';
@@ -6,15 +6,18 @@ import { AutoFocusDirective } from '../auto-focus.directive';
 import { firstValueFrom } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { BackendError } from '../error.models';
+import { LoadingButtonDirective } from '../buttons/loading-button.directive';
 
 @Component({
   selector: 'app-register',
-  imports: [ReactiveFormsModule, AutoFocusDirective],
+  imports: [ReactiveFormsModule, AutoFocusDirective, LoadingButtonDirective],
   templateUrl: './register.component.html',
 })
 export class RegisterComponent {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+
+  readonly loading = signal(false);
 
   readonly formGroup = new FormGroup({
     name: new FormControl<string>('', {
@@ -44,6 +47,8 @@ export class RegisterComponent {
 
     const credentials = this.formGroup.getRawValue();
 
+    this.loading.set(true);
+
     try {
       await firstValueFrom(this.authService.register(credentials));
       this.router.navigate(['/dashboard']);
@@ -56,6 +61,8 @@ export class RegisterComponent {
         }
       }
       this.formGroup.setErrors({ registrationFailed: true });
+    } finally {
+      this.loading.set(false);
     }
   }
 }

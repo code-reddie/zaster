@@ -73,7 +73,9 @@
       </div>
 
       <div>
-        <button type="submit" class="btn-primary flex w-full justify-center">Einloggen</button>
+        <button type="submit" class="btn-primary flex w-full justify-center" [loading]="loading()">
+          Einloggen
+        </button>
       </div>
     </form>
   </div>
