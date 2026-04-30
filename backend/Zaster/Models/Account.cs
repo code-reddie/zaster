@@ -11,4 +11,6 @@ public sealed record Account : Entity
     public List<User> Users { get; init; } = [];
 }
 
+public sealed record AccountDto(int Id, string Name);
+
 public sealed record CreateAccount(string Name);

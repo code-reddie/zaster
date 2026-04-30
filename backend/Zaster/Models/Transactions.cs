@@ -1,4 +1,5 @@
 using System;
+using System.Data.Common;
 
 namespace Zaster.Models;
 
@@ -25,11 +26,22 @@ public sealed record Transaction : Entity
     public Category? Category { get; init; }
 }
 
-public sealed record CreateTransaction(
+public sealed record TransactionDto(
+    int Id,
     DateTimeOffset Buchung,
     DateTimeOffset Valuta,
     string Auftragsgeber,
     string Buchungstext,
     string Verwendungszweck,
+    decimal Betrag,
+    int AccountId,
+    int? CategoryId);
+
+public sealed record CreateTransaction(
+    DateTimeOffset Buchung,
+    DateTimeOffset Valuta,
+    string Auftragsgeber,
+    string Buchungstext,
+    string? Verwendungszweck,
     decimal Betrag,
     int AccountId);
