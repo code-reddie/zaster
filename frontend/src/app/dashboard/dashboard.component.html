@@ -1,4 +1,11 @@
 <div class="space-x-6 m-6">
   <button type="button" class="btn-primary" (click)="logout()">Ausloggen</button>
-  <button type="button" class="btn-primary" (click)="openDialog()">Bankkonto hinzufügen</button>
+  <button type="button" class="btn-primary" (click)="openAddAccountDialog()">
+    Bankkonto hinzufügen
+  </button>
+  <button type="button" class="btn-primary" (click)="openAddTransactionDialog()">
+    Buchung hinzufügen
+  </button>
 </div>
+<app-accounts></app-accounts>
+<app-transactions></app-transactions>

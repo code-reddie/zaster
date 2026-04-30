@@ -1,9 +1,8 @@
 import { DialogRef } from '@angular/cdk/dialog';
-import { Component, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
-import { AccountService } from '../account.service';
 import { LoadingButtonDirective } from '../../buttons/loading-button.directive';
+import { AccountStore } from '../account.store';
 
 @Component({
   selector: 'app-create-account-dialog',
@@ -12,8 +11,15 @@ import { LoadingButtonDirective } from '../../buttons/loading-button.directive';
 })
 export class CreateAccountDialog {
   readonly dialogRef = inject(DialogRef<string>);
-  private readonly accountService = inject(AccountService);
-  readonly loading = signal(false);
+  readonly store = inject(AccountStore);
+  readonly submitted = signal(false);
+
+  errorEffect$ = effect(() => {
+    const error = this.store.error();
+    if (error) {
+      this.formGroup.setErrors({ creationFailed: true });
+    }
+  });
 
   readonly formGroup = new FormGroup({
     name: new FormControl<string>('', {
@@ -23,23 +29,17 @@ export class CreateAccountDialog {
   });
 
   async onSubmit() {
+    this.submitted.set(true);
+
     if (this.formGroup.invalid) {
-      this.formGroup.markAllAsTouched();
       return;
     }
 
     const newAccount = this.formGroup.getRawValue();
+    this.store.createAccount(newAccount.name);
 
-    this.loading.set(true);
-
-    try {
-      await firstValueFrom(this.accountService.createAccount(newAccount.name));
+    if (!this.store.error()) {
       this.dialogRef.close();
-    } catch (err: unknown) {
-      console.error('Error creating account:', err);
-      this.formGroup.setErrors({ creationFailed: true });
-    } finally {
-      this.loading.set(false);
     }
   }
 }

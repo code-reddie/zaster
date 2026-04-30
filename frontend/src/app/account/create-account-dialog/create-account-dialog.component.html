@@ -3,8 +3,7 @@
   <form [formGroup]="formGroup" class="space-y-6" (ngSubmit)="onSubmit()">
     <div class="relative">
       @let showNameError =
-        (formGroup.get('name')?.invalid && formGroup.get('name')?.touched) ||
-        formGroup.hasError('creationFailed');
+        (formGroup.get('name')?.invalid && submitted()) || formGroup.hasError('creationFailed');
       <label for="name" class="block text-sm/6 font-medium text-white">Kontoname</label>
       <div class="mt-2">
         <input
@@ -24,7 +23,7 @@
           <span class="icon-info text-[13px] translate-y-[2px]"></span>
           <span class="text-[11px]">
             @if (formGroup.hasError('creationFailed')) {
-              Fehler beim Erstellen des Kontos.
+              {{ store.error() }}
             } @else {
               Bitte gib einen Kontoname ein.
             }
@@ -34,7 +33,9 @@
     </div>
     <div class="mt-10 space-x-4 justify-end flex">
       <button type="button" class="btn-secondary" (click)="dialogRef.close()">Abbrechen</button>
-      <button type="submit" class="btn-primary" [loading]="loading()">Konto hinzufügen</button>
+      <button type="submit" class="btn-primary" [loading]="store.loading()">
+        Konto hinzufügen
+      </button>
     </div>
   </form>
 </div>

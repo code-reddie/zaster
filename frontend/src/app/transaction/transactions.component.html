@@ -1,0 +1,47 @@
+<!-- transaction-list.component.html -->
+<div class="space-y-4">
+  <!-- Kontostand -->
+  <!-- <div class="rounded-xl p-4 bg-white/10 flex justify-between items-center">
+    <span class="text-sm font-medium text-white">Kontostand</span>
+    <span
+      class="text-xl font-bold"
+      [class.text-green-400]="balance() >= 0"
+      [class.text-red-400]="balance() < 0"
+    >
+      {{ balance() | currency: 'EUR' : 'symbol' : '1.2-2' : 'de' }}
+    </span>
+  </div> -->
+
+  <!-- Transaktionen -->
+  @if (transactionStore.loading()) {
+    <div class="flex justify-center py-10">
+      <app-loading-spinner />
+    </div>
+  } @else if (transactionStore.selectedAccountTransactions().length === 0) {
+    <div class="text-center text-white/50 py-10">Keine Buchungen vorhanden.</div>
+  } @else {
+    <div class="space-y-2">
+      @for (transaction of transactionStore.selectedAccountTransactions(); track transaction.id) {
+        <div class="rounded-xl p-4 bg-white/10 flex justify-between items-center">
+          <div class="flex flex-col">
+            <span class="text-sm font-medium text-white">
+              {{ transaction.auftragsgeber }} {{ transaction.buchungstext }}
+              {{ transaction.verwendungszweck }}
+            </span>
+            <!-- <span class="text-xs text-white/50">
+              {{ transaction.buchung | date: 'dd.MM.yyyy' : '' : 'de' }}
+            </span> -->
+          </div>
+
+          <!-- <span
+            class="text-sm font-semibold"
+            [class.text-green-400]="transaction.betrag >= 0"
+            [class.text-red-400]="transaction.betrag < 0"
+          >
+            {{ transaction.betrag | currency: 'EUR' : 'symbol' : '1.2-2' : 'de' }}
+          </span> -->
+        </div>
+      }
+    </div>
+  }
+</div>
