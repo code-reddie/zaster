@@ -3,7 +3,7 @@ import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angula
 import { AuthService } from '../authentication/auth.service';
 import { Router } from '@angular/router';
 import { AutoFocusDirective } from '../auto-focus.directive';
-import { first, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { LoadingButtonDirective } from '../buttons/loading-button.directive';
 
 @Component({
