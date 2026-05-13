@@ -1,0 +1,26 @@
+<div
+  class="h-24 border-2 border-dashed rounded-xl p-5 text-center transition-colors cursor-pointer"
+  [class.border-blue-500]="isDragging()"
+  [class.bg-blue-500/10]="isDragging()"
+  [class.border-white/20]="!isDragging()"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave()"
+  (drop)="onDrop($event)"
+  (click)="openFileDialog()"
+>
+  <input
+    id="csvFileInput"
+    type="file"
+    accept=".csv"
+    class="hidden"
+    (change)="onFileSelected($event)"
+  />
+
+  <p class="text-white text-lg">CSV hier ablegen</p>
+
+  @if (error()) {
+    <p class="text-red-400 text-sm mt-1">{{ error() }}</p>
+  } @else {
+    <p class="text-sm text-white/50 mt-1">oder klicken um eine Datei auszuwählen</p>
+  }
+</div>

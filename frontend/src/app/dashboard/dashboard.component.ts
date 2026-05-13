@@ -6,6 +6,7 @@ import { CreateAccountDialog } from '../account/create-account-dialog/create-acc
 import { AccountsComponent } from '../account/accounts.component';
 import { CreateTransactionDialog } from '../transaction/create-transaction-dialog/create-transaction-dialog.component';
 import { TransactionsComponent } from '../transaction/transactions.component';
+import { CsvImportDialog } from '../csv-import/csv-import-dialog/csv-import-dialog.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -24,17 +25,19 @@ export class DashboardComponent {
 
   openAddAccountDialog() {
     this.dialog.open(CreateAccountDialog, {
-      minWidth: '500px',
       backdropClass: ['bg-black/60', 'backdrop-blur-sm'],
-      panelClass: 'flex',
     });
   }
 
   openAddTransactionDialog() {
     this.dialog.open(CreateTransactionDialog, {
-      minWidth: '500px',
       backdropClass: ['bg-black/60', 'backdrop-blur-sm'],
-      panelClass: 'flex',
+    });
+  }
+
+  openImportCsvDialog() {
+    this.dialog.open(CsvImportDialog, {
+      backdropClass: ['bg-black/60', 'backdrop-blur-sm'],
     });
   }
 }
