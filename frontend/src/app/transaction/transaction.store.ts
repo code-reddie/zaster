@@ -54,6 +54,18 @@ export const TransactionStore = signalStore(
       }
     },
 
+    async setCategory(id: number, categoryId: number | null) {
+      patchState(store, { error: null });
+      try {
+        const updated = await transactionService.setCategory(id, categoryId);
+        patchState(store, {
+          transactions: store.transactions().map((t) => (t.id === id ? updated : t)),
+        });
+      } catch {
+        patchState(store, { error: 'Kategorie konnte nicht zugewiesen werden.' });
+      }
+    },
+
     async deleteTransaction(id: number) {
       patchState(store, { loading: true, error: null });
       try {

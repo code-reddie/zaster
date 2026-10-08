@@ -27,3 +27,11 @@ public sealed record CreateCategory(
     string? Color,
     string? Description,
     int? ParentCategoryId);
+
+public sealed record CategoryDto(
+    int Id,
+    string Name,
+    string? Icon,
+    string? Color,
+    string Description,
+    int? ParentCategoryId);

@@ -1,0 +1,130 @@
+<div class="w-[640px] max-h-[85vh] overflow-y-auto dialog">
+  <h2 class="text-2xl font-bold text-center text-white mb-6">Kategorien</h2>
+
+  <!-- Kategorien -->
+  <section class="space-y-3">
+    <form [formGroup]="categoryForm" class="flex gap-2" (ngSubmit)="addCategory()">
+      <input
+        type="color"
+        formControlName="color"
+        class="h-9 w-10 shrink-0 rounded-md bg-white/5 p-1 cursor-pointer"
+        aria-label="Farbe"
+      />
+      <input
+        type="text"
+        formControlName="name"
+        placeholder="Neue Kategorie, z.B. Lebensmittel"
+        class="block w-full form-input"
+      />
+      <button type="submit" class="btn-primary shrink-0" [disabled]="categoryForm.invalid">
+        Hinzufügen
+      </button>
+    </form>
+
+    @if (store.categories().length === 0) {
+      <div class="text-sm text-white/50">Noch keine Kategorien angelegt.</div>
+    } @else {
+      <ul class="flex flex-wrap gap-2">
+        @for (category of store.categories(); track category.id) {
+          <li
+            class="flex items-center gap-2 rounded-full bg-white/10 pl-3 pr-1 py-1 text-sm text-white"
+          >
+            <span
+              class="inline-block h-2.5 w-2.5 rounded-full"
+              [style.background-color]="category.color ?? '#64748b'"
+            ></span>
+            {{ category.name }}
+            <button
+              type="button"
+              class="rounded-full px-2 text-white/50 hover:bg-white/10 hover:text-white"
+              [attr.aria-label]="'Kategorie ' + category.name + ' löschen'"
+              (click)="deleteCategory(category.id)"
+            >
+              ×
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <!-- Regeln -->
+  <section class="mt-8 space-y-3">
+    <h3 class="text-lg font-semibold text-white">Regeln</h3>
+    <p class="text-xs text-white/50">
+      Enthält das gewählte Feld einer Buchung den Suchbegriff (Groß-/Kleinschreibung egal), bekommt
+      sie die Kategorie. Neue Buchungen werden automatisch kategorisiert; es gilt die erste passende
+      Regel.
+    </p>
+
+    <form [formGroup]="ruleForm" class="flex gap-2" (ngSubmit)="addRule()">
+      <select formControlName="field" class="form-input shrink-0" aria-label="Feld">
+        @for (field of ruleFields; track field) {
+          <option [value]="field" class="bg-slate-900">{{ field }}</option>
+        }
+      </select>
+      <input
+        type="text"
+        formControlName="pattern"
+        placeholder="enthält, z.B. REWE"
+        class="block w-full form-input"
+      />
+      <select formControlName="categoryId" class="form-input shrink-0" aria-label="Kategorie">
+        <option [ngValue]="null" class="bg-slate-900" disabled>Kategorie</option>
+        @for (category of store.categories(); track category.id) {
+          <option [ngValue]="category.id" class="bg-slate-900">{{ category.name }}</option>
+        }
+      </select>
+      <button type="submit" class="btn-primary shrink-0" [disabled]="ruleForm.invalid">
+        Hinzufügen
+      </button>
+    </form>
+
+    @if (store.rules().length === 0) {
+      <div class="text-sm text-white/50">Noch keine Regeln angelegt.</div>
+    } @else {
+      <ul class="space-y-1">
+        @for (rule of store.rules(); track rule.id) {
+          <li
+            class="flex items-center justify-between rounded-md bg-white/5 px-3 py-1.5 text-sm text-white"
+          >
+            <span>
+              <span class="text-white/50">{{ rule.field }} enthält</span>
+              „{{ rule.pattern }}“
+              <span class="text-white/50">→</span>
+              {{ categoryName(rule.categoryId) }}
+            </span>
+            <button
+              type="button"
+              class="rounded px-2 text-white/50 hover:bg-white/10 hover:text-white"
+              aria-label="Regel löschen"
+              (click)="store.deleteRule(rule.id)"
+            >
+              ×
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <div class="relative mt-8 flex items-center justify-end gap-4">
+    <div class="mr-auto text-[11px]">
+      @if (store.error()) {
+        <span class="text-danger">{{ store.error() }}</span>
+      } @else if (applyResult()) {
+        <span class="text-white/70">{{ applyResult() }}</span>
+      }
+    </div>
+    <button
+      type="button"
+      class="btn-secondary"
+      [loading]="applying()"
+      [disabled]="store.rules().length === 0"
+      (click)="applyRules()"
+    >
+      Regeln auf bestehende Buchungen anwenden
+    </button>
+    <button type="button" class="btn-primary" (click)="dialogRef.close()">Fertig</button>
+  </div>
+</div>

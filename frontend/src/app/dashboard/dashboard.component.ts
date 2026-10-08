@@ -7,6 +7,7 @@ import { AccountsComponent } from '../account/accounts.component';
 import { CreateTransactionDialog } from '../transaction/create-transaction-dialog/create-transaction-dialog.component';
 import { TransactionsComponent } from '../transaction/transactions.component';
 import { CsvImportDialog } from '../csv-import/csv-import-dialog/csv-import-dialog.component';
+import { CategoriesDialog } from '../category/categories-dialog/categories-dialog.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -37,6 +38,12 @@ export class DashboardComponent {
 
   openImportCsvDialog() {
     this.dialog.open(CsvImportDialog, {
+      backdropClass: ['bg-black/60', 'backdrop-blur-sm'],
+    });
+  }
+
+  openCategoriesDialog() {
+    this.dialog.open(CategoriesDialog, {
       backdropClass: ['bg-black/60', 'backdrop-blur-sm'],
     });
   }

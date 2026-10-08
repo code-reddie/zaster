@@ -7,6 +7,7 @@ export interface Transaction {
   verwendungszweck: string;
   betrag: number;
   accountId: number;
+  categoryId: number | null;
 }
 
 export interface CreateTransaction {

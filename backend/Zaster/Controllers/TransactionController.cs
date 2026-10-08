@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Zaster.Categorization;
 using Zaster.Database;
 using Zaster.Models;
 
@@ -57,6 +58,9 @@ public sealed class TransactionController(AppDbContext context) : ControllerBase
             Account = account
         };
 
+        var rules = await _context.CategorizationRules.ToListAsync(cancellationToken);
+        RuleEngine.Apply([transaction], rules);
+
         _context.Transactions.Add(transaction);
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -99,6 +103,46 @@ public sealed class TransactionController(AppDbContext context) : ControllerBase
             .ToListAsync(cancellationToken);
 
         return Ok(transactions);
+    }
+
+    [HttpPut("{id}/category")]
+    public async Task<ActionResult<TransactionDto>> SetCategory(
+        int id,
+        SetTransactionCategory dto,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var transaction = await _context.Transactions
+            .FirstOrDefaultAsync(t => t.Id == id && t.Account!.Users.Any(u => u.Id == userId), cancellationToken);
+        if (transaction == null)
+        {
+            return NotFound();
+        }
+
+        if (dto.CategoryId is int categoryId
+            && !await _context.Categories.AnyAsync(c => c.Id == categoryId, cancellationToken))
+        {
+            return BadRequest($"Category with ID {categoryId} does not exist.");
+        }
+
+        transaction.CategoryId = dto.CategoryId;
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Ok(new TransactionDto(
+            transaction.Id,
+            transaction.Buchung,
+            transaction.Valuta,
+            transaction.Auftragsgeber,
+            transaction.Buchungstext,
+            transaction.Verwendungszweck,
+            transaction.Betrag,
+            transaction.AccountId,
+            transaction.CategoryId));
     }
 
     [HttpDelete("{id}")]
