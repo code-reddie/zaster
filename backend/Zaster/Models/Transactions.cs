@@ -20,7 +20,7 @@ public sealed record Transaction : Entity
 
     public Account? Account { get; init; }
 
-    public int? CategoryId { get; init; }
+    public int? CategoryId { get; set; }
 
     public Category? Category { get; init; }
 }
@@ -44,3 +44,5 @@ public sealed record CreateTransaction(
     string? Verwendungszweck,
     decimal Betrag,
     int AccountId);
+
+public sealed record SetTransactionCategory(int? CategoryId);

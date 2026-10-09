@@ -14,6 +14,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<User> Users => Set<User>();
 
+    public DbSet<CategorizationRule> CategorizationRules => Set<CategorizationRule>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -46,5 +48,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             .WithMany(u => u.Categories)
             .HasForeignKey(c => c.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CategorizationRule>()
+            .HasOne(r => r.Category)
+            .WithMany()
+            .HasForeignKey(r => r.CategoryId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CategorizationRule>()
+            .Property(r => r.Field)
+            .HasConversion<string>();
     }
 }

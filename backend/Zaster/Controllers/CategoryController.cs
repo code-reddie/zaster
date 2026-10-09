@@ -79,6 +79,7 @@ public sealed class CategoryController(AppDbContext context) : ControllerBase
 
         var categories = await _context.Categories
             .Where(c => c.UserId == userId)
+            .OrderBy(c => c.Name)
             .ToListAsync(cancellationToken);
 
         return Ok(categories.Select(ToDto));

@@ -16,6 +16,12 @@ export class TransactionService {
     return firstValueFrom(this.http.get<Transaction[]>(this.baseUrl));
   }
 
+  setCategory(id: number, categoryId: number | null) {
+    return firstValueFrom(
+      this.http.put<Transaction>(`${this.baseUrl}/${id}/category`, { categoryId }),
+    );
+  }
+
   deleteTransaction(id: number) {
     return firstValueFrom(this.http.delete(`${this.baseUrl}/${id}`));
   }

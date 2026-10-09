@@ -20,6 +20,9 @@
   } @else if (transactionStore.selectedAccountTransactions().length === 0) {
     <div class="text-center text-white/50 py-10">Keine Buchungen vorhanden.</div>
   } @else {
+    @if (transactionStore.error()) {
+      <div class="text-danger text-sm">{{ transactionStore.error() }}</div>
+    }
     <div class="space-y-2">
       @for (transaction of transactionStore.selectedAccountTransactions(); track transaction.id) {
         <div class="rounded-xl p-4 bg-white/10 flex justify-between items-center">
@@ -31,6 +34,35 @@
             <!-- <span class="text-xs text-white/50">
               {{ transaction.buchung | date: 'dd.MM.yyyy' : '' : 'de' }}
             </span> -->
+          </div>
+
+          @let category =
+            transaction.categoryId !== null
+              ? categoryStore.categoriesById().get(transaction.categoryId)
+              : undefined;
+          <div class="flex items-center gap-2 shrink-0 ml-4">
+            <span
+              class="inline-block h-2.5 w-2.5 rounded-full"
+              [style.background-color]="category?.color ?? 'transparent'"
+            ></span>
+            <select
+              class="form-input py-1 text-sm"
+              [class.text-white/50]="!category"
+              aria-label="Kategorie"
+              [value]="transaction.categoryId ?? ''"
+              (change)="onCategoryChange(transaction.id, $event)"
+            >
+              <option value="" class="bg-slate-900">Ohne Kategorie</option>
+              @for (c of categoryStore.categories(); track c.id) {
+                <option
+                  [value]="c.id"
+                  [selected]="c.id === transaction.categoryId"
+                  class="bg-slate-900"
+                >
+                  {{ c.name }}
+                </option>
+              }
+            </select>
           </div>
 
           <!-- <span
