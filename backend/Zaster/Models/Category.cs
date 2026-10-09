@@ -12,6 +12,10 @@ public sealed record Category : Entity
 
     public string Description { get; init; } = string.Empty;
 
+    public int UserId { get; init; }
+
+    public User? User { get; init; }
+
     public int? ParentCategoryId { get; init; }
 
     public Category? ParentCategory { get; init; }

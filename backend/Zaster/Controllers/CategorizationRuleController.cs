@@ -26,7 +26,14 @@ public sealed class CategorizationRuleController(AppDbContext context) : Control
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CategorizationRuleDto>>> GetRules(CancellationToken cancellationToken)
     {
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
         var rules = await _context.CategorizationRules
+            .Where(r => r.Category!.UserId == userId)
             .OrderBy(r => r.Id)
             .Select(r => new CategorizationRuleDto(r.Id, r.Pattern, r.Field, r.CategoryId))
             .ToListAsync(cancellationToken);
@@ -39,12 +46,18 @@ public sealed class CategorizationRuleController(AppDbContext context) : Control
         CreateCategorizationRule dto,
         CancellationToken cancellationToken)
     {
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
         if (string.IsNullOrWhiteSpace(dto.Pattern))
         {
             return BadRequest("Suchbegriff darf nicht leer sein.");
         }
 
-        if (!await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId, cancellationToken))
+        if (!await _context.Categories.AnyAsync(c => c.Id == dto.CategoryId && c.UserId == userId, cancellationToken))
         {
             return BadRequest($"Category with ID {dto.CategoryId} does not exist.");
         }
@@ -67,7 +80,14 @@ public sealed class CategorizationRuleController(AppDbContext context) : Control
         int id,
         CancellationToken cancellationToken)
     {
-        var rule = await _context.CategorizationRules.FindAsync([id], cancellationToken);
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var rule = await _context.CategorizationRules
+            .FirstOrDefaultAsync(r => r.Id == id && r.Category!.UserId == userId, cancellationToken);
         if (rule == null)
         {
             return NotFound();
@@ -80,7 +100,7 @@ public sealed class CategorizationRuleController(AppDbContext context) : Control
     }
 
     /// <summary>
-    /// Wendet alle Regeln auf die unkategorisierten Buchungen des angemeldeten Nutzers an.
+    /// Wendet die Regeln des angemeldeten Nutzers auf seine unkategorisierten Buchungen an.
     /// </summary>
     [HttpPost("apply")]
     public async Task<ActionResult<ApplyRulesResult>> ApplyRules(CancellationToken cancellationToken)
@@ -91,7 +111,9 @@ public sealed class CategorizationRuleController(AppDbContext context) : Control
             return Unauthorized();
         }
 
-        var rules = await _context.CategorizationRules.ToListAsync(cancellationToken);
+        var rules = await _context.CategorizationRules
+            .Where(r => r.Category!.UserId == userId)
+            .ToListAsync(cancellationToken);
         var transactions = await _context.Transactions
             .Where(t => t.CategoryId == null && t.Account!.Users.Any(u => u.Id == userId))
             .ToListAsync(cancellationToken);

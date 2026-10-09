@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -15,38 +16,50 @@ public sealed class CategoryController(AppDbContext context) : ControllerBase
 {
     private readonly AppDbContext _context = context;
 
-    private static CategoryDto ToDto(Category c) =>
-        new(c.Id, c.Name, c.Icon, c.Color, c.Description, c.ParentCategoryId);
-
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<CategoryDto>>> GetCategories(CancellationToken cancellationToken)
+    private int? GetUserId()
     {
-        var categories = await _context.Categories
-            .OrderBy(c => c.Name)
-            .Select(c => new CategoryDto(c.Id, c.Name, c.Icon, c.Color, c.Description, c.ParentCategoryId))
-            .ToListAsync(cancellationToken);
-
-        return Ok(categories);
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(userIdString, out var userId) ? userId : null;
     }
+
+    private static CategoryDto ToDto(Category category) => new(
+        category.Id,
+        category.Name,
+        category.Icon,
+        category.Color,
+        category.Description,
+        category.ParentCategoryId);
 
     [HttpPost]
     public async Task<ActionResult<CategoryDto>> CreateCategory(
             CreateCategory dto,
             CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name))
+        var userId = GetUserId();
+        if (userId is null)
         {
-            return BadRequest("Name darf nicht leer sein.");
+            return Unauthorized();
+        }
+
+        if (dto.ParentCategoryId is not null)
+        {
+            var parentExists = await _context.Categories
+                .AnyAsync(c => c.Id == dto.ParentCategoryId && c.UserId == userId, cancellationToken);
+            if (!parentExists)
+            {
+                return BadRequest($"Category with ID {dto.ParentCategoryId} does not exist.");
+            }
         }
 
         var category = new Category
         {
             Id = 0,
-            Name = dto.Name.Trim(),
+            Name = dto.Name,
             Icon = dto.Icon,
             Color = dto.Color,
             Description = dto.Description ?? string.Empty,
-            ParentCategoryId = dto.ParentCategoryId
+            ParentCategoryId = dto.ParentCategoryId,
+            UserId = userId.Value
         };
 
         _context.Categories.Add(category);
@@ -55,19 +68,43 @@ public sealed class CategoryController(AppDbContext context) : ControllerBase
         return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, ToDto(category));
     }
 
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<CategoryDto>>> GetCategories(CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var categories = await _context.Categories
+            .Where(c => c.UserId == userId)
+            .OrderBy(c => c.Name)
+            .ToListAsync(cancellationToken);
+
+        return Ok(categories.Select(ToDto));
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<CategoryDto>> GetCategory(
         int id,
         CancellationToken cancellationToken)
     {
-        var category = await _context.Categories.FindAsync([id], cancellationToken);
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var category = await _context.Categories
+            .FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId, cancellationToken);
 
         if (category == null)
         {
             return NotFound();
         }
 
-        return ToDto(category);
+        return Ok(ToDto(category));
     }
 
     [HttpDelete("{id}")]
@@ -75,7 +112,14 @@ public sealed class CategoryController(AppDbContext context) : ControllerBase
         int id,
         CancellationToken cancellationToken)
     {
-        var category = await _context.Categories.FindAsync([id], cancellationToken);
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var category = await _context.Categories
+            .FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId, cancellationToken);
 
         if (category == null)
         {

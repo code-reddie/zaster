@@ -11,8 +11,8 @@ using Zaster.Database;
 namespace Zaster.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261008171758_CategorizationRules")]
-    partial class CategorizationRules
+    [Migration("20261008171701_AssignCategoriesToUsers")]
+    partial class AssignCategoriesToUsers
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -50,30 +50,6 @@ namespace Zaster.Migrations
                     b.ToTable("Accounts");
                 });
 
-            modelBuilder.Entity("Zaster.Models.CategorizationRule", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Field")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Pattern")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoryId");
-
-                    b.ToTable("CategorizationRules");
-                });
-
             modelBuilder.Entity("Zaster.Models.Category", b =>
                 {
                     b.Property<int>("Id")
@@ -97,9 +73,14 @@ namespace Zaster.Migrations
                     b.Property<int?>("ParentCategoryId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ParentCategoryId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Categories");
                 });
@@ -180,17 +161,6 @@ namespace Zaster.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Zaster.Models.CategorizationRule", b =>
-                {
-                    b.HasOne("Zaster.Models.Category", "Category")
-                        .WithMany()
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Category");
-                });
-
             modelBuilder.Entity("Zaster.Models.Category", b =>
                 {
                     b.HasOne("Zaster.Models.Category", "ParentCategory")
@@ -198,7 +168,15 @@ namespace Zaster.Migrations
                         .HasForeignKey("ParentCategoryId")
                         .OnDelete(DeleteBehavior.Cascade);
 
+                    b.HasOne("Zaster.Models.User", "User")
+                        .WithMany("Categories")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("ParentCategory");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Zaster.Models.Transaction", b =>
@@ -229,6 +207,11 @@ namespace Zaster.Migrations
                     b.Navigation("Subcategories");
 
                     b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("Zaster.Models.User", b =>
+                {
+                    b.Navigation("Categories");
                 });
 #pragma warning restore 612, 618
         }

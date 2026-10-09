@@ -58,7 +58,9 @@ public sealed class TransactionController(AppDbContext context) : ControllerBase
             Account = account
         };
 
-        var rules = await _context.CategorizationRules.ToListAsync(cancellationToken);
+        var rules = await _context.CategorizationRules
+            .Where(r => r.Category!.UserId == userId)
+            .ToListAsync(cancellationToken);
         RuleEngine.Apply([transaction], rules);
 
         _context.Transactions.Add(transaction);
@@ -125,7 +127,7 @@ public sealed class TransactionController(AppDbContext context) : ControllerBase
         }
 
         if (dto.CategoryId is int categoryId
-            && !await _context.Categories.AnyAsync(c => c.Id == categoryId, cancellationToken))
+            && !await _context.Categories.AnyAsync(c => c.Id == categoryId && c.UserId == userId, cancellationToken))
         {
             return BadRequest($"Category with ID {categoryId} does not exist.");
         }
