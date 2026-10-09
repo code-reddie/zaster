@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Zaster.Authentication;
 using Zaster.Database;
+using Zaster.FinTs;
 
 namespace Zaster;
 
@@ -17,6 +18,7 @@ internal sealed class Program
         builder.Services.AddSwagger();
         builder.Services.AddAngularFrontend();
         builder.Services.AddDatabase(builder);
+        builder.Services.AddFinTs(builder);
 
         var app = builder.Build();
         app.AddSwagger();
