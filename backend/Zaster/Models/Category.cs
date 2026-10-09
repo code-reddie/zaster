@@ -12,6 +12,10 @@ public sealed record Category : Entity
 
     public string Description { get; init; } = string.Empty;
 
+    public int UserId { get; init; }
+
+    public User? User { get; init; }
+
     public int? ParentCategoryId { get; init; }
 
     public Category? ParentCategory { get; init; }
@@ -26,4 +30,12 @@ public sealed record CreateCategory(
     string? Icon,
     string? Color,
     string? Description,
+    int? ParentCategoryId);
+
+public sealed record CategoryDto(
+    int Id,
+    string Name,
+    string? Icon,
+    string? Color,
+    string Description,
     int? ParentCategoryId);

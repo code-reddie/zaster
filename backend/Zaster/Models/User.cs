@@ -9,4 +9,8 @@ public sealed record User : Entity
     public required string PasswordHash { get; init; }
 
     public List<Account> Accounts { get; init; } = [];
+
+    public List<Category> Categories { get; init; } = [];
 }
+
+public sealed record UserDto(int Id, string Name);
