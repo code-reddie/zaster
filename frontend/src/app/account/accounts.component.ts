@@ -1,10 +1,11 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { AccountStore } from './account.store';
 import { TransactionStore } from '../transaction/transaction.store';
 
 @Component({
   selector: 'app-accounts',
   imports: [],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './accounts.component.html',
 })
 export class AccountsComponent implements OnInit {

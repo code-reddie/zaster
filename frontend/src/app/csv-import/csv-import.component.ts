@@ -1,7 +1,8 @@
-import { Component, output, signal } from '@angular/core';
+import { Component, output, signal, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'app-csv-import',
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './csv-import.component.html',
 })
 export class CsvImportComponent {

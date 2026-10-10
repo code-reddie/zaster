@@ -1,5 +1,5 @@
 import { DialogRef } from '@angular/cdk/dialog';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LoadingButtonDirective } from '../../buttons/loading-button.directive';
 import { TransactionStore } from '../../transaction/transaction.store';
@@ -9,6 +9,7 @@ import { CategoryStore } from '../category.store';
 @Component({
   selector: 'app-categories-dialog',
   imports: [ReactiveFormsModule, LoadingButtonDirective],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './categories-dialog.component.html',
 })
 export class CategoriesDialog implements OnInit {

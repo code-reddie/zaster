@@ -1,5 +1,5 @@
 import { DialogRef } from '@angular/cdk/dialog';
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LoadingButtonDirective } from '../../buttons/loading-button.directive';
 import { AccountStore } from '../account.store';
@@ -7,6 +7,7 @@ import { AccountStore } from '../account.store';
 @Component({
   selector: 'app-create-account-dialog',
   imports: [ReactiveFormsModule, LoadingButtonDirective],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './create-account-dialog.component.html',
 })
 export class CreateAccountDialog {

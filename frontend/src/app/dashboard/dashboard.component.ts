@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { AuthService } from '../authentication/auth.service';
 import { Router } from '@angular/router';
 import { Dialog } from '@angular/cdk/dialog';
@@ -13,6 +13,7 @@ import { FinTsSyncDialog } from '../fints/fints-sync-dialog/fints-sync-dialog.co
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [AccountsComponent, TransactionsComponent],
 })
 export class DashboardComponent {

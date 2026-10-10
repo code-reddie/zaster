@@ -1,5 +1,5 @@
 # --- STAGE 1: Angular Build ---
-FROM node:25-alpine AS angular-builder
+FROM node:26-alpine AS angular-builder
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci

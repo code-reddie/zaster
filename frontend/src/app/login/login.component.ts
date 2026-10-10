@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../authentication/auth.service';
 import { Router } from '@angular/router';
@@ -9,6 +9,7 @@ import { LoadingButtonDirective } from '../buttons/loading-button.directive';
 @Component({
   selector: 'app-login',
   imports: [ReactiveFormsModule, AutoFocusDirective, LoadingButtonDirective],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './login.component.html',
 })
 export class LoginComponent {

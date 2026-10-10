@@ -1,7 +1,7 @@
 import { DialogRef } from '@angular/cdk/dialog';
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { AccountStore } from '../../account/account.store';
@@ -13,6 +13,7 @@ import { FinTsService } from '../fints.service';
 @Component({
   selector: 'app-fints-sync-dialog',
   imports: [ReactiveFormsModule, LoadingButtonDirective, DatePipe],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './fints-sync-dialog.component.html',
 })
 export class FinTsSyncDialog {

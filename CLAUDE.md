@@ -9,7 +9,7 @@ Sprache im Projekt ist Deutsch: Oberfläche, Kommentare, Commit-Nachrichten, PR-
 ## Stack
 
 - **Backend** `backend/Zaster`: .NET 10, ASP.NET Core Controller, EF Core mit SQLite, JWT-Login (BCrypt für Passwörter), Swagger. FinTS über `libfintx.FinTS` 1.4.0.
-- **Frontend** `frontend`: Angular 21 (Standalone-Komponenten, Signals, `@ngrx/signals`-Stores), Tailwind CSS 4, `@angular/cdk` für Dialoge. Prettier ist konfiguriert.
+- **Frontend** `frontend`: Angular 22 (Standalone-Komponenten, Signals, `@ngrx/signals`-Stores), Tailwind CSS 4, `@angular/cdk` für Dialoge. Prettier ist konfiguriert.
 - **Auslieferung**: ein `Dockerfile` baut beides; das Angular-Build landet in `wwwroot` des Backends. Port 8080, Daten unter `/data`.
 - **CI** `.github/workflows/docker-image.yml`: baut bei PRs nur das Image (amd64 + arm64); erst nach Merge auf `main` wird `ghcr.io/code-reddie/zaster:latest` gepusht.
 
