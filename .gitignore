@@ -1,3 +1,6 @@
 .DS_Store
 .AppleDouble
 .LSOverride
+
+# Lokaler Datenordner, falls das Backend aus dem Repo-Wurzelordner gestartet wird
+/data/

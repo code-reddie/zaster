@@ -10,23 +10,26 @@ Sprache im Projekt ist Deutsch: Oberfläche, Kommentare, Commit-Nachrichten, PR-
 
 - **Backend** `backend/Zaster`: .NET 10, ASP.NET Core Controller, EF Core mit SQLite, JWT-Login (BCrypt für Passwörter), Swagger. FinTS über `libfintx.FinTS` 1.4.0.
 - **Frontend** `frontend`: Angular 22 (Standalone-Komponenten, Signals, `@ngrx/signals`-Stores), Tailwind CSS 4, `@angular/cdk` für Dialoge. Prettier ist konfiguriert.
-- **Auslieferung**: ein `Dockerfile` baut beides; das Angular-Build landet in `wwwroot` des Backends. Port 8080, Daten unter `/data`.
+- **Auslieferung**: ein `Dockerfile` baut beides; das Angular-Build landet in `wwwroot` des Backends. Port 8080, Daten unter `/data` (Container läuft als Production).
 - **CI** `.github/workflows/docker-image.yml`: baut bei PRs nur das Image (amd64 + arm64); erst nach Merge auf `main` wird `ghcr.io/code-reddie/zaster:latest` gepusht.
 
 ## Lokal bauen und starten
 
-Backend (lauscht auf http://localhost:5000, Profil `http`):
+Schritt-für-Schritt-Anleitung für macOS: README, Abschnitt „Lokal starten (macOS)“.
+
+Backend (lauscht auf http://localhost:5080, Profil `http`; nicht 5000, den belegt macOS mit AirPlay):
 
 ```bash
 cd backend/Zaster
-export JwtSettings__Key="$(openssl rand -base64 64 | tr -d '\n')"   # mindestens 64 Zeichen (HMAC-SHA512)
-export JwtSettings__Issuer=zaster JwtSettings__Audience=zaster
-export ConnectionStrings__DefaultConnection="Data Source=zaster.db" # Standard ist /data/zaster.db
-export FinTS__KeyRingPath=./keys                                     # Standard ist /data/keys
+dotnet user-secrets set "JwtSettings:Key" "$(openssl rand -base64 64 | tr -d '\n')"   # einmalig, mindestens 64 Zeichen (HMAC-SHA512)
+dotnet user-secrets set "JwtSettings:Issuer" zaster
+dotnet user-secrets set "JwtSettings:Audience" zaster
 dotnet run
 ```
 
-Frontend (Dev-Server mit Proxy `/api` → `localhost:5000`, siehe `frontend/proxy.conf.json`):
+Datenordner (`DataDirectory`): in Development `backend/Zaster/data` (Datenbank `zaster.db`, Schlüssel unter `keys`), sonst `/data`. Fehlt der Ordner, wird er angelegt; er ist per `.gitignore` ausgeschlossen. Pfade sind über `DataDirectory`, `ConnectionStrings__DefaultConnection` und `FinTS__KeyRingPath` überschreibbar, relative Pfade gelten ab dem Content Root (`DataPaths.cs`). Keine Container-Pfade fest in den Code schreiben. Geheimnisse lokal immer per `dotnet user-secrets` (UserSecretsId `zaster`), nie in `appsettings.Development.json`. Der Angular-CLI braucht Node ≥ 22.22.3 (Docker baut mit Node 26).
+
+Frontend (Dev-Server mit Proxy `/api` → `localhost:5080`, siehe `frontend/proxy.conf.json`):
 
 ```bash
 cd frontend
@@ -46,7 +49,7 @@ Betrieb per `docker compose` mit `.env` (`JWT_KEY`, optional `FINTS_PRODUCT_ID`)
 ## Datenbank und Migrationen
 
 - Migrationen liegen in `backend/Zaster/Migrations` und werden beim Start automatisch angewendet (`db.Database.Migrate()`).
-- Neue Migration: `cd backend/Zaster && dotnet ef migrations add <Name>`. `dotnet ef` startet die App-Konfiguration und braucht dafür `JwtSettings__Key` (≥ 64 Zeichen) in der Umgebung, sonst bricht es ab.
+- Neue Migration: `cd backend/Zaster && dotnet ef migrations add <Name>`. `dotnet ef` startet die App-Konfiguration und braucht dafür `JwtSettings:Key` (≥ 64 Zeichen, per user-secrets oder Umgebungsvariable), sonst bricht es ab.
 - Bestehende Daten beim Migrieren immer mitnehmen (z. B. Standardwerte für neue Pflichtspalten), die App läuft produktiv mit echten Buchungen.
 
 ## README aktuell halten
@@ -89,6 +92,6 @@ Das ist eine Arbeitsanweisung für Claude, keine technische Prüfung: Nichts im 
 - libfintx 1.4.0 maskiert Sonderzeichen (`?`, `@`, `'`, `+`, `:`) in PIN und Kennung nicht. Das führt bei der ING zu Fehler 9030 „Die Daten konnten nicht entschlüsselt werden“. Zaster maskiert selbst (`EscapeFinTs` in `FinTs/FinTsService.cs`) und lehnt Zeichen außerhalb von ASCII ab, weil libfintx sie zu `?` macht.
 - libfintx erkennt Fehler in HIRMG nicht zuverlässig (zusätzlicher Doppelpunkt im Segmentkopf). Zaster liest HIRMG/HIRMS selbst aus. Nur Codes `9xxx` gelten als Ablehnung; `3xxx` sind Warnungen (z. B. 3010: nur die letzten 90 Tage), die Umsätze sind trotzdem da.
 - Die ING liefert höchstens 90 Tage. Der Abruf ist inkrementell ab dem letzten Abruf mit 7 Tagen Überlappung; der Duplikat-Abgleich fängt die Überschneidung ab.
-- Die PIN wird mit ASP.NET Data Protection verschlüsselt in `Account.FinTsPin` gespeichert, Schlüssel unter `FinTS__KeyRingPath` (Standard `/data/keys`). Sie wird nur nach einem erfolgreichen Abruf gespeichert, bei einer Ablehnung durch die Bank sofort gelöscht und verlässt das Backend nie (DTO zeigt nur `HasFinTsPin`). Gehen die Schlüssel verloren, sind alle gespeicherten PINs unbrauchbar.
+- Die PIN wird mit ASP.NET Data Protection verschlüsselt in `Account.FinTsPin` gespeichert, Schlüssel unter `FinTS__KeyRingPath` (Standard `<DataDirectory>/keys`, im Container `/data/keys`). Sie wird nur nach einem erfolgreichen Abruf gespeichert, bei einer Ablehnung durch die Bank sofort gelöscht und verlässt das Backend nie (DTO zeigt nur `HasFinTsPin`). Gehen die Schlüssel verloren, sind alle gespeicherten PINs unbrauchbar.
 - Nächtlicher Abruf (`FinTs/NightlySyncService.cs`) für alle Konten mit gespeicherter PIN um `FinTS__NightlySyncTime` (Standard `04:00`, Zeitzone `FinTS__TimeZone`, Standard `Europe/Berlin`; leer = aus). Fehler landen in `Account.LastSyncError`.
 - Nie mit ausgedachten Zugangsdaten gegen die echte ING testen: Fehlversuche können den Zugang einer fremden Person sperren.

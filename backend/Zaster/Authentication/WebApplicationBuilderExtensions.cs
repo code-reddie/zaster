@@ -16,7 +16,14 @@ internal static class WebApplicationBuilderExtensions
         public void AddAuthentication()
         {
             var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-            var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
+            var keyText = jwtSettings["Key"];
+            if (string.IsNullOrEmpty(keyText) || keyText.Length < 64)
+            {
+                throw new InvalidOperationException(
+                    "JwtSettings:Key fehlt oder ist kürzer als 64 Zeichen. Per Umgebungsvariable JwtSettings__Key oder lokal per dotnet user-secrets setzen.");
+            }
+
+            var key = Encoding.ASCII.GetBytes(keyText);
 
             builder.Services.AddAuthentication(options =>
             {

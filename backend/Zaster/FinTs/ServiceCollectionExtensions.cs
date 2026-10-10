@@ -24,7 +24,12 @@ internal static class ServiceCollectionExtensions
                 FinTsGlobals.ProductId = productId;
             }
 
-            var keyRingPath = section.GetValue<string>(nameof(FinTsOptions.KeyRingPath)) ?? new FinTsOptions().KeyRingPath;
+            // Ohne eigenen Eintrag liegen die Schlüssel im Datenordner (/data/keys bzw. lokal ./data/keys).
+            var configuredKeyRingPath = section.GetValue<string>(nameof(FinTsOptions.KeyRingPath));
+            var keyRingPath = string.IsNullOrWhiteSpace(configuredKeyRingPath)
+                ? Path.Combine(builder.GetDataDirectory(), "keys")
+                : builder.ResolvePath(configuredKeyRingPath);
+            services.PostConfigure<FinTsOptions>(options => options.KeyRingPath = keyRingPath);
             services.AddDataProtection()
                 .SetApplicationName("Zaster")
                 .PersistKeysToFileSystem(new DirectoryInfo(keyRingPath));
