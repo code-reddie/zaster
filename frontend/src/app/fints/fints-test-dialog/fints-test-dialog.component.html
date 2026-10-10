@@ -1,0 +1,110 @@
+<div class="w-[800px] max-h-[90vh] overflow-y-auto dialog">
+  <h2 class="text-2xl font-bold text-center text-white mb-2">FinTS-Verbindung testen</h2>
+  <p class="text-sm text-white/50 text-center mb-6">
+    Ruft die Buchungen der letzten 90 Tage bei der ING ab und zeigt sie an. Es wird nichts
+    gespeichert.
+  </p>
+
+  <form [formGroup]="formGroup" class="space-y-4" (ngSubmit)="onSubmit()">
+    <div>
+      <label for="iban" class="block text-sm/6 font-medium text-white">IBAN</label>
+      <input
+        id="iban"
+        type="text"
+        formControlName="iban"
+        placeholder="DE.. 5001 0517 ...."
+        class="mt-2 block w-full form-input"
+        [class.!outline-red-300]="formGroup.controls.iban.invalid && submitted()"
+      />
+    </div>
+    <div class="flex gap-4">
+      <div class="flex-1">
+        <label for="userId" class="block text-sm/6 font-medium text-white">
+          Zugangsnummer <span class="text-white/50">(optional)</span>
+        </label>
+        <input
+          id="userId"
+          type="text"
+          formControlName="userId"
+          placeholder="Standard: letzte 10 Stellen der IBAN"
+          autocomplete="username"
+          class="mt-2 block w-full form-input"
+        />
+      </div>
+      <div class="flex-1">
+        <label for="pin" class="block text-sm/6 font-medium text-white">Internetbanking-PIN</label>
+        <input
+          id="pin"
+          type="password"
+          formControlName="pin"
+          autocomplete="current-password"
+          class="mt-2 block w-full form-input"
+          [class.!outline-red-300]="formGroup.controls.pin.invalid && submitted() && !result()"
+        />
+      </div>
+    </div>
+
+    <div class="space-x-4 justify-end flex">
+      <button type="button" class="btn-secondary" (click)="dialogRef.close()">Schließen</button>
+      <button type="submit" class="btn-primary" [loading]="loading()" [disabled]="loading()">
+        Buchungen abrufen
+      </button>
+    </div>
+  </form>
+
+  @if (loading()) {
+    <p class="text-sm text-white/50 mt-4">
+      Verbindung zur ING läuft. Falls die ING-App eine Freigabe anfordert, bitte dort bestätigen.
+    </p>
+  }
+
+  @if (error()) {
+    <p class="text-danger text-sm mt-4">{{ error() }}</p>
+  }
+
+  @if (result(); as result) {
+    @if (result.success) {
+      <p class="text-white mt-6 mb-2">{{ result.transactions.length }} Buchungen abgerufen</p>
+      <div class="space-y-2">
+        @for (transaction of result.transactions; track $index) {
+          <div class="rounded-xl p-3 bg-white/10 flex justify-between items-center gap-4">
+            <div class="flex flex-col min-w-0">
+              <span class="text-sm font-medium text-white truncate">
+                {{ transaction.auftragsgeber || transaction.buchungstext }}
+              </span>
+              <span class="text-xs text-white/50 truncate">
+                {{ transaction.buchung | date: 'dd.MM.yyyy' }} · {{ transaction.buchungstext }} ·
+                {{ transaction.verwendungszweck }}
+              </span>
+            </div>
+            <span
+              class="text-sm font-semibold whitespace-nowrap"
+              [class.text-green-400]="transaction.betrag >= 0"
+              [class.text-red-400]="transaction.betrag < 0"
+            >
+              {{ formatBetrag(transaction.betrag) }}
+            </span>
+          </div>
+        }
+      </div>
+    }
+
+    @if (result.messages.length > 0 || result.diagnostics.length > 0) {
+      <details class="mt-4 text-xs text-white/50" [open]="!result.success">
+        <summary class="cursor-pointer">Meldungen der Bank und Diagnose</summary>
+        <ul class="mt-2 space-y-1">
+          @for (message of result.messages; track $index) {
+            <li>{{ message.code }}: {{ message.message }}</li>
+          }
+        </ul>
+        @if (result.diagnostics.length > 0) {
+          <ul class="mt-2 space-y-1 font-mono select-all">
+            @for (line of result.diagnostics; track $index) {
+              <li>{{ line }}</li>
+            }
+          </ul>
+        }
+      </details>
+    }
+  }
+</div>
