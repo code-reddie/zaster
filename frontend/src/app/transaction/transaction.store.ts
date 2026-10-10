@@ -64,6 +64,11 @@ export const TransactionStore = signalStore(
       return result;
     },
 
+    /** Fügt Buchungen hinzu, die das Backend schon gespeichert hat. */
+    addTransactions(transactions: Transaction[]) {
+      patchState(store, { transactions: [...store.transactions(), ...transactions] });
+    },
+
     async setCategory(id: number, categoryId: number | null) {
       patchState(store, { error: null });
       try {

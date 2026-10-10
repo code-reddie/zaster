@@ -1,28 +1,24 @@
-export interface FinTsTestRequest {
-  iban: string;
-  userId: string | null;
-  pin: string;
-  days: number | null;
-}
+import { Account } from '../account/account.models';
+import { Transaction } from '../transaction/transaction.models';
 
 export interface FinTsBankMessage {
   code: string;
   message: string;
 }
 
-export interface FinTsTransactionPreview {
-  buchung: string;
-  valuta: string;
-  auftragsgeber: string;
-  buchungstext: string;
-  verwendungszweck: string;
-  betrag: number;
+export interface FinTsSyncRequest {
+  userId: string | null;
+  pin: string | null;
+  savePin: boolean;
 }
 
-export interface FinTsTestResult {
+export interface FinTsSyncResult {
   success: boolean;
   error: string | null;
   messages: FinTsBankMessage[];
-  transactions: FinTsTransactionPreview[];
   diagnostics: string[];
+  imported: number;
+  skipped: number;
+  transactions: Transaction[];
+  account: Account;
 }

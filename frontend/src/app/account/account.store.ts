@@ -51,6 +51,13 @@ export const AccountStore = signalStore(
       }
     },
 
+    /** Übernimmt ein vom Backend geändertes Konto, z. B. nach einem FinTS-Abruf. */
+    updateAccount(account: Account) {
+      patchState(store, {
+        accounts: store.accounts().map((a) => (a.id === account.id ? account : a)),
+      });
+    },
+
     async deleteAccount(id: number) {
       patchState(store, { loading: true, error: null });
       try {

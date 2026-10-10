@@ -1,0 +1,119 @@
+<div class="w-[600px] max-h-[90vh] overflow-y-auto dialog">
+  <h2 class="text-2xl font-bold text-center text-white mb-2">Umsätze abrufen</h2>
+  <p class="text-sm text-white/50 text-center mb-6">
+    Holt die Umsätze per FinTS bei der ING und übernimmt die neuen ins Konto. Buchungen, die schon
+    da sind, werden übersprungen.
+  </p>
+
+  @if (accountStore.accounts().length === 0) {
+    <p class="text-sm text-white/50">Lege zuerst ein Konto an.</p>
+  } @else {
+    <form [formGroup]="formGroup" class="space-y-4" (ngSubmit)="onSubmit()">
+      <div>
+        <label for="accountId" class="block text-sm/6 font-medium text-white">Konto</label>
+        <select id="accountId" formControlName="accountId" class="mt-2 block w-full form-input">
+          @for (a of accountStore.accounts(); track a.id) {
+            <option [ngValue]="a.id">{{ a.name }}</option>
+          }
+        </select>
+        @if (account(); as account) {
+          <p class="text-xs text-white/50 mt-1">
+            {{ account.iban || 'Keine IBAN hinterlegt' }}
+            @if (account.lastSyncedAt) {
+              · zuletzt abgerufen {{ account.lastSyncedAt | date: 'dd.MM.yyyy HH:mm' }}
+            }
+          </p>
+        }
+      </div>
+
+      @if (account()?.hasFinTsPin) {
+        <p class="text-sm text-white">
+          PIN ist verschlüsselt gespeichert.
+          <button type="button" class="underline text-white/60 ml-2" (click)="onDeletePin()">
+            PIN löschen
+          </button>
+        </p>
+      } @else {
+        <div class="flex gap-4">
+          <div class="flex-1">
+            <label for="userId" class="block text-sm/6 font-medium text-white">
+              Zugangsnummer <span class="text-white/50">(optional)</span>
+            </label>
+            <input
+              id="userId"
+              type="text"
+              formControlName="userId"
+              [placeholder]="account()?.finTsUserId || 'Standard: letzte 10 Stellen der IBAN'"
+              autocomplete="username"
+              class="mt-2 block w-full form-input"
+            />
+          </div>
+          <div class="flex-1">
+            <label for="pin" class="block text-sm/6 font-medium text-white">
+              Internetbanking-PIN
+            </label>
+            <input
+              id="pin"
+              type="password"
+              formControlName="pin"
+              autocomplete="current-password"
+              class="mt-2 block w-full form-input"
+            />
+          </div>
+        </div>
+        <label class="flex items-center gap-2 text-sm text-white">
+          <input type="checkbox" formControlName="savePin" />
+          PIN verschlüsselt speichern, damit der nächste Abruf ohne Eingabe geht
+        </label>
+      }
+
+      <div class="space-x-4 justify-end flex">
+        <button type="button" class="btn-secondary" (click)="dialogRef.close()">Schließen</button>
+        <button
+          type="submit"
+          class="btn-primary"
+          [loading]="loading()"
+          [disabled]="loading() || !account()?.iban"
+        >
+          Umsätze abrufen
+        </button>
+      </div>
+    </form>
+  }
+
+  @if (loading()) {
+    <p class="text-sm text-white/50 mt-4">
+      Verbindung zur ING läuft. Falls die ING-App eine Freigabe anfordert, bitte dort bestätigen.
+    </p>
+  }
+
+  @if (error()) {
+    <p class="text-danger text-sm mt-4">{{ error() }}</p>
+  }
+
+  @if (result(); as result) {
+    @if (result.success) {
+      <p class="text-sm text-green-400 mt-4">
+        {{ result.imported }} neu übernommen, {{ result.skipped }} waren schon vorhanden.
+      </p>
+    }
+
+    @if (result.messages.length > 0 || result.diagnostics.length > 0) {
+      <details class="mt-4 text-xs text-white/50" [open]="!result.success">
+        <summary class="cursor-pointer">Meldungen der Bank und Diagnose</summary>
+        <ul class="mt-2 space-y-1">
+          @for (message of result.messages; track $index) {
+            <li>{{ message.code }}: {{ message.message }}</li>
+          }
+        </ul>
+        @if (result.diagnostics.length > 0) {
+          <ul class="mt-2 space-y-1 font-mono select-all">
+            @for (line of result.diagnostics; track $index) {
+              <li>{{ line }}</li>
+            }
+          </ul>
+        }
+      </details>
+    }
+  }
+</div>

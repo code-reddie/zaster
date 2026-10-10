@@ -87,7 +87,7 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
 
             if (sync.HasError || messages.Any(m => m.Code.StartsWith('9')))
             {
-                return new FinTsTestResult(false, "Die ING hat die Anmeldung abgelehnt. Details stehen in den Bankmeldungen.", messages, [], diagnostics);
+                return new FinTsTestResult(false, "Die ING hat die Anmeldung abgelehnt. Details stehen in den Bankmeldungen.", messages, [], diagnostics, LoginRejected: true);
             }
 
             // libfintx erkennt die Bankparameterdaten nur, wenn sie in einer Zeile stehen.
