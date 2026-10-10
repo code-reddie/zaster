@@ -76,8 +76,9 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
                 .WaitAsync(TimeSpan.FromSeconds(_options.MaxWaitForApprovalSeconds), cancellationToken);
             AddMessages(messages, sync);
             diagnostics.Add($"Synchronisation: {DescribeSegments(sync.RawData)}");
+            diagnostics.AddRange(ResultSegments(sync.RawData));
 
-            if (sync.HasError)
+            if (sync.HasError || messages.Any(m => m.Code.StartsWith('9')))
             {
                 return new FinTsTestResult(false, "Die ING hat die Anmeldung abgelehnt. Details stehen in den Bankmeldungen.", messages, [], diagnostics);
             }
@@ -103,6 +104,7 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
                 .WaitAsync(TimeSpan.FromSeconds(_options.MaxWaitForApprovalSeconds), cancellationToken);
             AddMessages(messages, result);
             diagnostics.Add($"Umsatzabruf: {DescribeSegments(result.RawData)}");
+            diagnostics.AddRange(ResultSegments(result.RawData));
         }
         catch (TimeoutException)
         {
@@ -155,10 +157,58 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
 
     private static void AddMessages(List<FinTsBankMessage> messages, HBCIDialogResult result)
     {
-        messages.AddRange(result.Messages
-            .Where(m => !messages.Any(existing => existing.Code == m.Code && existing.Message == m.Message))
-            .Select(m => new FinTsBankMessage(m.Code, m.Message)));
+        var parsed = result.Messages.Select(m => new FinTsBankMessage(m.Code, m.Message)).ToList();
+
+        // libfintx übersieht Rückmeldungen, die nicht genau seinem Muster entsprechen.
+        if (parsed.Count == 0)
+        {
+            parsed = ResultSegments(result.RawData)
+                .SelectMany(segment => SplitUnescaped(segment, '+').Skip(1))
+                .Select(element => ResultMessageRegex().Match(element))
+                .Where(match => match.Success)
+                .Select(match => new FinTsBankMessage(match.Groups[1].Value, Unescape(match.Groups[2].Value).Trim()))
+                .ToList();
+        }
+
+        messages.AddRange(parsed.Where(m => !messages.Contains(m)));
     }
+
+    /// <summary>
+    /// Die Rückmeldungssegmente HIRMG und HIRMS enthalten nur Codes und Texte der Bank, keine Kontodaten.
+    /// </summary>
+    private static IEnumerable<string> ResultSegments(string? rawData) =>
+        string.IsNullOrEmpty(rawData)
+            ? []
+            : SplitUnescaped(rawData, '\'')
+                .Where(segment => segment.StartsWith("HIRMG:", StringComparison.Ordinal) || segment.StartsWith("HIRMS:", StringComparison.Ordinal))
+                .Select(segment => segment.Length > 500 ? segment[..500] + "…" : segment);
+
+    private static List<string> SplitUnescaped(string value, char separator)
+    {
+        var parts = new List<string>();
+        var current = new System.Text.StringBuilder();
+        for (var i = 0; i < value.Length; i++)
+        {
+            if (value[i] == '?' && i + 1 < value.Length)
+            {
+                current.Append(value[i]).Append(value[++i]);
+            }
+            else if (value[i] == separator)
+            {
+                parts.Add(current.ToString());
+                current.Clear();
+            }
+            else
+            {
+                current.Append(value[i]);
+            }
+        }
+
+        parts.Add(current.ToString());
+        return parts;
+    }
+
+    private static string Unescape(string value) => EscapeRegex().Replace(value, "$1");
 
     private static BPD? ParseBpd(string? rawData)
     {
@@ -189,6 +239,12 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
 
     [GeneratedRegex(@"(HIBPA.+?)\b(?:HIUPA|HISYN|HNHBS)\b", RegexOptions.Singleline)]
     private static partial Regex BpdRegex();
+
+    [GeneratedRegex(@"^\s*(\d{4}):[^:]*:(.*)$", RegexOptions.Singleline)]
+    private static partial Regex ResultMessageRegex();
+
+    [GeneratedRegex(@"\?(.)", RegexOptions.Singleline)]
+    private static partial Regex EscapeRegex();
 
     [GeneratedRegex(@"(?:^|')([A-Z]{5,6}:\d+:\d+)")]
     private static partial Regex SegmentHeaderRegex();
