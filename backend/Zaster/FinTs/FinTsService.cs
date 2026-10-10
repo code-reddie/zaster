@@ -125,13 +125,16 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
             return new FinTsTestResult(false, $"Abruf fehlgeschlagen: {ex.Message}", messages, [], diagnostics);
         }
 
-        if (!result.IsSuccess || result.Data is null)
+        // Warnungen wie 3010 („nur die letzten 90 Tage“) kommen ohne Erfolgsmeldung, die Umsätze sind trotzdem da.
+        if (result.HasError || messages.Any(m => m.Code.StartsWith('9')) || result.Data is null)
         {
             var error = result.IsSCARequired
                 ? "Die Bank verlangt eine Freigabe. Bitte einmal im ING-Banking einloggen und erneut versuchen."
                 : "Die Bank hat den Abruf abgelehnt. Details stehen in den Bankmeldungen.";
             return new FinTsTestResult(false, error, messages, [], diagnostics);
         }
+
+        diagnostics.Add($"Kontoauszüge: {result.Data.Count}, Buchungen: {result.Data.Sum(statement => statement.SwiftTransactions.Count)}");
 
         var transactions = result.Data
             .SelectMany(statement => statement.SwiftTransactions)
