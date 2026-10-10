@@ -116,7 +116,7 @@ public sealed partial class NightlySyncService(
                 }
                 else
                 {
-                    LogSyncFailed(_logger, account.Id, result?.Error ?? "Keine PIN");
+                    LogSyncFailed(_logger, account.Id, result?.Error ?? account.LastSyncError ?? "Keine PIN");
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
