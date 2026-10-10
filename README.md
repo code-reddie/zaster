@@ -18,6 +18,7 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 - Duplikat-Abgleich zwischen CSV-Import und FinTS-Abruf, damit dieselbe Buchung nicht doppelt auftaucht.
 - Kategorien anlegen und löschen, Buchungen einer Kategorie zuordnen und die Zuordnung später ändern.
 - Regeln zur automatischen Kategorisierung (Text kommt in Auftraggeber, Buchungstext, Verwendungszweck oder einem davon vor). Neue Buchungen bekommen die passende Kategorie automatisch, und die Regeln lassen sich nachträglich auf alle Buchungen ohne Kategorie anwenden.
+- Benachrichtigungen über Home Assistant einrichten: Jeder Nutzer wählt unter „Benachrichtigungen“ seine Geräte mit der Home-Assistant-App aus und kann eine Testnachricht schicken; ein Tipp darauf öffnet Zaster.
 
 ### Teilweise umgesetzt
 
@@ -31,7 +32,7 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 - Kategorien als Baum mit beliebig vielen Ebenen.
 - Buchungen als CSV exportieren.
 - Eigene Seite mit allen Buchungen ohne Kategorie, Merkmal „geprüft“ pro Buchung und Taste „Alle als geprüft markieren“.
-- Push-Benachrichtigung über Home Assistant, sobald neue Buchungen ohne Kategorie da sind; ein Tipp öffnet die Seite „ohne Kategorie“.
+- Automatische Push-Benachrichtigung über Home Assistant, sobald neue Buchungen ohne Kategorie da sind; ein Tipp öffnet die Seite „ohne Kategorie“. Geräteauswahl und Testnachricht gibt es schon.
 - Mehrere FinTS-Abrufzeiten pro Tag (z. B. 09:00 und 14:00) statt einer.
 - Sankey-Diagramme für Ein- und Ausgaben, pro Konto.
 
@@ -56,6 +57,10 @@ services:
       JwtSettings__Audience: zaster
       # Optional: eigene FinTS-Produktregistrierungsnummer. Leer = Nummer von libfintx.
       FinTS__ProductId: ${FINTS_PRODUCT_ID:-}
+      # Optional: Benachrichtigungen über Home Assistant.
+      HomeAssistant__Url: ${HA_URL:-}
+      HomeAssistant__Token: ${HA_TOKEN:-}
+      HomeAssistant__ZasterUrl: ${ZASTER_URL:-}
       TZ: Europe/Berlin
     volumes:
       # SQLite-Datenbank (/data/zaster.db) und Schlüssel für gespeicherte PINs (/data/keys)
@@ -73,6 +78,14 @@ JWT_KEY=
 
 # Optional, aus der Mail der Deutschen Kreditwirtschaft
 FINTS_PRODUCT_ID=
+
+# Optional, für Benachrichtigungen über Home Assistant
+# Adresse von Home Assistant, wie Zaster sie erreicht
+HA_URL=http://homeassistant.local:8123
+# Long-Lived Access Token (Home Assistant → Profil → Sicherheit)
+HA_TOKEN=
+# Adresse von Zaster, wie das Handy sie erreicht
+ZASTER_URL=https://zaster.example.de
 ```
 
 Dann:
@@ -118,11 +131,16 @@ Die vollständige Struktur mit allen Schlüsseln, die Zaster liest (Beispielwert
     "KeyRingPath": "/data/keys",
     "NightlySyncTime": "04:00",
     "TimeZone": "Europe/Berlin"
+  },
+  "HomeAssistant": {
+    "Url": "http://homeassistant.local:8123",
+    "Token": "<Long-Lived Access Token, geheim>",
+    "ZasterUrl": "https://zaster.example.de"
   }
 }
 ```
 
-`JwtSettings` steht nicht in der mitgelieferten `appsettings.json`, weil der Schlüssel geheim ist; er muss immer per Umgebungsvariable gesetzt werden. Der Abschnitt `FinTS` steht dort ebenfalls nicht, alle Werte haben Standardwerte im Code (`backend/Zaster/FinTs/FinTsOptions.cs`).
+`JwtSettings` steht nicht in der mitgelieferten `appsettings.json`, weil der Schlüssel geheim ist; er muss immer per Umgebungsvariable gesetzt werden. Der Abschnitt `FinTS` steht dort ebenfalls nicht, alle Werte haben Standardwerte im Code (`backend/Zaster/FinTs/FinTsOptions.cs`). Auch `HomeAssistant` fehlt dort; ohne ihn gibt es einfach keine Benachrichtigungen (`backend/Zaster/Notifications/HomeAssistantOptions.cs`).
 
 ### JwtSettings (Pflicht)
 
@@ -152,6 +170,16 @@ Login-Tokens gelten 7 Tage (fest im Code).
 | `KeyRingPath` | `FinTS__KeyRingPath` | `/data/keys` | Ordner für die Schlüssel, mit denen gespeicherte PINs verschlüsselt werden. Muss dauerhaft gespeichert und gesichert werden. |
 | `NightlySyncTime` | `FinTS__NightlySyncTime` | `04:00` | Uhrzeit (`HH:mm`) für den täglichen automatischen Abruf aller Konten mit gespeicherter PIN. Leer schaltet ihn ab. |
 | `TimeZone` | `FinTS__TimeZone` | `Europe/Berlin` | Zeitzone für `NightlySyncTime`. Unbekannte Zeitzone = UTC. |
+
+### HomeAssistant (optional)
+
+Benachrichtigungen schickt Zaster über die REST-API von Home Assistant an den Dienst `notify.mobile_app_<gerät>`, die Home-Assistant-App auf dem Handy zeigt sie an. Welche Geräte eine Nachricht bekommen, stellt jeder Nutzer in Zaster unter „Benachrichtigungen“ ein; dort gibt es auch die Taste „Testnachricht senden“.
+
+| Schlüssel | Umgebungsvariable | Standard | Bedeutung |
+|---|---|---|---|
+| `Url` | `HomeAssistant__Url` | leer | Adresse von Home Assistant, wie der Zaster-Container sie erreicht, z. B. `http://homeassistant.local:8123`. Leer = keine Benachrichtigungen. |
+| `Token` | `HomeAssistant__Token` | leer | Long-Lived Access Token, anzulegen in Home Assistant unter Profil → Sicherheit. Geheim: Zaster gibt ihn nie an die Oberfläche und schreibt ihn nicht ins Log. |
+| `ZasterUrl` | `HomeAssistant__ZasterUrl` | leer | Adresse von Zaster, wie das Handy sie erreicht, z. B. `https://zaster.example.de`. Ein Tipp auf die Nachricht öffnet sie. Ohne sie lehnt Zaster das Senden mit einer Meldung ab. |
 
 ### Logging und AllowedHosts
 

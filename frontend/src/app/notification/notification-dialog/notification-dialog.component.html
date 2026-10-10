@@ -1,0 +1,117 @@
+<div class="w-[600px] max-w-[95vw] max-h-[90vh] overflow-y-auto dialog">
+  <h2 class="text-2xl font-bold text-center text-white mb-2">Benachrichtigungen</h2>
+  <p class="text-sm text-white/50 text-center mb-6">
+    Zaster schickt Nachrichten über Home Assistant an Geräte mit der Home-Assistant-App. Ein Tipp
+    auf die Nachricht öffnet Zaster.
+  </p>
+
+  @if (settings(); as settings) {
+    @if (!settings.homeAssistantConfigured) {
+      <p class="text-sm text-danger mb-4">
+        Home Assistant ist nicht eingerichtet. In der Konfiguration fehlen
+        <code>HomeAssistant__Url</code> oder <code>HomeAssistant__Token</code>.
+      </p>
+    }
+    @if (!settings.zasterUrlConfigured) {
+      <p class="text-sm text-danger mb-4">
+        Die Adresse von Zaster fehlt (<code>HomeAssistant__ZasterUrl</code>). Ohne sie weiß das
+        Handy nicht, was es beim Tippen öffnen soll.
+      </p>
+    }
+
+    <h3 class="text-sm/6 font-medium text-white mb-2">Geräte</h3>
+
+    @if (availableDevicesError(); as message) {
+      <p class="text-sm text-danger mb-2">{{ message }}</p>
+    }
+
+    <div class="space-y-2 mb-4">
+      @for (device of availableDevices(); track device.service) {
+        <label class="flex items-start gap-2 text-sm text-white">
+          <input
+            type="checkbox"
+            class="mt-1"
+            [checked]="isSelected(device.service)"
+            (change)="toggle(device.service, $any($event.target).checked)"
+          />
+          <span class="min-w-0">
+            {{ device.name }}
+            <span class="block text-xs text-white/40 break-all">notify.{{ device.service }}</span>
+          </span>
+        </label>
+      }
+      @for (device of otherSelected(); track device) {
+        <label class="flex items-start gap-2 text-sm text-white">
+          <input type="checkbox" class="mt-1" checked (change)="toggle(device, false)" />
+          <span class="min-w-0 break-all">notify.{{ device }}</span>
+        </label>
+      }
+      @if (
+        settings.homeAssistantConfigured &&
+        availableDevices().length === 0 &&
+        !availableDevicesError()
+      ) {
+        <p class="text-sm text-white/50">
+          Home Assistant kennt kein Gerät mit der Home-Assistant-App (Dienste
+          <code>notify.mobile_app_…</code>).
+        </p>
+      }
+    </div>
+
+    <div class="flex gap-2 mb-6">
+      <input
+        type="text"
+        class="flex-1 min-w-0 form-input"
+        placeholder="Anderen Dienst eintragen, z. B. mobile_app_iphone"
+        [ngModel]="manualDevice()"
+        (ngModelChange)="manualDevice.set($event)"
+        (keydown.enter)="addManualDevice()"
+      />
+      <button type="button" class="btn-secondary" (click)="addManualDevice()">Hinzufügen</button>
+    </div>
+
+    @if (error(); as message) {
+      <p class="text-sm text-danger mb-4">{{ message }}</p>
+    }
+
+    @if (testResult(); as result) {
+      <ul class="text-sm space-y-1 mb-4 break-words">
+        @for (r of result.results; track r.device) {
+          <li [class]="r.success ? 'text-white' : 'text-danger'">
+            notify.{{ r.device }}: {{ r.success ? 'verschickt' : r.error }}
+          </li>
+        }
+      </ul>
+    }
+
+    <div class="flex flex-wrap gap-4 justify-end">
+      <button type="button" class="btn-secondary" (click)="dialogRef.close()">Schließen</button>
+      <button
+        type="button"
+        class="btn-secondary"
+        [loading]="saving()"
+        [disabled]="!dirty() || saving()"
+        (click)="onSave()"
+      >
+        Speichern
+      </button>
+      <button
+        type="button"
+        class="btn-primary"
+        [loading]="testing()"
+        [disabled]="
+          testing() ||
+          dirty() ||
+          settings.devices.length === 0 ||
+          !settings.homeAssistantConfigured ||
+          !settings.zasterUrlConfigured
+        "
+        (click)="onTest()"
+      >
+        Testnachricht senden
+      </button>
+    </div>
+  } @else if (error(); as message) {
+    <p class="text-sm text-danger">{{ message }}</p>
+  }
+</div>

@@ -41,7 +41,7 @@ Docker:
 docker build -t zaster .
 ```
 
-Betrieb per `docker compose` mit `.env` (`JWT_KEY`, optional `FINTS_PRODUCT_ID`); Volume für `/data`.
+Betrieb per `docker compose` mit `.env` (`JWT_KEY`, optional `FINTS_PRODUCT_ID`, `HA_URL`, `HA_TOKEN`, `ZASTER_URL`); Volume für `/data`.
 
 ## Datenbank und Migrationen
 
@@ -92,3 +92,10 @@ Das ist eine Arbeitsanweisung für Claude, keine technische Prüfung: Nichts im 
 - Die PIN wird mit ASP.NET Data Protection verschlüsselt in `Account.FinTsPin` gespeichert, Schlüssel unter `FinTS__KeyRingPath` (Standard `/data/keys`). Sie wird nur nach einem erfolgreichen Abruf gespeichert, bei einer Ablehnung durch die Bank sofort gelöscht und verlässt das Backend nie (DTO zeigt nur `HasFinTsPin`). Gehen die Schlüssel verloren, sind alle gespeicherten PINs unbrauchbar.
 - Nächtlicher Abruf (`FinTs/NightlySyncService.cs`) für alle Konten mit gespeicherter PIN um `FinTS__NightlySyncTime` (Standard `04:00`, Zeitzone `FinTS__TimeZone`, Standard `Europe/Berlin`; leer = aus). Fehler landen in `Account.LastSyncError`.
 - Nie mit ausgedachten Zugangsdaten gegen die echte ING testen: Fehlversuche können den Zugang einer fremden Person sperren.
+
+### Benachrichtigungen (Home Assistant)
+- Konfiguration in `Notifications/HomeAssistantOptions.cs`, Abschnitt `HomeAssistant`: `Url` (wie Zaster HA erreicht), `Token` (Long-Lived Access Token), `ZasterUrl` (wie das Handy Zaster erreicht; Ziel des Links in der Nachricht). Ohne `Url`/`Token` gibt es keine Benachrichtigungen, ohne `ZasterUrl` lehnt Zaster das Senden ab.
+- Der Token verlässt das Backend nie (DTO zeigt nur `HomeAssistantConfigured`) und wird nicht geloggt. Fehlermeldungen von `HomeAssistantClient` dürfen ihn nicht enthalten.
+- Zaster ruft `POST /api/services/notify/<dienst>` auf, mit `data.url` (iOS) und `data.clickAction` (Android) auf dieselbe absolute Adresse. Die Geräteliste kommt aus `GET /api/services` (Dienste `notify.mobile_app_*`).
+- Jeder Nutzer speichert seine Geräte in `User.NotificationDevices` (JSON-Liste von Dienstnamen ohne `notify.`, nur `[a-z0-9_]`). `POST /api/notification/test` schickt eine Testnachricht an alle.
+- Lokal testen mit einem Fake-Server, der `/api/services` und `/api/services/notify/<dienst>` beantwortet; gegen ein echtes Home Assistant nur mit eigenem Token.
