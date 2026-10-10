@@ -26,6 +26,10 @@ export class CreateAccountDialog {
       nonNullable: true,
       validators: [Validators.required],
     }),
+    iban: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
   });
 
   async onSubmit() {
@@ -36,7 +40,7 @@ export class CreateAccountDialog {
     }
 
     const newAccount = this.formGroup.getRawValue();
-    this.store.createAccount(newAccount.name);
+    await this.store.createAccount(newAccount.name, newAccount.iban);
 
     if (!this.store.error()) {
       this.dialogRef.close();

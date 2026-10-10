@@ -6,11 +6,13 @@ public sealed record Account : Entity
 {
     public required string Name { get; init; }
 
+    public required string Iban { get; init; }
+
     public List<Transaction> Transactions { get; init; } = [];
 
     public List<User> Users { get; init; } = [];
 }
 
-public sealed record AccountDto(int Id, string Name);
+public sealed record AccountDto(int Id, string Name, string Iban);
 
-public sealed record CreateAccount(string Name);
+public sealed record CreateAccount(string Name, string Iban);

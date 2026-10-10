@@ -2,8 +2,7 @@
   <h2 class="text-2xl font-bold text-center text-white mb-6">Bankkonto hinzufügen</h2>
   <form [formGroup]="formGroup" class="space-y-6" (ngSubmit)="onSubmit()">
     <div class="relative">
-      @let showNameError =
-        (formGroup.get('name')?.invalid && submitted()) || formGroup.hasError('creationFailed');
+      @let showNameError = formGroup.get('name')?.invalid && submitted();
       <label for="name" class="block text-sm/6 font-medium text-white">Kontoname</label>
       <div class="mt-2">
         <input
@@ -21,11 +20,34 @@
       @if (showNameError) {
         <div class="absolute -bottom-5 left-0 text-danger animate-fade-in">
           <span class="icon-info text-[13px] translate-y-[2px]"></span>
+          <span class="text-[11px]"> Bitte gib einen Kontoname ein. </span>
+        </div>
+      }
+    </div>
+    <div class="relative">
+      @let showIbanError =
+        (formGroup.get('iban')?.invalid && submitted()) || formGroup.hasError('creationFailed');
+      <label for="iban" class="block text-sm/6 font-medium text-white">IBAN</label>
+      <div class="mt-2">
+        <input
+          id="iban"
+          type="text"
+          name="iban"
+          required
+          formControlName="iban"
+          placeholder="DE.. .... .... .... .... .."
+          class="block w-full form-input"
+          [class.!outline-red-300]="showIbanError"
+        />
+      </div>
+      @if (showIbanError) {
+        <div class="absolute -bottom-5 left-0 text-danger animate-fade-in">
+          <span class="icon-info text-[13px] translate-y-[2px]"></span>
           <span class="text-[11px]">
             @if (formGroup.hasError('creationFailed')) {
               {{ store.error() }}
             } @else {
-              Bitte gib einen Kontoname ein.
+              Bitte gib eine IBAN ein.
             }
           </span>
         </div>

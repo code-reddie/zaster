@@ -33,16 +33,23 @@ public sealed class AccountController(AppDbContext context) : ControllerBase
             return Unauthorized();
         }
 
+        var iban = Iban.Normalize(dto.Iban);
+        if (iban is null)
+        {
+            return BadRequest("Bitte gib eine gültige IBAN ein.");
+        }
+
         var account = new Account
         {
             Name = dto.Name,
+            Iban = iban,
             Users = [user]
         };
 
         _context.Accounts.Add(account);
         await _context.SaveChangesAsync(cancellationToken);
 
-        var result = new AccountDto(account.Id, account.Name);
+        var result = new AccountDto(account.Id, account.Name, account.Iban);
 
         return Ok(result);
     }
@@ -60,7 +67,7 @@ public sealed class AccountController(AppDbContext context) : ControllerBase
             .Where(a => a.Users.Any(u => u.Id == userId))
             .ToListAsync(cancellationToken);
 
-        var result = accounts.Select(a => new AccountDto(a.Id, a.Name));
+        var result = accounts.Select(a => new AccountDto(a.Id, a.Name, a.Iban));
         return Ok(result);
     }
 

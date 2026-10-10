@@ -1,5 +1,6 @@
 import { signalStore, withState, withMethods, withComputed, patchState } from '@ngrx/signals';
 import { computed, inject } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AccountService } from './account.service';
 import { Account } from './account.models';
 
@@ -36,13 +37,15 @@ export const AccountStore = signalStore(
       }
     },
 
-    async createAccount(name: string) {
+    async createAccount(name: string, iban: string) {
       patchState(store, { loading: true, error: null });
       try {
-        const account = await accountService.createAccount(name);
+        const account = await accountService.createAccount(name, iban);
         patchState(store, { accounts: [...store.accounts(), account] });
-      } catch {
-        patchState(store, { error: 'Konto konnte nicht erstellt werden.' });
+      } catch (e) {
+        const message =
+          e instanceof HttpErrorResponse && typeof e.error === 'string' ? e.error : null;
+        patchState(store, { error: message ?? 'Konto konnte nicht erstellt werden.' });
       } finally {
         patchState(store, { loading: false });
       }
