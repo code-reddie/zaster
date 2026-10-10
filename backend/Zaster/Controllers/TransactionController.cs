@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Zaster.Categorization;
 using Zaster.Database;
+using Zaster.Import;
 using Zaster.Models;
 
 namespace Zaster.Controllers;
@@ -80,6 +81,76 @@ public sealed class TransactionController(AppDbContext context) : ControllerBase
         return Ok(result);
     }
 
+
+    /// <summary>
+    /// Legt mehrere Buchungen an und überspringt solche, die schon im Konto liegen.
+    /// </summary>
+    [HttpPost("import")]
+    public async Task<ActionResult<ImportTransactionsResult>> ImportTransactions(
+        ImportTransactions dto,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var account = await _context.Accounts
+            .FirstOrDefaultAsync(a => a.Id == dto.AccountId && a.Users.Any(u => u.Id == userId), cancellationToken);
+        if (account == null)
+        {
+            return BadRequest($"Account with ID {dto.AccountId} does not exist.");
+        }
+
+        // SQLite kann DateTimeOffset nicht vergleichen, daher wird im Speicher abgeglichen.
+        var existing = await _context.Transactions
+            .Where(t => t.AccountId == account.Id)
+            .Select(t => new { t.Buchung, t.Betrag, t.Auftragsgeber })
+            .ToListAsync(cancellationToken);
+
+        var newItems = TransactionMatcher.SelectNew(
+            existing.Select(t => TransactionMatcher.Key(t.Buchung, t.Betrag, t.Auftragsgeber)),
+            dto.Transactions,
+            t => TransactionMatcher.Key(t.Buchung, t.Betrag, t.Auftragsgeber));
+
+        var transactions = newItems
+            .Select(t => new Transaction
+            {
+                Buchung = t.Buchung,
+                Valuta = t.Valuta,
+                Auftragsgeber = t.Auftragsgeber.Trim(),
+                Buchungstext = t.Buchungstext.Trim(),
+                Verwendungszweck = t.Verwendungszweck?.Trim() ?? string.Empty,
+                Betrag = t.Betrag,
+                AccountId = account.Id,
+            })
+            .ToList();
+
+        var rules = await _context.CategorizationRules
+            .Where(r => r.Category!.UserId == userId)
+            .ToListAsync(cancellationToken);
+        RuleEngine.Apply(transactions, rules);
+
+        _context.Transactions.AddRange(transactions);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Ok(new ImportTransactionsResult(
+            transactions.Count,
+            dto.Transactions.Count - transactions.Count,
+            transactions
+                .Select(t => new TransactionDto(
+                    t.Id,
+                    t.Buchung,
+                    t.Valuta,
+                    t.Auftragsgeber,
+                    t.Buchungstext,
+                    t.Verwendungszweck,
+                    t.Betrag,
+                    t.AccountId,
+                    t.CategoryId))
+                .ToList()));
+    }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Transaction>>> GetAllTransactions(CancellationToken cancellationToken)

@@ -19,3 +19,11 @@ export interface CreateTransaction {
   betrag: number;
   accountId: number;
 }
+
+export type ImportTransaction = Omit<CreateTransaction, 'accountId'>;
+
+export interface ImportTransactionsResult {
+  imported: number;
+  skipped: number;
+  transactions: Transaction[];
+}

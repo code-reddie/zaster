@@ -1,8 +1,8 @@
 <div class="w-[800px] max-h-[90vh] overflow-y-auto dialog">
-  <h2 class="text-2xl font-bold text-center text-white mb-2">FinTS-Verbindung testen</h2>
+  <h2 class="text-2xl font-bold text-center text-white mb-2">Buchungen per FinTS abrufen</h2>
   <p class="text-sm text-white/50 text-center mb-6">
-    Ruft die Buchungen der letzten 90 Tage bei der ING ab und zeigt sie an. Es wird nichts
-    gespeichert.
+    Ruft die Buchungen der letzten 90 Tage bei der ING ab. Danach kannst du sie in ein Konto
+    übernehmen; Buchungen, die dort schon liegen, werden übersprungen.
   </p>
 
   <form [formGroup]="formGroup" class="space-y-4" (ngSubmit)="onSubmit()">
@@ -65,6 +65,38 @@
   @if (result(); as result) {
     @if (result.success) {
       <p class="text-white mt-6 mb-2">{{ result.transactions.length }} Buchungen abgerufen</p>
+      @if (result.transactions.length > 0) {
+        <div class="flex gap-4 items-center mb-4">
+          @if (accountStore.accounts().length === 0) {
+            <p class="text-sm text-white/50">
+              Lege zuerst ein Konto an, um die Buchungen zu übernehmen.
+            </p>
+          } @else {
+            <select [formControl]="accountId" class="form-input flex-1" aria-label="Konto">
+              @for (account of accountStore.accounts(); track account.id) {
+                <option [ngValue]="account.id">{{ account.name }}</option>
+              }
+            </select>
+            <button
+              type="button"
+              class="btn-primary"
+              [loading]="importing()"
+              [disabled]="importing()"
+              (click)="onImport()"
+            >
+              In Konto übernehmen
+            </button>
+          }
+        </div>
+        @if (importResult(); as imported) {
+          <p class="text-sm text-green-400 mb-4">
+            {{ imported.imported }} neu übernommen, {{ imported.skipped }} waren schon vorhanden.
+          </p>
+        }
+        @if (importError()) {
+          <p class="text-danger text-sm mb-4">{{ importError() }}</p>
+        }
+      }
       <div class="space-y-2">
         @for (transaction of result.transactions; track $index) {
           <div class="rounded-xl p-3 bg-white/10 flex justify-between items-center gap-4">

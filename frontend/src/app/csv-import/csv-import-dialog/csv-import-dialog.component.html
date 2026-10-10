@@ -1,10 +1,71 @@
-<div class="w-[800px] dialog">
-  <h2 class="text-2xl font-bold text-center text-white mb-6">CSV Datei importieren</h2>
+<div class="w-[800px] max-h-[90vh] overflow-y-auto dialog">
+  <h2 class="text-2xl font-bold text-center text-white mb-2">CSV Datei importieren</h2>
+  <p class="text-sm text-white/50 text-center mb-6">
+    Buchungen, die schon im Konto liegen (auch per FinTS abgerufene), werden übersprungen.
+  </p>
   <app-csv-import (fileSelected)="onFileSelected($event)" />
-  @for (transaction of transactions(); track transaction.buchung) {
-    <div>{{ transaction.auftragsgeber }}</div>
+
+  @if (hasTransactions()) {
+    <p class="text-white mt-6 mb-2">{{ transactions().length }} Buchungen in der Datei</p>
+    <div class="flex gap-4 items-center mb-4">
+      @if (accountStore.accounts().length === 0) {
+        <p class="text-sm text-white/50">
+          Lege zuerst ein Konto an, um die Buchungen zu übernehmen.
+        </p>
+      } @else {
+        <select [formControl]="accountId" class="form-input flex-1" aria-label="Konto">
+          @for (account of accountStore.accounts(); track account.id) {
+            <option [ngValue]="account.id">{{ account.name }}</option>
+          }
+        </select>
+        <button
+          type="button"
+          class="btn-primary"
+          [loading]="importing()"
+          [disabled]="importing()"
+          (click)="onImport()"
+        >
+          In Konto übernehmen
+        </button>
+      }
+    </div>
   }
+
+  @if (importResult(); as imported) {
+    <p class="text-sm text-green-400 mb-4">
+      {{ imported.imported }} neu übernommen, {{ imported.skipped }} waren schon vorhanden.
+    </p>
+  }
+  @if (error()) {
+    <p class="text-danger text-sm my-4">{{ error() }}</p>
+  }
+
+  @if (hasTransactions()) {
+    <div class="space-y-2">
+      @for (transaction of transactions(); track $index) {
+        <div class="rounded-xl p-3 bg-white/10 flex justify-between items-center gap-4">
+          <div class="flex flex-col min-w-0">
+            <span class="text-sm font-medium text-white truncate">
+              {{ transaction.auftragsgeber || transaction.buchungstext }}
+            </span>
+            <span class="text-xs text-white/50 truncate">
+              {{ transaction.buchung | date: 'dd.MM.yyyy' }} · {{ transaction.buchungstext }} ·
+              {{ transaction.verwendungszweck }}
+            </span>
+          </div>
+          <span
+            class="text-sm font-semibold whitespace-nowrap"
+            [class.text-green-400]="transaction.betrag >= 0"
+            [class.text-red-400]="transaction.betrag < 0"
+          >
+            {{ formatBetrag(transaction.betrag) }}
+          </span>
+        </div>
+      }
+    </div>
+  }
+
   <div class="mt-5 space-x-4 justify-end flex">
-    <button type="button" class="btn-secondary" (click)="dialogRef.close()">Abbrechen</button>
+    <button type="button" class="btn-secondary" (click)="dialogRef.close()">Schließen</button>
   </div>
 </div>

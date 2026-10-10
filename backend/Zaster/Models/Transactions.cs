@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Zaster.Models;
 
@@ -46,3 +47,15 @@ public sealed record CreateTransaction(
     int AccountId);
 
 public sealed record SetTransactionCategory(int? CategoryId);
+
+public sealed record ImportTransaction(
+    DateTimeOffset Buchung,
+    DateTimeOffset Valuta,
+    string Auftragsgeber,
+    string Buchungstext,
+    string? Verwendungszweck,
+    decimal Betrag);
+
+public sealed record ImportTransactions(int AccountId, IReadOnlyList<ImportTransaction> Transactions);
+
+public sealed record ImportTransactionsResult(int Imported, int Skipped, IReadOnlyList<TransactionDto> Transactions);
