@@ -1,5 +1,5 @@
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LoadingButtonDirective } from '../../buttons/loading-button.directive';
 import { TransactionStore } from '../transaction.store';
@@ -7,6 +7,7 @@ import { TransactionStore } from '../transaction.store';
 @Component({
   selector: 'app-create-transaction-dialog',
   imports: [ReactiveFormsModule, LoadingButtonDirective],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './create-transaction-dialog.component.html',
 })
 export class CreateTransactionDialog {

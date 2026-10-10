@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { DialogRef } from '@angular/cdk/dialog';
 import { DatePipe } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -12,6 +12,7 @@ import { CreateTransaction, ImportTransactionsResult } from '../../transaction/t
 @Component({
   selector: 'app-csv-import-dialog',
   imports: [CsvImportComponent, ReactiveFormsModule, LoadingButtonDirective, DatePipe],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './csv-import-dialog.component.html',
 })
 export class CsvImportDialog {

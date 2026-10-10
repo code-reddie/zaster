@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit } from '@angular/core';
+import { Component, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { TransactionStore } from './transaction.store';
 import { LoadingSpinnerComponent } from '../../assets/loading-spinner/loading-spinner.component';
 import { CategoryStore } from '../category/category.store';
@@ -6,6 +6,7 @@ import { CategoryStore } from '../category/category.store';
 @Component({
   selector: 'app-transactions',
   imports: [LoadingSpinnerComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './transactions.component.html',
 })
 export class TransactionsComponent implements OnInit {

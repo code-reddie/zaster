@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../authentication/auth.service';
 import { Router } from '@angular/router';
@@ -11,6 +11,7 @@ import { LoadingButtonDirective } from '../buttons/loading-button.directive';
 @Component({
   selector: 'app-register',
   imports: [ReactiveFormsModule, AutoFocusDirective, LoadingButtonDirective],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './register.component.html',
 })
 export class RegisterComponent {
