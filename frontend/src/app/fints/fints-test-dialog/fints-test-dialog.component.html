@@ -89,14 +89,21 @@
       </div>
     }
 
-    @if (result.messages.length > 0) {
-      <details class="mt-4 text-xs text-white/50">
-        <summary class="cursor-pointer">Meldungen der Bank ({{ result.messages.length }})</summary>
+    @if (result.messages.length > 0 || result.diagnostics.length > 0) {
+      <details class="mt-4 text-xs text-white/50" [open]="!result.success">
+        <summary class="cursor-pointer">Meldungen der Bank und Diagnose</summary>
         <ul class="mt-2 space-y-1">
           @for (message of result.messages; track $index) {
             <li>{{ message.code }}: {{ message.message }}</li>
           }
         </ul>
+        @if (result.diagnostics.length > 0) {
+          <ul class="mt-2 space-y-1 font-mono select-all">
+            @for (line of result.diagnostics; track $index) {
+              <li>{{ line }}</li>
+            }
+          </ul>
+        }
       </details>
     }
   }

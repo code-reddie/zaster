@@ -23,4 +23,5 @@ public sealed record FinTsTestResult(
     bool Success,
     string? Error,
     IReadOnlyList<FinTsBankMessage> Messages,
-    IReadOnlyList<FinTsTransactionPreview> Transactions);
+    IReadOnlyList<FinTsTransactionPreview> Transactions,
+    IReadOnlyList<string> Diagnostics);

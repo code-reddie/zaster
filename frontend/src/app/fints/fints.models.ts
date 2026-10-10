@@ -24,4 +24,5 @@ export interface FinTsTestResult {
   error: string | null;
   messages: FinTsBankMessage[];
   transactions: FinTsTransactionPreview[];
+  diagnostics: string[];
 }

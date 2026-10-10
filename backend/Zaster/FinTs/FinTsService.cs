@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using libfintx.FinTS;
@@ -64,34 +65,63 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
         var days = Math.Clamp(request.Days ?? MaxDays, 1, MaxDays);
         var startDate = DateTime.Today.AddDays(-days);
 
+        var messages = new List<FinTsBankMessage>();
+        var diagnostics = new List<string>();
+
         HBCIDialogResult<List<SwiftStatement>> result;
         try
         {
+            var sync = await client
+                .Synchronization()
+                .WaitAsync(TimeSpan.FromSeconds(_options.MaxWaitForApprovalSeconds), cancellationToken);
+            AddMessages(messages, sync);
+            diagnostics.Add($"Synchronisation: {DescribeSegments(sync.RawData)}");
+
+            if (sync.HasError)
+            {
+                return new FinTsTestResult(false, "Die ING hat die Anmeldung abgelehnt. Details stehen in den Bankmeldungen.", messages, [], diagnostics);
+            }
+
+            // libfintx erkennt die Bankparameterdaten nur, wenn sie in einer Zeile stehen.
+            // Ohne sie stürzt der Umsatzabruf mit einer NullReferenceException ab.
+            client.BPD ??= ParseBpd(sync.RawData);
+            if (client.BPD is null)
+            {
+                var error = messages.Count > 0
+                    ? "Die ING hat keine Bankparameterdaten geschickt. Bitte die Meldungen und die Diagnose unten an Claude schicken."
+                    : "Die ING hat auf die Anmeldung ohne verwertbare Antwort reagiert. Bitte die Diagnose unten an Claude schicken.";
+                return new FinTsTestResult(false, error, messages, [], diagnostics);
+            }
+
+            if (!string.IsNullOrEmpty(client.SystemId))
+            {
+                connectionDetails.CustomerSystemId = client.SystemId;
+            }
+
             result = await client
                 .Transactions(tanDialog, startDate, DateTime.Today)
                 .WaitAsync(TimeSpan.FromSeconds(_options.MaxWaitForApprovalSeconds), cancellationToken);
+            AddMessages(messages, result);
+            diagnostics.Add($"Umsatzabruf: {DescribeSegments(result.RawData)}");
         }
         catch (TimeoutException)
         {
             tanDialog.IsCancelWaitForApproval = true;
-            return Failed("Die Bank hat nicht rechtzeitig geantwortet. Wurde eine Freigabe in der ING-App erwartet?");
+            return new FinTsTestResult(false, "Die Bank hat nicht rechtzeitig geantwortet. Wurde eine Freigabe in der ING-App erwartet?", messages, [], diagnostics);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogFetchFailed(_logger, ex);
-            return Failed($"Abruf fehlgeschlagen: {ex.Message}");
+            diagnostics.Add($"Fehler: {ex.GetType().Name} in {ex.TargetSite?.DeclaringType?.Name}.{ex.TargetSite?.Name}");
+            return new FinTsTestResult(false, $"Abruf fehlgeschlagen: {ex.Message}", messages, [], diagnostics);
         }
-
-        var messages = result.Messages
-            .Select(m => new FinTsBankMessage(m.Code, m.Message))
-            .ToList();
 
         if (!result.IsSuccess || result.Data is null)
         {
             var error = result.IsSCARequired
                 ? "Die Bank verlangt eine Freigabe. Bitte einmal im ING-Banking einloggen und erneut versuchen."
                 : "Die Bank hat den Abruf abgelehnt. Details stehen in den Bankmeldungen.";
-            return new FinTsTestResult(false, error, messages, []);
+            return new FinTsTestResult(false, error, messages, [], diagnostics);
         }
 
         var transactions = result.Data
@@ -100,7 +130,7 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
             .OrderByDescending(t => t.Buchung)
             .ToList();
 
-        return new FinTsTestResult(true, null, messages, transactions);
+        return new FinTsTestResult(true, null, messages, transactions, diagnostics);
     }
 
     private static FinTsTransactionPreview ToPreview(SwiftTransaction transaction)
@@ -121,7 +151,47 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
     private static DateTimeOffset ToDate(DateTime date) =>
         new(DateTime.SpecifyKind(date.Date, DateTimeKind.Utc));
 
-    private static FinTsTestResult Failed(string error) => new(false, error, [], []);
+    private static FinTsTestResult Failed(string error) => new(false, error, [], [], []);
+
+    private static void AddMessages(List<FinTsBankMessage> messages, HBCIDialogResult result)
+    {
+        messages.AddRange(result.Messages
+            .Where(m => !messages.Any(existing => existing.Code == m.Code && existing.Message == m.Message))
+            .Select(m => new FinTsBankMessage(m.Code, m.Message)));
+    }
+
+    private static BPD? ParseBpd(string? rawData)
+    {
+        if (string.IsNullOrEmpty(rawData))
+        {
+            return null;
+        }
+
+        var match = BpdRegex().Match(rawData);
+        return match.Success ? BPD.Parse(match.Groups[1].Value, NullLogger.Instance) : null;
+    }
+
+    /// <summary>
+    /// Listet nur die Segmentkennungen einer Bankantwort auf, keine Inhalte.
+    /// </summary>
+    private static string DescribeSegments(string? rawData)
+    {
+        if (string.IsNullOrEmpty(rawData))
+        {
+            return "leere Antwort";
+        }
+
+        var segments = SegmentHeaderRegex().Matches(rawData).Select(m => m.Groups[1].Value).ToList();
+        return segments.Count == 0
+            ? $"keine Segmente erkannt ({rawData.Length} Zeichen)"
+            : string.Join(", ", segments);
+    }
+
+    [GeneratedRegex(@"(HIBPA.+?)\b(?:HIUPA|HISYN|HNHBS)\b", RegexOptions.Singleline)]
+    private static partial Regex BpdRegex();
+
+    [GeneratedRegex(@"(?:^|')([A-Z]{5,6}:\d+:\d+)")]
+    private static partial Regex SegmentHeaderRegex();
 
     [LoggerMessage(Level = LogLevel.Error, Message = "FinTS-Abruf fehlgeschlagen.")]
     static partial void LogFetchFailed(ILogger logger, Exception exception);
