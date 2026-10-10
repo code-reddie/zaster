@@ -49,6 +49,16 @@ Betrieb per `docker compose` mit `.env` (`JWT_KEY`, optional `FINTS_PRODUCT_ID`)
 - Neue Migration: `cd backend/Zaster && dotnet ef migrations add <Name>`. `dotnet ef` startet die App-Konfiguration und braucht dafür `JwtSettings__Key` (≥ 64 Zeichen) in der Umgebung, sonst bricht es ab.
 - Bestehende Daten beim Migrieren immer mitnehmen (z. B. Standardwerte für neue Pflichtspalten), die App läuft produktiv mit echten Buchungen.
 
+## README aktuell halten
+
+Die [README.md](README.md) beschreibt den Funktionsumfang (verfügbar, teilweise, geplant) und die Struktur der Konfiguration (`appsettings.json` mit allen Abschnitten, Schlüsseln, Standardwerten und Umgebungsvariablen). Christoph möchte, dass sie immer stimmt. Deshalb gilt für jeden PR:
+
+- Ändert sich die Konfiguration (neuer, geänderter oder entfernter Schlüssel in `appsettings.json` oder einer Options-Klasse wie `FinTsOptions`, geänderter Standardwert, neue Pflicht-Umgebungsvariable, Änderung an `docker-compose.yml`/`.env`), wird der Abschnitt „Konfiguration“ und bei Bedarf „Starten mit Docker Compose“ der README im **selben PR** angepasst.
+- Ändert sich der Funktionsumfang (Funktion fertig, neu, teilweise oder entfernt), werden die Funktionslisten der README im selben PR angepasst und der Stand in `docs/anforderungen.md` (✅/🟡/⬜) nachgezogen.
+- In der PR-Beschreibung kurz erwähnen, was an README und Anforderungen geändert wurde, oder dass nichts zu ändern war.
+
+Das ist eine Arbeitsanweisung für Claude, keine technische Prüfung: Nichts im Build oder in der CI schlägt fehl, wenn die README veraltet ist. Wer ohne Claude ändert, muss selbst daran denken.
+
 ## Konventionen
 
 - Controller holen die Nutzer-ID aus dem JWT und filtern jede Abfrage darauf; Konten gehören Nutzern über die n:m-Beziehung `Account.Users`. Fremde Daten liefern 404, nicht 403.
