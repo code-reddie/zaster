@@ -1,6 +1,6 @@
 # Anforderungen
 
-Christophs Anforderungen an Zaster (Stand 10.10.2026), geordnet nach Bereichen. Hinter jedem Punkt steht der Umsetzungsstand:
+Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben Tag eingearbeitet), geordnet nach Bereichen. Hinter jedem Punkt steht der Umsetzungsstand:
 
 - ✅ umgesetzt
 - 🟡 teilweise umgesetzt oder weicht ab
@@ -19,7 +19,7 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026), geordnet nach Bereichen. 
 ## Benutzer
 
 - ✅ Mehrere Benutzer mit eigener Anmeldung; jeder sieht nur seine eigenen Konten.
-- ⬜ ❓ Geteilte Konten (z. B. Gemeinschaftskonto). Das Datenmodell erlaubt schon mehrere Nutzer pro Konto (`Account.Users`), es gibt aber keinen Weg, ein Konto mit jemandem zu teilen. Offen: Rechte der Mitglieder.
+- ⬜ Geteilte Konten (z. B. Gemeinschaftskonto). Alle Mitglieder eines Kontos sind gleichberechtigt: Buchungen, Kategorien, Regeln, Teilen und Löschen. Das Datenmodell erlaubt schon mehrere Nutzer pro Konto (`Account.Users`), es gibt aber keinen Weg, ein Konto mit jemandem zu teilen.
 
 ## Kontoauszüge
 
@@ -32,7 +32,7 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026), geordnet nach Bereichen. 
 
 - 🟡 Kategorien anlegen und verwalten, Buchungen zuordnen. Anlegen, Löschen und Zuordnen gehen; Bearbeiten (Name, Farbe, Lage im Baum) fehlt.
 - ⬜ Baumstruktur mit beliebig vielen Ebenen (z. B. Autos → Passat, Corsa; Lebensmittel → Süßkram, Brot). `Category.ParentCategoryId` existiert im Modell, Oberfläche und Regeln nutzen es nicht.
-- 🟡 ❓ Jedes Konto hat seine eigenen Kategorien, damit geteilte Konten nicht im Chaos enden. **Abweichung:** heute gehören Kategorien dem Nutzer (PR #5/#6). Offen: wie bestehende Kategorien auf Konten übergehen.
+- 🟡 Jedes Konto hat seine eigenen Kategorien, damit geteilte Konten nicht im Chaos enden. **Abweichung:** heute gehören Kategorien dem Nutzer (PR #5/#6). Beim Umbau startet jedes Konto leer: die heutigen Nutzer-Kategorien und -Regeln werden nicht übernommen, die Zuordnungen der Buchungen fallen damit weg.
 
 ## Regeln
 
@@ -43,31 +43,32 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026), geordnet nach Bereichen. 
 
 ## Push-Benachrichtigungen
 
-- ⬜ ❓ Push auf Christophs Geräten, sobald eine oder mehrere neue Buchungen ohne Kategorie da sind. Offen: Technik (Web-Push) und was das fürs iPhone heißt.
+- ⬜ ❓ Push auf Christophs Geräten, sobald eine oder mehrere neue Buchungen ohne Kategorie da sind. Geplant über Home Assistant (siehe Entscheidungen), Bestätigung steht aus.
 - ⬜ Ein Tipp auf die Benachrichtigung öffnet die Seite, auf der man den Buchungen Kategorien zuweist.
-- 🟡 ❓ Buchungen werden regelmäßig per FinTS geladen; bleibt danach eine Buchung ohne Kategorie, kommt eine Push-Nachricht. Der regelmäßige Abruf läuft heute einmal pro Nacht (04:00, `FinTS__NightlySyncTime`); die Push-Nachricht fehlt. Offen: ob einmal pro Nacht reicht.
+- 🟡 Buchungen werden regelmäßig per FinTS geladen; bleibt danach eine Buchung ohne Kategorie, kommt eine Push-Nachricht. Die Abrufzeiten sind konfigurierbar, auch mehrere pro Tag (z. B. 09:00 und 14:00). Heute gibt es nur eine Uhrzeit (`FinTS__NightlySyncTime`, Standard 04:00); die Liste und die Push-Nachricht fehlen.
 
 ## Diagramme
 
-- ⬜ ❓ Verteilung der Ein- und Ausgaben als Sankey-Flussdiagramm. Offen: pro Konto oder über alle Konten.
+- ⬜ Verteilung der Ein- und Ausgaben als Sankey-Flussdiagramm, pro Konto.
 
 ## Allgemein
 
 - ⬜ Eigene Seite mit allen Buchungen ohne Kategorie.
-- ⬜ ❓ Taste, um alle Buchungen als erledigt zu markieren; Buchungen dürfen auch ohne Kategorie bleiben. So lassen sich alle alten Buchungen ohne Kategorie abhaken. Offen: was „erledigt“ genau bewirkt.
+- ⬜ ❓ Taste, um alle Buchungen als erledigt zu markieren; Buchungen dürfen auch ohne Kategorie bleiben. So lassen sich alle alten Buchungen ohne Kategorie abhaken. Jede Buchung hat dafür ein Merkmal „erledigt“; eine Buchung mit Kategorie gilt automatisch als erledigt. Seite „ohne Kategorie“ und Push zählen nur Buchungen, die nicht erledigt sind. Offen: der Name des Merkmals.
 - ✅ Kategorien einer Buchung lassen sich nachträglich setzen und ändern.
 
 ## Offene Fragen
 
-Jede Frage mit Vorschlag. Nach Christophs Antwort hier die Entscheidung eintragen und das ❓ oben entfernen.
-
-1. **Rechte bei geteilten Konten.** Vorschlag: alle Mitglieder eines Kontos sind gleichberechtigt (Buchungen, Kategorien, Regeln, Teilen, Löschen). Alternative: ein Besitzer, die anderen nur lesen oder kategorisieren.
-2. **Push-Technik.** Vorschlag: Web-Push über eine installierbare Web-App (PWA). Auf dem iPhone und iPad klappt das erst, wenn Zaster über „Zum Home-Bildschirm“ hinzugefügt wurde (ab iOS 16.4), und nur über HTTPS mit gültigem Zertifikat. Alternative: Benachrichtigung über einen Dienst wie ntfy oder Telegram.
-3. **Bedeutung von „erledigt“.** Vorschlag: jede Buchung bekommt ein Merkmal „erledigt“. Die Seite „ohne Kategorie“ und die Push-Nachricht zählen nur Buchungen, die weder eine Kategorie haben noch erledigt sind. Wer einer Buchung eine Kategorie gibt, erledigt sie automatisch.
-4. **Übergang der heutigen Kategorien.** Vorschlag: die Kategorien und Regeln eines Nutzers werden in jedes seiner Konten kopiert; Zuordnungen der Buchungen bleiben erhalten. Alternative: jedes Konto startet leer.
-5. **Häufigkeit des FinTS-Abrufs.** Vorschlag: einmal pro Nacht reicht. Häufiger erhöht das Risiko, dass die ING eine Freigabe in der App verlangt.
-6. **Sankey über mehrere Konten.** Vorschlag: pro Konto, weil jedes Konto eigene Kategorien hat; eine Gesamtansicht bräuchte gemeinsame Kategorien.
+1. **Push über Home Assistant.** Vorschlag: Zaster ruft den Benachrichtigungsdienst von Home Assistant auf (`notify.mobile_app_<gerät>`); die Home-Assistant-App zeigt die Nachricht auf iPhone und iPad, ein Tipp öffnet die Zaster-Seite „ohne Kategorie“. Adresse und Token von Home Assistant kommen in die Konfiguration, welches Gerät benachrichtigt wird, stellt jeder Nutzer selbst ein. Wartet auf Christophs Bestätigung.
+2. **Name für „erledigt“.** Vorschlag: „geprüft“ (Taste „Alle als geprüft markieren“). Wartet auf Christophs Antwort.
 
 ## Entscheidungen
 
-Noch keine.
+Am 10.10.2026 von Christoph entschieden:
+
+1. **Geteilte Konten:** alle Mitglieder sind gleichberechtigt.
+2. **Push:** Christoph nutzt zu Hause Home Assistant und bringt es statt Web-Push ins Spiel; noch nicht endgültig (siehe Offene Fragen 1).
+3. **Erledigt:** Merkmal pro Buchung; eine Buchung mit Kategorie gilt automatisch als erledigt.
+4. **Kategorien beim Umbau auf „pro Konto“:** jedes Konto startet leer.
+5. **FinTS-Abruf:** Uhrzeiten konfigurierbar, als Liste mit mehreren Zeitpunkten (z. B. 09:00 und 14:00).
+6. **Sankey:** pro Konto.
