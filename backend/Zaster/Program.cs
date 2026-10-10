@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Zaster.Authentication;
 using Zaster.Database;
 using Zaster.FinTs;
+using Zaster.Import;
 
 namespace Zaster;
 
@@ -19,6 +20,7 @@ internal sealed class Program
         builder.Services.AddAngularFrontend();
         builder.Services.AddDatabase(builder);
         builder.Services.AddFinTs(builder);
+        builder.Services.AddScoped<TransactionImporter>();
 
         var app = builder.Build();
         app.AddSwagger();

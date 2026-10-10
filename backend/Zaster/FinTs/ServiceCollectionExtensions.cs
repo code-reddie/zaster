@@ -1,5 +1,7 @@
+using System.IO;
 using libfintx.Globals;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -20,6 +22,12 @@ internal static class ServiceCollectionExtensions
                 FinTsGlobals.ProductId = productId;
             }
 
+            var keyRingPath = section.GetValue<string>(nameof(FinTsOptions.KeyRingPath)) ?? new FinTsOptions().KeyRingPath;
+            services.AddDataProtection()
+                .SetApplicationName("Zaster")
+                .PersistKeysToFileSystem(new DirectoryInfo(keyRingPath));
+
+            services.AddSingleton<FinTsPinProtector>();
             services.AddScoped<FinTsService>();
         }
     }

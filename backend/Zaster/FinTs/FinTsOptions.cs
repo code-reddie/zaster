@@ -17,4 +17,10 @@ public sealed class FinTsOptions
     public string Bic { get; set; } = "INGDDEFFXXX";
 
     public int MaxWaitForApprovalSeconds { get; set; } = 180;
+
+    /// <summary>
+    /// Ordner für die Schlüssel, mit denen gespeicherte PINs verschlüsselt werden.
+    /// Ohne diese Schlüssel lassen sich die PINs nicht mehr entschlüsseln.
+    /// </summary>
+    public string KeyRingPath { get; set; } = "/data/keys";
 }

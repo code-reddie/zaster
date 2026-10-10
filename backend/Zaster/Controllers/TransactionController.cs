@@ -14,9 +14,10 @@ namespace Zaster.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class TransactionController(AppDbContext context) : ControllerBase
+public sealed class TransactionController(AppDbContext context, TransactionImporter importer) : ControllerBase
 {
     private readonly AppDbContext _context = context;
+    private readonly TransactionImporter _importer = importer;
 
     private int? GetUserId()
     {
@@ -103,53 +104,7 @@ public sealed class TransactionController(AppDbContext context) : ControllerBase
             return BadRequest($"Account with ID {dto.AccountId} does not exist.");
         }
 
-        // SQLite kann DateTimeOffset nicht vergleichen, daher wird im Speicher abgeglichen.
-        var existing = await _context.Transactions
-            .Where(t => t.AccountId == account.Id)
-            .Select(t => new { t.Buchung, t.Betrag, t.Auftragsgeber })
-            .ToListAsync(cancellationToken);
-
-        var newItems = TransactionMatcher.SelectNew(
-            existing.Select(t => TransactionMatcher.Key(t.Buchung, t.Betrag, t.Auftragsgeber)),
-            dto.Transactions,
-            t => TransactionMatcher.Key(t.Buchung, t.Betrag, t.Auftragsgeber));
-
-        var transactions = newItems
-            .Select(t => new Transaction
-            {
-                Buchung = t.Buchung,
-                Valuta = t.Valuta,
-                Auftragsgeber = t.Auftragsgeber.Trim(),
-                Buchungstext = t.Buchungstext.Trim(),
-                Verwendungszweck = t.Verwendungszweck?.Trim() ?? string.Empty,
-                Betrag = t.Betrag,
-                AccountId = account.Id,
-            })
-            .ToList();
-
-        var rules = await _context.CategorizationRules
-            .Where(r => r.Category!.UserId == userId)
-            .ToListAsync(cancellationToken);
-        RuleEngine.Apply(transactions, rules);
-
-        _context.Transactions.AddRange(transactions);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return Ok(new ImportTransactionsResult(
-            transactions.Count,
-            dto.Transactions.Count - transactions.Count,
-            transactions
-                .Select(t => new TransactionDto(
-                    t.Id,
-                    t.Buchung,
-                    t.Valuta,
-                    t.Auftragsgeber,
-                    t.Buchungstext,
-                    t.Verwendungszweck,
-                    t.Betrag,
-                    t.AccountId,
-                    t.CategoryId))
-                .ToList()));
+        return Ok(await _importer.ImportAsync(account, userId.Value, dto.Transactions, cancellationToken));
     }
 
     [HttpGet]

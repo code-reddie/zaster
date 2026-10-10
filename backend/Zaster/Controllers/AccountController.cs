@@ -49,7 +49,7 @@ public sealed class AccountController(AppDbContext context) : ControllerBase
         _context.Accounts.Add(account);
         await _context.SaveChangesAsync(cancellationToken);
 
-        var result = new AccountDto(account.Id, account.Name, account.Iban);
+        var result = AccountDto.From(account);
 
         return Ok(result);
     }
@@ -67,7 +67,7 @@ public sealed class AccountController(AppDbContext context) : ControllerBase
             .Where(a => a.Users.Any(u => u.Id == userId))
             .ToListAsync(cancellationToken);
 
-        var result = accounts.Select(a => new AccountDto(a.Id, a.Name, a.Iban));
+        var result = accounts.Select(AccountDto.From);
         return Ok(result);
     }
 

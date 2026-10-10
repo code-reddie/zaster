@@ -24,4 +24,17 @@ public sealed record FinTsTestResult(
     string? Error,
     IReadOnlyList<FinTsBankMessage> Messages,
     IReadOnlyList<FinTsTransactionPreview> Transactions,
-    IReadOnlyList<string> Diagnostics);
+    IReadOnlyList<string> Diagnostics,
+    bool LoginRejected = false);
+
+public sealed record FinTsSyncRequest(string? UserId, string? Pin, bool SavePin);
+
+public sealed record FinTsSyncResult(
+    bool Success,
+    string? Error,
+    IReadOnlyList<FinTsBankMessage> Messages,
+    IReadOnlyList<string> Diagnostics,
+    int Imported,
+    int Skipped,
+    IReadOnlyList<Models.TransactionDto> Transactions,
+    Models.AccountDto Account);
