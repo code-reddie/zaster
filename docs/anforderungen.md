@@ -42,8 +42,8 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 
 ## Push-Benachrichtigungen
 
-- ⬜ Push auf Christophs Geräten, sobald eine oder mehrere neue Buchungen ohne Kategorie da sind, über Home Assistant (siehe Entscheidungen).
-- ⬜ Ein Tipp auf die Benachrichtigung öffnet die Seite, auf der man den Buchungen Kategorien zuweist.
+- 🟡 Push auf Christophs Geräten, sobald eine oder mehrere neue Buchungen ohne Kategorie da sind, über Home Assistant (siehe Entscheidungen). Die Verbindung steht: Home Assistant ist konfigurierbar (`HomeAssistant__Url`, `__Token`, `__ZasterUrl`), jeder Nutzer wählt unter „Benachrichtigungen“ seine Geräte aus und kann eine Testnachricht schicken. Die automatische Nachricht bei neuen Buchungen ohne Kategorie fehlt noch.
+- 🟡 Ein Tipp auf die Benachrichtigung öffnet die Seite, auf der man den Buchungen Kategorien zuweist. Heute öffnet die Testnachricht die Startseite von Zaster, weil es die Seite „ohne Kategorie“ noch nicht gibt.
 - 🟡 Buchungen werden regelmäßig per FinTS geladen; bleibt danach eine Buchung ohne Kategorie, kommt eine Push-Nachricht. Die Abrufzeiten sind konfigurierbar, auch mehrere pro Tag (z. B. 09:00 und 14:00). Heute gibt es nur eine Uhrzeit (`FinTS__NightlySyncTime`, Standard 04:00); die Liste und die Push-Nachricht fehlen.
 
 ## Diagramme
