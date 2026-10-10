@@ -1,7 +1,12 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { CreateTransaction, Transaction } from './transaction.models';
+import {
+  CreateTransaction,
+  ImportTransaction,
+  ImportTransactionsResult,
+  Transaction,
+} from './transaction.models';
 
 @Injectable({ providedIn: 'root' })
 export class TransactionService {
@@ -10,6 +15,15 @@ export class TransactionService {
 
   createTransaction(transaction: CreateTransaction) {
     return firstValueFrom(this.http.post<Transaction>(this.baseUrl, transaction));
+  }
+
+  importTransactions(accountId: number, transactions: ImportTransaction[]) {
+    return firstValueFrom(
+      this.http.post<ImportTransactionsResult>(`${this.baseUrl}/import`, {
+        accountId,
+        transactions,
+      }),
+    );
   }
 
   getAllTransactions() {

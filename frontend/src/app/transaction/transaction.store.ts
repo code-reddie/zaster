@@ -1,6 +1,6 @@
 import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
-import { CreateTransaction, Transaction } from './transaction.models';
+import { CreateTransaction, ImportTransaction, Transaction } from './transaction.models';
 import { TransactionService } from './transaction.service';
 
 type TransactionState = {
@@ -52,6 +52,16 @@ export const TransactionStore = signalStore(
       } finally {
         patchState(store, { loading: false });
       }
+    },
+
+    /**
+     * Übernimmt Buchungen in ein Konto. Bereits vorhandene Buchungen überspringt das Backend.
+     * Wirft bei einem Fehler, damit der Dialog ihn anzeigen kann.
+     */
+    async importTransactions(accountId: number, transactions: ImportTransaction[]) {
+      const result = await transactionService.importTransactions(accountId, transactions);
+      patchState(store, { transactions: [...store.transactions(), ...result.transactions] });
+      return result;
     },
 
     async setCategory(id: number, categoryId: number | null) {
