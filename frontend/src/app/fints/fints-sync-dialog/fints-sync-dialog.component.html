@@ -26,9 +26,15 @@
         }
       </div>
 
+      @if (account()?.lastSyncError && !result()) {
+        <p class="text-sm text-danger">
+          Letzter Abruf fehlgeschlagen: {{ account()?.lastSyncError }}
+        </p>
+      }
+
       @if (account()?.hasFinTsPin) {
         <p class="text-sm text-white">
-          PIN ist verschlüsselt gespeichert.
+          PIN ist verschlüsselt gespeichert, das Konto wird jede Nacht automatisch abgerufen.
           <button type="button" class="underline text-white/60 ml-2" (click)="onDeletePin()">
             PIN löschen
           </button>
@@ -63,7 +69,7 @@
         </div>
         <label class="flex items-center gap-2 text-sm text-white">
           <input type="checkbox" formControlName="savePin" />
-          PIN verschlüsselt speichern, damit der nächste Abruf ohne Eingabe geht
+          PIN verschlüsselt speichern, dann ruft Zaster das Konto jede Nacht automatisch ab
         </label>
       }
 

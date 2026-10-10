@@ -5,4 +5,5 @@ export interface Account {
   finTsUserId: string | null;
   hasFinTsPin: boolean;
   lastSyncedAt: string | null;
+  lastSyncError: string | null;
 }

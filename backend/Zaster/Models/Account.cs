@@ -21,6 +21,11 @@ public sealed record Account : Entity
 
     public DateTimeOffset? LastSyncedAt { get; set; }
 
+    /// <summary>
+    /// Fehlermeldung des letzten fehlgeschlagenen Abrufs, null nach einem erfolgreichen.
+    /// </summary>
+    public string? LastSyncError { get; set; }
+
     public List<Transaction> Transactions { get; init; } = [];
 
     public List<User> Users { get; init; } = [];
@@ -32,7 +37,8 @@ public sealed record AccountDto(
     string Iban,
     string? FinTsUserId,
     bool HasFinTsPin,
-    DateTimeOffset? LastSyncedAt)
+    DateTimeOffset? LastSyncedAt,
+    string? LastSyncError)
 {
     public static AccountDto From(Account account) => new(
         account.Id,
@@ -40,7 +46,8 @@ public sealed record AccountDto(
         account.Iban,
         account.FinTsUserId,
         account.FinTsPin is not null,
-        account.LastSyncedAt);
+        account.LastSyncedAt,
+        account.LastSyncError);
 }
 
 public sealed record CreateAccount(string Name, string Iban);
