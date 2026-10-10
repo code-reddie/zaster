@@ -38,6 +38,11 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
         var accountNumber = iban.Substring(12, 10);
         var userId = string.IsNullOrWhiteSpace(request.UserId) ? accountNumber : request.UserId.Trim();
 
+        if (!IsAscii(request.Pin) || !IsAscii(userId))
+        {
+            return Failed("PIN oder Zugangsnummer enthalten Umlaute oder andere Zeichen außerhalb von ASCII. Diese kann libfintx nicht an die Bank übertragen.");
+        }
+
         var connectionDetails = new ConnectionDetails
         {
             Url = _options.Url,
@@ -46,8 +51,10 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
             Bic = _options.Bic,
             Iban = iban,
             Account = accountNumber,
-            UserId = userId,
-            Pin = request.Pin,
+            // libfintx 1.4.0 maskiert ?, + und andere FinTS-Sonderzeichen nicht vollständig.
+            // Unmaskierte Sonderzeichen machen die Nachricht unlesbar (ING-Meldung 9030).
+            UserId = userId.Replace("?", "??").Replace("@", "?@"),
+            Pin = EscapeFinTs(request.Pin),
         };
 
         // libfintx protokolliert sonst Rohnachrichten (inklusive PIN) in eine Datei.
@@ -152,6 +159,15 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
 
     private static DateTimeOffset ToDate(DateTime date) =>
         new(DateTime.SpecifyKind(date.Date, DateTimeKind.Utc));
+
+    private static bool IsAscii(string value) => value.All(char.IsAscii);
+
+    private static string EscapeFinTs(string value) => value
+        .Replace("?", "??")
+        .Replace("+", "?+")
+        .Replace(":", "?:")
+        .Replace("'", "?'")
+        .Replace("@", "?@");
 
     private static FinTsTestResult Failed(string error) => new(false, error, [], [], []);
 
