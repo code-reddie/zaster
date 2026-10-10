@@ -10,8 +10,8 @@ export class AccountService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = '/api/account';
 
-  createAccount(name: string) {
-    return firstValueFrom(this.http.post<Account>(this.baseUrl, { name }));
+  createAccount(name: string, iban: string) {
+    return firstValueFrom(this.http.post<Account>(this.baseUrl, { name, iban }));
   }
 
   getAccounts() {
