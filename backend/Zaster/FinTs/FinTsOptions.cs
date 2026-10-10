@@ -23,4 +23,15 @@ public sealed class FinTsOptions
     /// Ohne diese Schlüssel lassen sich die PINs nicht mehr entschlüsseln.
     /// </summary>
     public string KeyRingPath { get; set; } = "/data/keys";
+
+    /// <summary>
+    /// Uhrzeit (HH:mm), zu der Konten mit gespeicherter PIN jede Nacht abgerufen werden.
+    /// Leer schaltet den nächtlichen Abruf ab.
+    /// </summary>
+    public string? NightlySyncTime { get; set; } = "04:00";
+
+    /// <summary>
+    /// Zeitzone für <see cref="NightlySyncTime"/>.
+    /// </summary>
+    public string TimeZone { get; set; } = "Europe/Berlin";
 }

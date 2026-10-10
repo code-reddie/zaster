@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -7,28 +6,16 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Zaster.Database;
 using Zaster.FinTs;
-using Zaster.Import;
 using Zaster.Models;
 
 namespace Zaster.Controllers;
 
 [ApiController]
 [Route("api/account/{id}/fints")]
-public sealed class AccountFinTsController(
-    AppDbContext context,
-    FinTsService finTsService,
-    FinTsPinProtector pinProtector,
-    TransactionImporter importer) : ControllerBase
+public sealed class AccountFinTsController(AppDbContext context, AccountSyncService syncService) : ControllerBase
 {
-    private const int MaxDays = 90;
-
-    // Überlappung zum letzten Abruf, damit nachträglich gebuchte Umsätze nicht fehlen.
-    private const int OverlapDays = 7;
-
     private readonly AppDbContext _context = context;
-    private readonly FinTsService _finTsService = finTsService;
-    private readonly FinTsPinProtector _pinProtector = pinProtector;
-    private readonly TransactionImporter _importer = importer;
+    private readonly AccountSyncService _syncService = syncService;
 
     private int? GetUserId()
     {
@@ -59,72 +46,15 @@ public sealed class AccountFinTsController(
             return NotFound();
         }
 
-        var enteredPin = string.IsNullOrWhiteSpace(request.Pin) ? null : request.Pin;
-        var pin = enteredPin ?? (account.FinTsPin is null ? null : _pinProtector.Unprotect(account.FinTsPin));
-        if (pin is null)
-        {
-            if (account.FinTsPin is not null)
-            {
-                // Der Schlüssel zum Entschlüsseln fehlt, z. B. nach einem neuen Container ohne /data/keys.
-                account.FinTsPin = null;
-                await _context.SaveChangesAsync(cancellationToken);
-            }
-
-            return BadRequest("Bitte gib deine PIN ein.");
-        }
-
-        var userIdForBank = string.IsNullOrWhiteSpace(request.UserId) ? account.FinTsUserId : request.UserId.Trim();
-        var days = account.LastSyncedAt is { } lastSynced
-            ? Math.Clamp((DateTimeOffset.UtcNow - lastSynced).Days + OverlapDays, 1, MaxDays)
-            : MaxDays;
-
-        var fetched = await _finTsService.FetchTransactionsAsync(
-            new FinTsTestRequest(account.Iban, userIdForBank, pin, days),
-            cancellationToken);
-
-        if (!fetched.Success)
-        {
-            // Mehrere Fehlversuche mit einer falschen PIN sperren den Zugang bei der Bank.
-            // Eine abgelehnte gespeicherte PIN wird daher nicht noch einmal verwendet.
-            if (fetched.LoginRejected && enteredPin is null)
-            {
-                account.FinTsPin = null;
-                await _context.SaveChangesAsync(cancellationToken);
-                return Ok(Failed(fetched, account, "Die ING hat die Anmeldung mit der gespeicherten PIN abgelehnt. Die PIN wurde gelöscht, bitte gib sie neu ein."));
-            }
-
-            return Ok(Failed(fetched, account, fetched.Error));
-        }
-
-        if (enteredPin is not null && request.SavePin)
-        {
-            account.FinTsPin = _pinProtector.Protect(enteredPin);
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.UserId))
-        {
-            account.FinTsUserId = request.UserId.Trim();
-        }
-
-        account.LastSyncedAt = DateTimeOffset.UtcNow;
-
-        var imported = await _importer.ImportAsync(
+        var result = await _syncService.SyncAsync(
             account,
             userId.Value,
-            fetched.Transactions
-                .Select(t => new ImportTransaction(t.Buchung, t.Valuta, t.Auftragsgeber, t.Buchungstext, t.Verwendungszweck, t.Betrag))
-                .ToList(),
+            request.UserId,
+            request.Pin,
+            request.SavePin,
             cancellationToken);
 
-        return Ok(new FinTsSyncResult(
-            true,
-            null,
-            fetched.Messages,
-            fetched.Diagnostics,
-            imported.Imported,
-            imported.Skipped,
-            imported.Transactions,
-            AccountDto.From(account)));
+        return result is null ? BadRequest("Bitte gib deine PIN ein.") : Ok(result);
     }
 
     /// <summary>
@@ -150,7 +80,4 @@ public sealed class AccountFinTsController(
         await _context.SaveChangesAsync(cancellationToken);
         return Ok(AccountDto.From(account));
     }
-
-    private static FinTsSyncResult Failed(FinTsTestResult fetched, Account account, string? error) =>
-        new(false, error, fetched.Messages, fetched.Diagnostics, 0, 0, [], AccountDto.From(account));
 }

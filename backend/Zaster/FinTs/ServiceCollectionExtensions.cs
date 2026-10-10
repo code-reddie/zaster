@@ -1,9 +1,11 @@
+using System;
 using System.IO;
 using libfintx.Globals;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Zaster.FinTs;
 
@@ -29,6 +31,9 @@ internal static class ServiceCollectionExtensions
 
             services.AddSingleton<FinTsPinProtector>();
             services.AddScoped<FinTsService>();
+            services.AddScoped<AccountSyncService>();
+            services.TryAddSingleton(TimeProvider.System);
+            services.AddHostedService<NightlySyncService>();
         }
     }
 }
