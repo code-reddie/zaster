@@ -38,7 +38,15 @@ public sealed partial class AuthController(ILogger<AuthController> logger, AppDb
 
         var user = new User { Name = name, PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password) };
         context.Users.Add(user);
-        await context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException e) when (IsUniqueViolation(e))
+        {
+            LogUserAlreadyExists(logger, name);
+            return ConflictProblem("Diesen Namen gibt es schon.");
+        }
 
         return new AuthResponse(user.Id, user.Name, authService.CreateToken(user));
     }

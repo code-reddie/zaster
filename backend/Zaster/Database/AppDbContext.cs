@@ -25,10 +25,17 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<Account>()
-            .HasMany(a => a.Users)
-            .WithMany(u => u.Accounts)
-            .UsingEntity<Dictionary<string, object>>("AccountUsers");
+        modelBuilder.Entity<User>().HasIndex(u => u.Name).IsUnique();
+
+        modelBuilder.Entity<Account>(account =>
+        {
+            account.HasMany(a => a.Users)
+                .WithMany(u => u.Accounts)
+                .UsingEntity<Dictionary<string, object>>("AccountUsers");
+
+            // Ein Bankkonto gibt es nur einmal; weitere Nutzer kommen als Mitglieder dazu.
+            account.HasIndex(a => a.Iban).IsUnique();
+        });
 
         modelBuilder.Entity<Transaction>(transaction =>
         {
