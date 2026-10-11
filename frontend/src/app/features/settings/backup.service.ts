@@ -8,6 +8,17 @@ interface Me {
   canDownloadBackup: boolean;
 }
 
+export interface BackupSchedule {
+  /** Ob ein Zielordner eingestellt ist (`Backup__Directory`). */
+  configured: boolean;
+  directory: string | null;
+  fileName: string;
+  /** „HH:mm“ oder null, wenn die automatische Sicherung aus ist. */
+  time: string | null;
+  lastBackupAt: string | null;
+  lastError: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class BackupService {
   private readonly http = inject(HttpClient);
@@ -31,5 +42,18 @@ export class BackupService {
     link.download = name;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  getSchedule() {
+    return firstValueFrom(this.http.get<BackupSchedule>('/api/backup/schedule'));
+  }
+
+  saveSchedule(time: string | null) {
+    return firstValueFrom(this.http.put<BackupSchedule>('/api/backup/schedule', { time }));
+  }
+
+  /** Sichert sofort in den Zielordner; ob es geklappt hat, steht in `lastError`. */
+  runNow() {
+    return firstValueFrom(this.http.post<BackupSchedule>('/api/backup/schedule/run', {}));
   }
 }

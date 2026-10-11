@@ -147,5 +147,94 @@
         <z-icon name="download" class="size-4" /> Datenbank herunterladen
       </button>
     </div>
+
+    <div class="mt-6 border-t border-border pt-5">
+      <h3 class="font-medium">Automatisch auf das NAS</h3>
+      <p class="mt-1 mb-4 text-sm text-muted">
+        Zaster legt jeden Tag eine Sicherung in einem Ordner ab, z. B. auf dem NAS der FritzBox. Die
+        Datei wird jedes Mal überschrieben.
+      </p>
+
+      @if (!schedule()) {
+        @if (scheduleError()) {
+          <p class="z-error">{{ scheduleError() }}</p>
+        } @else {
+          <div class="flex justify-center py-6 text-muted"><z-spinner /></div>
+        }
+      } @else if (!schedule()!.configured) {
+        <p class="rounded-xl bg-warning-soft px-3 py-2.5 text-sm">
+          Kein Zielordner eingestellt. Dafür die Freigabe per <code>docker compose</code> einbinden
+          und <code>BACKUP_DIR</code> setzen, siehe README „Sicherung auf die FritzBox“.
+        </p>
+      } @else {
+        @let s = schedule()!;
+        <dl class="mb-5 grid gap-3 text-sm sm:grid-cols-2">
+          <div class="rounded-xl bg-surface-2 px-3 py-2.5">
+            <dt class="text-muted">Datei</dt>
+            <dd class="truncate font-mono">{{ s.directory }}/{{ s.fileName }}</dd>
+          </div>
+          <div class="rounded-xl bg-surface-2 px-3 py-2.5">
+            <dt class="text-muted">Letzte Sicherung</dt>
+            <dd class="font-medium">
+              {{
+                s.lastBackupAt ? (s.lastBackupAt | date: 'd. MMMM y, HH:mm') + ' Uhr' : 'noch nie'
+              }}
+            </dd>
+          </div>
+        </dl>
+
+        <form class="flex flex-wrap items-end gap-2" (ngSubmit)="saveSchedule()">
+          <div>
+            <label class="z-label" for="backupTime">Uhrzeit</label>
+            <input
+              id="backupTime"
+              type="time"
+              name="backupTime"
+              class="z-input w-36"
+              [(ngModel)]="backupTime"
+            />
+          </div>
+          <button
+            zButton
+            variant="secondary"
+            type="submit"
+            [disabled]="backupTime() === (s.time ?? '')"
+            [loading]="savingSchedule()"
+          >
+            Speichern
+          </button>
+        </form>
+        <p class="z-hint">
+          @if (s.time) {
+            Jeden Tag um {{ s.time }} Uhr (deutsche Zeit).
+            @if (settings()?.homeAssistantConfigured) {
+              Schlägt sie fehl, kommt eine Nachricht an deine Geräte oben.
+            }
+            Leeren und speichern schaltet sie aus.
+          } @else {
+            Aus. Eine Uhrzeit eintragen und speichern, um sie einzuschalten.
+          }
+        </p>
+
+        @if (s.lastError) {
+          <p class="z-error mt-4">{{ s.lastError }}</p>
+        }
+        @if (scheduleError()) {
+          <p class="z-error mt-4">{{ scheduleError() }}</p>
+        }
+
+        <div class="mt-5 flex justify-end">
+          <button
+            zButton
+            variant="secondary"
+            type="button"
+            [loading]="running()"
+            (click)="runBackup()"
+          >
+            <z-icon name="upload" class="size-4" /> Jetzt sichern
+          </button>
+        </div>
+      }
+    </div>
   </section>
 }

@@ -27,6 +27,7 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 - Seite „Ohne Kategorie“ mit allen Buchungen, die noch nicht geprüft sind: Kategorie mit einem Tipp setzen (zuletzt benutzte Kategorien stehen direkt an der Buchung), direkt aus einer Buchung eine Regel machen, einzelne Buchungen mit „Nicht kategorisieren“ als geprüft abhaken oder „Alle nicht kategorisieren“. Eine Buchung mit Kategorie gilt automatisch als geprüft.
 - Benachrichtigungen über Home Assistant: Bringt ein FinTS-Abruf (von Hand oder automatisch) oder ein CSV-Import Buchungen, die nach den Regeln noch ohne Kategorie sind, bekommen alle Mitglieder des Kontos eine Nachricht, z. B. „3 neue Buchungen ohne Kategorie (insgesamt 12 offen)“. Ein Tipp darauf öffnet die Seite „Ohne Kategorie“ des Kontos, bei Bedarf nach der Anmeldung. Von Hand angelegte Buchungen lösen keine Nachricht aus. Jeder Nutzer wählt unter „Einstellungen“ seine Geräte mit der Home-Assistant-App aus und kann eine Testnachricht schicken.
 - Sicherung: Unter „Einstellungen“ lädt „Datenbank herunterladen“ die komplette Datenbank als Datei herunter (`zaster-<datum>.db`). Die Taste sieht nur, wer Zaster eingerichtet hat (der zuerst registrierte Nutzer), weil die Datei die Daten aller Nutzer enthält. Wiederherstellen: siehe unten.
+- Automatische Sicherung, z. B. auf das NAS der FritzBox: Zaster legt jeden Tag zur eingestellten Uhrzeit (Standard 03:00) eine Kopie der Datenbank als `zaster.db` in einem Ordner ab und überschreibt sie jedes Mal. Schlägt sie fehl, schickt Zaster über Home Assistant eine Nachricht an die Geräte dessen, der Zaster eingerichtet hat. Uhrzeit, letzte Sicherung, Fehler und „Jetzt sichern“ stehen unter „Einstellungen“ → „Sicherung“ (nur für den, der Zaster eingerichtet hat). Den Ordner bindet man per `docker compose` ein, siehe [Sicherung auf die FritzBox](#sicherung-auf-die-fritzbox).
 
 ### Geplant
 
@@ -54,14 +55,32 @@ docker compose up -d
 | `HA_URL` | nein | Adresse von Home Assistant, wie Zaster sie erreicht |
 | `HA_TOKEN` | nein | Long-Lived Access Token aus Home Assistant |
 | `ZASTER_URL` | nein | Adresse von Zaster, wie das Handy sie erreicht (Ziel der Benachrichtigungen) |
+| `BACKUP_DIR` | nein | Ordner im Container für die tägliche Sicherung, z. B. `/backup`; leer = keine |
+| `FRITZ_HOST`, `FRITZ_FOLDER`, `FRITZ_USER`, `FRITZ_PASSWORD` | nein | Zugang zum NAS der FritzBox, nur mit dem Volume `fritzbox` (siehe unten) |
 
 Zaster ist danach unter http://localhost:8080 erreichbar; dort legt man sich zuerst ein Konto über „Registrieren“ an. Die Datenbank-Migrationen laufen beim Start automatisch.
 
 Wichtig: Das Volume `/data` sichern. Gehen die Schlüssel unter `/data/keys` verloren, sind gespeicherte FinTS-PINs unbrauchbar und müssen neu eingegeben werden.
 
+### Sicherung auf die FritzBox
+
+Zaster kann jeden Tag eine Sicherung auf das NAS der FritzBox legen (USB-Speicher oder interner Speicher). Docker bindet dazu die Freigabe `FRITZ.NAS` per SMB als Ordner `/backup` in den Container ein; Zaster schreibt dort `zaster.db` und überschreibt sie bei jeder Sicherung.
+
+1. In der FritzBox unter „Heimnetz → USB/Speicher“ den Speicher-Zugriff über das Heimnetz (SMB) einschalten und unter „System → FRITZ!Box-Benutzer“ einen Benutzer mit Zugang zu NAS-Inhalten (Lesen und Schreiben) anlegen.
+2. Auf dem NAS einen Ordner anlegen, z. B. `Zaster` (bei USB-Speicher liegt er unter dem Namen des Sticks, z. B. `USB-Stick/Zaster`).
+3. In der `.env` `BACKUP_DIR=/backup` und `FRITZ_HOST`, `FRITZ_FOLDER`, `FRITZ_USER`, `FRITZ_PASSWORD` ausfüllen. Das Passwort darf kein Komma enthalten.
+4. In `docker-compose.yml` die Zeile `- fritzbox:/backup` und den Block `fritzbox:` unter `volumes:` einkommentieren, dann `docker compose up -d`.
+5. In Zaster unter „Einstellungen“ → „Sicherung“ auf „Jetzt sichern“ tippen. Klappt es, steht dort die Uhrzeit der letzten Sicherung, sonst die Fehlermeldung.
+
+Ist die FritzBox zur Uhrzeit der Sicherung nicht erreichbar, fällt nur diese Sicherung aus: Die vorige `zaster.db` auf dem NAS bleibt erhalten, der Fehler steht in den Einstellungen, und mit eingerichtetem Home Assistant ([Benachrichtigungen](#homeassistant-optional)) bekommt, wer Zaster eingerichtet hat, eine Nachricht auf seine Geräte. Ein Tipp darauf öffnet die Einstellungen. Der nächste Versuch kommt am nächsten Tag.
+
+Ist die FritzBox beim Start nicht erreichbar oder stimmt das Passwort nicht, startet der Container nicht (`docker compose up` meldet „error while mounting volume“). Nach einer Änderung an den FRITZ-Werten das Volume neu anlegen lassen: `docker compose down`, `docker volume rm <ordner>_fritzbox`, `docker compose up -d`. Statt der FritzBox geht jeder Ordner, den man nach `/backup` einbindet, z. B. ein auf dem Server schon eingehängtes NAS: `- /mnt/nas/zaster:/backup`.
+
+Auch diese Sicherung enthält die Schlüssel unter `/data/keys` nicht.
+
 ### Sicherung wiederherstellen
 
-Die Datei aus „Datenbank herunterladen“ ist eine vollständige SQLite-Datenbank. Zum Wiederherstellen:
+Die Datei aus „Datenbank herunterladen“ (oder `zaster.db` vom NAS) ist eine vollständige SQLite-Datenbank. Zum Wiederherstellen:
 
 ```bash
 docker compose down
@@ -111,11 +130,14 @@ Die vollständige Struktur mit allen Schlüsseln, die Zaster liest (Beispielwert
     "Url": "http://homeassistant.local:8123",
     "Token": "<Long-Lived Access Token, geheim>",
     "ZasterUrl": "https://zaster.example.de"
+  },
+  "Backup": {
+    "Directory": "/backup"
   }
 }
 ```
 
-Die mitgelieferte `appsettings.json` enthält nur `Logging` und `AllowedHosts`. `JwtSettings` fehlt dort, weil der Schlüssel geheim ist; er wird per Umgebungsvariable gesetzt (lokal per `dotnet user-secrets`, siehe [Lokal starten](#lokal-starten-macos)). `DataDirectory`, `ConnectionStrings` und `FinTS` haben Standardwerte im Code (`backend/Zaster/DataPaths.cs`, `backend/Zaster/FinTs/FinTsOptions.cs`). Auch `HomeAssistant` fehlt dort; ohne ihn gibt es einfach keine Benachrichtigungen (`backend/Zaster/Notifications/HomeAssistantOptions.cs`).
+Die mitgelieferte `appsettings.json` enthält nur `Logging` und `AllowedHosts`. `JwtSettings` fehlt dort, weil der Schlüssel geheim ist; er wird per Umgebungsvariable gesetzt (lokal per `dotnet user-secrets`, siehe [Lokal starten](#lokal-starten-macos)). `DataDirectory`, `ConnectionStrings` und `FinTS` haben Standardwerte im Code (`backend/Zaster/DataPaths.cs`, `backend/Zaster/FinTs/FinTsOptions.cs`). Auch `HomeAssistant` fehlt dort; ohne ihn gibt es einfach keine Benachrichtigungen (`backend/Zaster/Notifications/HomeAssistantOptions.cs`). Ebenso `Backup`; ohne ihn gibt es keine automatische Sicherung (`backend/Zaster/Backup/BackupOptions.cs`).
 
 ### JwtSettings (Pflicht)
 
@@ -159,6 +181,14 @@ Benachrichtigungen schickt Zaster über die REST-API von Home Assistant an den D
 | `Url` | `HomeAssistant__Url` | leer | Adresse von Home Assistant, wie der Zaster-Container sie erreicht, z. B. `http://homeassistant.local:8123`. Leer = keine Benachrichtigungen. |
 | `Token` | `HomeAssistant__Token` | leer | Long-Lived Access Token, anzulegen in Home Assistant unter Profil → Sicherheit. Geheim: Zaster gibt ihn nie an die Oberfläche und schreibt ihn nicht ins Log. |
 | `ZasterUrl` | `HomeAssistant__ZasterUrl` | leer | Adresse von Zaster, wie das Handy sie erreicht, z. B. `https://zaster.example.de`. Ein Tipp auf die Nachricht öffnet sie bzw. die Seite „Ohne Kategorie“ darunter (`<ZasterUrl>/konten/<id>/offen`). Ohne sie lehnt Zaster das Senden mit einer Meldung ab. |
+
+### Backup (optional)
+
+| Schlüssel | Umgebungsvariable | Standard | Bedeutung |
+|---|---|---|---|
+| `Directory` | `Backup__Directory` | leer | Ordner, in den Zaster jeden Tag die Datenbank als `zaster.db` sichert (überschreibt sie jedes Mal). Leer = keine automatische Sicherung. Im Container z. B. `/backup`, siehe [Sicherung auf die FritzBox](#sicherung-auf-die-fritzbox). |
+
+Die Uhrzeit (Standard 03:00, Zeitzone `FinTS:TimeZone`) steht nicht in der Konfiguration, sondern wird in der App unter „Einstellungen“ → „Sicherung“ eingestellt; leer = aus.
 
 ### Logging und AllowedHosts
 

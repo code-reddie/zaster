@@ -45,7 +45,7 @@ Docker:
 docker build -t zaster .
 ```
 
-Betrieb per `docker compose` mit `.env` (`JWT_KEY`, optional `FINTS_PRODUCT_ID`, `HA_URL`, `HA_TOKEN`, `ZASTER_URL`); Volume für `/data`. Vorlagen: `deploy/docker-compose.yml` und `deploy/.env.example`.
+Betrieb per `docker compose` mit `.env` (`JWT_KEY`, optional `FINTS_PRODUCT_ID`, `HA_URL`, `HA_TOKEN`, `ZASTER_URL`, `BACKUP_DIR` und `FRITZ_*` für die Sicherung auf die FritzBox); Volume für `/data`. Vorlagen: `deploy/docker-compose.yml` und `deploy/.env.example`.
 
 ## Datenbank und Migrationen
 
@@ -70,7 +70,7 @@ Ordner nach Fachbereich: `Accounts/`, `Transactions/`, `Categories/` (Kategorien
 API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 
 - `/api/auth/login`, `/api/auth/register` (ohne Anmeldung)
-- `/api/me`, `/api/me/notifications…`, `/api/backup` (Datenbank herunterladen)
+- `/api/me`, `/api/me/notifications…`, `/api/backup` (Datenbank herunterladen), `/api/backup/schedule` (+ `run`)
 - `/api/accounts`, `/api/accounts/{accountId}`
 - `/api/accounts/{accountId}/transactions` (Filter `from`, `to`, `search`, `categoryId` inkl. Unterkategorien, `withoutCategory`, `open`, `offset`, `limit`), `…/import`, `…/balance-check`, `…/review`, `…/{id}/category`, `…/{id}/splits`, `…/{id}/reviewed`
 - `/api/accounts/{accountId}/categories` (+ `order`), `/api/accounts/{accountId}/rules` (+ `order`, `apply`)
@@ -141,3 +141,5 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 - `GET /api/backup` (`Backup/BackupController.cs`) liefert die ganze Datenbank als SQLite-Datei. `DatabaseBackup.WriteAsync` schreibt per `VACUUM INTO` eine konsistente Kopie in eine temporäre Datei, die nach dem Ausliefern gelöscht wird; nie die laufende Datei direkt ausliefern.
 - Erlaubt nur dem Nutzer mit der kleinsten Id (wer Zaster eingerichtet hat), sonst 403. Es gibt keine Rollen; die Registrierung ist offen, und die Datei enthält alle Nutzer samt Passwort-Hashes. `UserDto.CanDownloadBackup` sagt dem Frontend, ob es die Taste zeigt.
 - Die Data-Protection-Schlüssel (`/data/keys`) sind nicht in der Sicherung.
+- Automatische Sicherung (`Backup/NasBackup.cs`, `Backup/ScheduledBackupService.cs`): Zielordner aus `Backup__Directory` (leer = aus, dann läuft der Dienst gar nicht). Uhrzeit, letzte Sicherung und letzter Fehler stehen in der einzigen Zeile der Tabelle `BackupSettings` (Id 1, Standard `03:00`, null = aus), einstellbar über `PUT /api/backup/schedule`, sofort sichern mit `POST /api/backup/schedule/run`; beides nur für den, der Zaster eingerichtet hat. Die Kopie entsteht lokal per `VACUUM INTO` (SQLite direkt auf einer SMB-Freigabe ist unzuverlässig), wird als `zaster.db.tmp` kopiert und dann auf `zaster.db` umbenannt, damit im Ziel nie eine halbe Datei liegt. Schlägt die zeitgesteuerte Sicherung fehl, schickt `ScheduledBackupService` eine Nachricht „Zaster · Sicherung“ an die `NotificationDevices` des ersten Nutzers, Link `<ZasterUrl>/einstellungen` („Jetzt sichern“ meldet nichts, der Fehler steht ja auf der Seite).
+- Die FritzBox bindet `docker compose` als CIFS-Volume ein (`deploy/docker-compose.yml`, auskommentiert); Zaster selbst spricht kein SMB. Ist die Freigabe nicht erreichbar, startet der Container nicht.

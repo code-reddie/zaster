@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Zaster.Auth;
+using Zaster.Backup;
 using Zaster.Database;
 using Zaster.FinTs;
 using Zaster.Notifications;
@@ -23,6 +24,7 @@ internal sealed class Program
         builder.Services.AddDatabase(builder);
         builder.Services.AddFinTs(builder);
         builder.Services.AddNotifications(builder);
+        builder.Services.AddBackup(builder);
         builder.Services.TryAddSingleton(TimeProvider.System);
         builder.Services.AddScoped<TransactionImporter>();
 
