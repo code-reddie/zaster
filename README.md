@@ -15,7 +15,7 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 - Oberfläche für PC, iPad und iPhone: am PC und auf dem iPad quer eine Seitenleiste, auf dem Handy Kontowahl oben, Navigation unten und Dialoge als Sheet von unten. Hell oder dunkel nach Systemeinstellung.
 - Mehrere Nutzer mit eigener Anmeldung (Registrierung, Login per JWT); jeder sieht nur seine eigenen Konten.
 - Bankkonten anlegen (IBAN ist Pflicht und wird geprüft), umbenennen und löschen.
-- Buchungen pro Monat oder für alle Zeiträume, nach Tagen gruppiert, mit Suche, Kategoriefilter und Summen für Einnahmen, Ausgaben und Saldo. Ein Tipp auf eine Buchung zeigt alle Details.
+- Buchungen pro Monat oder für alle Zeiträume, nach Tagen gruppiert, Kategorien als farbige Badges (bei aufgeteilten Buchungen eins pro Teil), mit Suche, Kategoriefilter und Summen für Einnahmen, Ausgaben und Saldo. Ein Tipp auf eine Buchung zeigt alle Details.
 - Buchungen von Hand anlegen und löschen.
 - CSV-Import von Kontoumsätzen im ING-Format, mit Vorschau vor dem Übernehmen.
 - Abruf der Umsätze per FinTS von der ING, pro Konto. Die PIN kann verschlüsselt gespeichert werden; dann ruft Zaster die Konten einmal täglich automatisch ab (Uhrzeit einstellbar). Der Abruf ist inkrementell, die ING liefert höchstens 90 Tage. Übernommen werden nur gebuchte Umsätze; vorgemerkte (z. B. frische Kartenzahlungen) kommen erst mit der Buchung.
