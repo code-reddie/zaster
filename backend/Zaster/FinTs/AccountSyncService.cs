@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Zaster.Accounts;
 using Zaster.Database;
 using Zaster.Transactions;
@@ -91,6 +92,8 @@ public sealed class AccountSyncService(
         account.LastSyncedAt = now;
         account.LastSyncError = null;
 
+        await RemovePendingAsync(account.Id, now, cancellationToken);
+
         var imported = await importer.ImportAsync(
             account.Id,
             fetched.Transactions
@@ -100,5 +103,20 @@ public sealed class AccountSyncService(
             cancellationToken);
 
         return new FinTsSyncResult(true, null, fetched.Messages, fetched.Diagnostics, imported.Imported, imported.Skipped);
+    }
+
+    /// <summary>
+    /// Frühere Versionen haben auch vorgemerkte Umsätze übernommen. Die ING datiert sie in die Zukunft,
+    /// gebuchte Umsätze liegen nie dort. Solche Reste werden entfernt, die echte Buchung kommt per Abruf.
+    /// </summary>
+    private Task<int> RemovePendingAsync(int accountId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        // Ein Tag Spielraum, damit Zeitzonen keine echte Buchung von heute treffen.
+        var latest = DateOnly.FromDateTime(now.UtcDateTime).AddDays(1);
+        return context.Transactions
+            .Where(t => t.AccountId == accountId
+                && (t.Source == TransactionSource.FinTs || t.Source == TransactionSource.Unbekannt)
+                && t.Buchung > latest)
+            .ExecuteDeleteAsync(cancellationToken);
     }
 }
