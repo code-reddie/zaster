@@ -112,9 +112,9 @@ export class OpenPage {
   protected async reviewAll() {
     const accountId = this.accounts.selectedId();
     const confirmed = await this.dialog.confirm({
-      title: 'Alle als geprüft markieren?',
+      title: 'Alle nicht kategorisieren?',
       text: `${this.total()} Buchungen bleiben ohne Kategorie, verschwinden aber von dieser Seite. In der Buchungsliste lässt sich jede später noch zuordnen.`,
-      confirm: 'Alle als geprüft markieren',
+      confirm: 'Alle nicht kategorisieren',
     });
     if (!confirmed || accountId === null) {
       return;

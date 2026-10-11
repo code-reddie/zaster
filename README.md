@@ -4,7 +4,7 @@ Zaster ist eine Web-App, mit der man die eigenen Finanzen kategorisiert und visu
 
 > **Zaster ist noch in Arbeit.** Die Grundlage steht und läuft im Alltag, einige Funktionen fehlen aber noch. Die Liste unten zeigt den aktuellen Stand.
 
-> **Update auf diese Version:** Kategorien und Regeln gehören jetzt zum Konto statt zum Nutzer. Beim ersten Start migriert Zaster die Datenbank: Nutzer, Konten, Buchungen und gespeicherte PINs bleiben, die bisherigen Kategorien, Regeln und Zuordnungen fallen weg. Alle vorhandenen Buchungen stehen danach unter „Ohne Kategorie“ und lassen sich mit „Alle als geprüft“ in einem Schritt abhaken. Vor dem Update das Volume `/data` sichern.
+> **Update auf diese Version:** Kategorien und Regeln gehören jetzt zum Konto statt zum Nutzer. Beim ersten Start migriert Zaster die Datenbank: Nutzer, Konten, Buchungen und gespeicherte PINs bleiben, die bisherigen Kategorien, Regeln und Zuordnungen fallen weg. Alle vorhandenen Buchungen stehen danach unter „Ohne Kategorie“ und lassen sich mit „Alle nicht kategorisieren“ in einem Schritt abhaken. Vor dem Update das Volume `/data` sichern.
 
 ## Funktionen
 
@@ -22,7 +22,7 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 - Duplikat-Abgleich zwischen CSV-Import und FinTS-Abruf, damit dieselbe Buchung nicht doppelt auftaucht.
 - Kategorien pro Konto als Baum mit beliebig vielen Ebenen, mit Farbe; anlegen, umbenennen, verschieben (auch unter eine andere Kategorie) und löschen.
 - Regeln pro Konto zur automatischen Kategorisierung (Text kommt in Auftraggeber, Buchungstext, Verwendungszweck oder einem davon vor). Die Reihenfolge ist einstellbar, die erste passende Regel gewinnt. Neue Buchungen bekommen die passende Kategorie automatisch, und die Regeln lassen sich nachträglich auf alle Buchungen ohne Kategorie anwenden. Aus einer Buchung lässt sich direkt eine Regel machen.
-- Seite „Ohne Kategorie“ mit allen Buchungen, die noch nicht geprüft sind: Kategorie mit einem Tipp setzen (zuletzt benutzte Kategorien stehen direkt an der Buchung), direkt aus einer Buchung eine Regel machen, einzelne Buchungen mit „Nicht kategorisieren“ als geprüft abhaken oder „Alle als geprüft“. Eine Buchung mit Kategorie gilt automatisch als geprüft.
+- Seite „Ohne Kategorie“ mit allen Buchungen, die noch nicht geprüft sind: Kategorie mit einem Tipp setzen (zuletzt benutzte Kategorien stehen direkt an der Buchung), direkt aus einer Buchung eine Regel machen, einzelne Buchungen mit „Nicht kategorisieren“ als geprüft abhaken oder „Alle nicht kategorisieren“. Eine Buchung mit Kategorie gilt automatisch als geprüft.
 - Benachrichtigungen über Home Assistant einrichten: Jeder Nutzer wählt unter „Einstellungen“ seine Geräte mit der Home-Assistant-App aus und kann eine Testnachricht schicken; ein Tipp darauf öffnet Zaster.
 
 ### Geplant
