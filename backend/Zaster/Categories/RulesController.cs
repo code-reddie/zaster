@@ -111,7 +111,7 @@ public sealed class RulesController(AppDbContext context) : ApiControllerBase
     {
         var rules = await context.Rules.Where(r => r.AccountId == accountId).ToListAsync(cancellationToken);
         var transactions = await context.Transactions
-            .Where(t => t.AccountId == accountId && t.CategoryId == null)
+            .Where(t => t.AccountId == accountId && !t.Splits.Any())
             .ToListAsync(cancellationToken);
 
         var updated = RuleEngine.Apply(transactions, rules);

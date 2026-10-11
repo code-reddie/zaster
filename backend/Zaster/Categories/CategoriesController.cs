@@ -114,11 +114,22 @@ public sealed partial class CategoriesController(AppDbContext context) : ApiCont
         }
 
         var ids = CategoryTree.WithDescendants(categories, id);
+        // Aufgeteilte Buchungen verlieren alle Teile, nicht nur den gelöschten: eine halbe Aufteilung
+        // ergäbe nicht mehr den Buchungsbetrag.
+        await using var dbTransaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        var affected = await context.Transactions
+            .Where(t => t.AccountId == accountId && t.Splits.Any(s => ids.Contains(s.CategoryId)))
+            .Select(t => t.Id)
+            .ToListAsync(cancellationToken);
+        await context.TransactionSplits
+            .Where(s => affected.Contains(s.TransactionId))
+            .ExecuteDeleteAsync(cancellationToken);
         await context.Transactions
-            .Where(t => t.AccountId == accountId && t.CategoryId != null && ids.Contains(t.CategoryId.Value))
-            .ExecuteUpdateAsync(s => s.SetProperty(t => t.CategoryId, (int?)null).SetProperty(t => t.Reviewed, false), cancellationToken);
+            .Where(t => affected.Contains(t.Id))
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.Reviewed, false), cancellationToken);
         // Unterkategorien und Regeln löscht die Datenbank mit (ON DELETE CASCADE).
         await context.Categories.Where(c => c.Id == id).ExecuteDeleteAsync(cancellationToken);
+        await dbTransaction.CommitAsync(cancellationToken);
 
         return NoContent();
     }

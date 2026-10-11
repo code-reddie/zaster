@@ -77,6 +77,23 @@
             >
               <z-icon name="zap" class="size-4" /><span class="hidden sm:inline">Regel</span>
             </button>
+            @if (transaction.betrag !== 0) {
+              <button
+                zButton
+                variant="ghost"
+                size="sm"
+                type="button"
+                class="!px-2 sm:!px-3"
+                title="Auf mehrere Kategorien aufteilen"
+                aria-label="Aufteilen"
+                [disabled]="busy() !== null"
+                (click)="split(transaction)"
+              >
+                <z-icon name="split" class="size-4" /><span class="hidden sm:inline"
+                  >Aufteilen</span
+                >
+              </button>
+            }
             <button
               zButton
               variant="ghost"

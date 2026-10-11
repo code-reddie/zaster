@@ -8,6 +8,7 @@ import {
   Transaction,
   TransactionPage,
   TransactionQuery,
+  TransactionSplit,
 } from './transaction.models';
 
 @Injectable({ providedIn: 'root' })
@@ -37,6 +38,13 @@ export class TransactionsService {
   setCategory(accountId: number, id: number, categoryId: number | null): Promise<Transaction> {
     return firstValueFrom(
       this.http.put<Transaction>(`${this.url(accountId)}/${id}/category`, { categoryId }),
+    );
+  }
+
+  /** Teilt die Buchung auf; die Teile müssen zusammen den Buchungsbetrag ergeben. */
+  setSplits(accountId: number, id: number, splits: TransactionSplit[]): Promise<Transaction> {
+    return firstValueFrom(
+      this.http.put<Transaction>(`${this.url(accountId)}/${id}/splits`, { splits }),
     );
   }
 

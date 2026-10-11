@@ -32,6 +32,7 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 - ✅ Kategorien anlegen und verwalten (Name, Farbe, Lage im Baum, Reihenfolge), Buchungen zuordnen.
 - ✅ Baumstruktur mit beliebig vielen Ebenen (z. B. Autos → Passat, Corsa; Lebensmittel → Süßkram, Brot). Löschen nimmt die Unterkategorien mit, ihre Buchungen sind danach wieder ohne Kategorie.
 - ✅ Jedes Konto hat seine eigenen Kategorien, damit geteilte Konten nicht im Chaos enden. Beim Umbau hat jedes Konto leer angefangen (Entscheidung 4).
+- ✅ Eine Buchung lässt sich auf mehrere Kategorien aufteilen (z. B. Einkauf im Kaufland: Lebensmittel und eine Bohrmaschine unter „Werkzeuge“). Die Teilbeträge ergeben zusammen immer den ganzen Buchungsbetrag (Entscheidung 7). Kategoriefilter und Summen der Buchungsliste rechnen mit den Teilbeträgen; Sankey und CSV-Export müssen das später auch tun.
 
 ## Regeln
 
@@ -70,3 +71,4 @@ Am 10.10.2026 von Christoph entschieden:
 4. **Kategorien beim Umbau auf „pro Konto“:** jedes Konto startet leer.
 5. **FinTS-Abruf:** Uhrzeiten konfigurierbar, als Liste mit mehreren Zeitpunkten (z. B. 09:00 und 14:00).
 6. **Sankey:** pro Konto.
+7. **Aufteilen von Buchungen** (Christoph wünscht es am 11.10.2026, Details von Claude festgelegt): Eine Buchung hat keine, eine oder mehrere Kategorien mit je einem Teilbetrag. Die Teile ergeben zusammen genau den Buchungsbetrag, halb kategorisierte Buchungen gibt es nicht; im Dialog bekommt die erste Kategorie automatisch den Rest. Eine Kategorie wählen (von Hand, per Schnellwahl oder Regel) weist den ganzen Betrag zu. Regeln überschreiben keine Aufteilung. Wird eine Kategorie gelöscht, verliert eine aufgeteilte Buchung alle Teile und ist wieder offen.

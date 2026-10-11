@@ -14,6 +14,7 @@ import { CategoryPicker, CategoryPickerData } from '../categories/category-picke
 import { CategoryStore } from '../categories/category.store';
 import { RuleSheet, RuleSheetData } from '../categories/rule-sheet';
 import { Transaction } from './transaction.models';
+import { SplitSheet } from './split-sheet';
 import { TransactionRow } from './transaction-row';
 import { ruleFromTransaction, TransactionSheet, TransactionSheetResult } from './transaction-sheet';
 import { TransactionsService } from './transactions.service';
@@ -83,6 +84,13 @@ export class OpenPage {
     this.recentIds.update((ids) =>
       [categoryId, ...ids.filter((id) => id !== categoryId)].slice(0, RECENT_COUNT),
     );
+  }
+
+  protected async split(transaction: Transaction) {
+    const updated = await this.dialog.result<Transaction, Transaction>(SplitSheet, transaction);
+    if (updated) {
+      await this.run(transaction, async () => updated);
+    }
   }
 
   protected async markReviewed(transaction: Transaction) {

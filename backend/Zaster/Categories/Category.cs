@@ -32,5 +32,5 @@ public sealed record Category : Entity
     /// </summary>
     public int SortOrder { get; set; }
 
-    public List<Transaction> Transactions { get; init; } = [];
+    public List<TransactionSplit> Splits { get; init; } = [];
 }

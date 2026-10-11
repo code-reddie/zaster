@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,7 +19,8 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
 
     /// <summary>
     /// Buchungen des Kontos, neueste zuerst, gefiltert und seitenweise. Einnahmen und Ausgaben
-    /// beziehen sich auf alle Treffer, nicht nur auf die Seite.
+    /// beziehen sich auf alle Treffer, nicht nur auf die Seite; mit Kategorie-Filter zählen bei
+    /// aufgeteilten Buchungen nur die Teilbeträge dieser Kategorie (und ihrer Unterkategorien).
     /// </summary>
     [HttpGet]
     public async Task<TransactionPage> GetTransactions(
@@ -47,27 +49,38 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
                 || EF.Functions.Like(t.Verwendungszweck, pattern, "\\"));
         }
 
+        HashSet<int>? categoryIds = null;
         if (query.CategoryId is { } categoryId)
         {
             var categories = await context.Categories.Where(c => c.AccountId == accountId).ToListAsync(cancellationToken);
             var ids = CategoryTree.WithDescendants(categories, categoryId);
-            transactions = transactions.Where(t => t.CategoryId != null && ids.Contains(t.CategoryId.Value));
+            categoryIds = ids;
+            transactions = transactions.Where(t => t.Splits.Any(s => ids.Contains(s.CategoryId)));
         }
 
         if (query.WithoutCategory)
         {
-            transactions = transactions.Where(t => t.CategoryId == null);
+            transactions = transactions.Where(t => !t.Splits.Any());
         }
 
         if (query.Open)
         {
-            transactions = transactions.Where(t => t.CategoryId == null && !t.Reviewed);
+            transactions = transactions.Where(t => !t.Splits.Any() && !t.Reviewed);
         }
 
+        var total = await transactions.CountAsync(cancellationToken);
+
         // SQLite rechnet nicht mit decimal, die Summen entstehen daher im Speicher.
-        var amounts = await transactions.Select(t => t.Betrag).ToListAsync(cancellationToken);
+        var amounts = categoryIds is null
+            ? await transactions.Select(t => t.Betrag).ToListAsync(cancellationToken)
+            : await transactions
+                .SelectMany(t => t.Splits)
+                .Where(s => categoryIds.Contains(s.CategoryId))
+                .Select(s => s.Betrag)
+                .ToListAsync(cancellationToken);
 
         var items = await transactions
+            .Include(t => t.Splits)
             .OrderByDescending(t => t.Buchung)
             .ThenByDescending(t => t.Id)
             .Skip(Math.Max(query.Offset, 0))
@@ -76,7 +89,7 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
 
         return new TransactionPage(
             items.Select(TransactionDto.From).ToList(),
-            amounts.Count,
+            total,
             amounts.Where(a => a > 0).Sum(),
             amounts.Where(a => a < 0).Sum());
     }
@@ -122,7 +135,8 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
         await importer.ImportAsync(accountId, request.Transactions, TransactionSource.Csv, cancellationToken);
 
     /// <summary>
-    /// Setzt oder entfernt die Kategorie. Mit Kategorie gilt die Buchung als geprüft.
+    /// Setzt eine Kategorie für den ganzen Betrag (ersetzt eine Aufteilung) oder entfernt alle Kategorien.
+    /// Mit Kategorie gilt die Buchung als geprüft.
     /// </summary>
     [HttpPut("{id:int}/category")]
     public async Task<ActionResult<TransactionDto>> SetCategory(
@@ -131,7 +145,7 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
         SetCategory request,
         CancellationToken cancellationToken)
     {
-        var transaction = await context.Transactions.FirstOrDefaultAsync(t => t.Id == id && t.AccountId == accountId, cancellationToken);
+        var transaction = await FindAsync(accountId, id, cancellationToken);
         if (transaction is null)
         {
             return NotFoundProblem("Die Buchung gibt es nicht.");
@@ -149,6 +163,41 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
     }
 
     /// <summary>
+    /// Teilt die Buchung auf mehrere Kategorien auf, z. B. Lebensmittel und eine Bohrmaschine im selben Einkauf.
+    /// Die Teilbeträge haben das Vorzeichen der Buchung und ergeben zusammen genau ihren Betrag.
+    /// </summary>
+    [HttpPut("{id:int}/splits")]
+    public async Task<ActionResult<TransactionDto>> SetSplits(
+        int accountId,
+        int id,
+        SetSplits request,
+        CancellationToken cancellationToken)
+    {
+        var transaction = await FindAsync(accountId, id, cancellationToken);
+        if (transaction is null)
+        {
+            return NotFoundProblem("Die Buchung gibt es nicht.");
+        }
+
+        var parts = request.Splits ?? [];
+        if (Transaction.ValidateSplit(transaction.Betrag, parts) is { } error)
+        {
+            return BadRequestProblem(error);
+        }
+
+        var categoryIds = parts.Select(p => p.CategoryId).ToList();
+        var known = await context.Categories.CountAsync(c => c.AccountId == accountId && categoryIds.Contains(c.Id), cancellationToken);
+        if (known != categoryIds.Count)
+        {
+            return BadRequestProblem("Die Kategorie gibt es in diesem Konto nicht.");
+        }
+
+        transaction.Split(parts);
+        await context.SaveChangesAsync(cancellationToken);
+        return TransactionDto.From(transaction);
+    }
+
+    /// <summary>
     /// Hakt eine Buchung ab oder öffnet sie wieder. Buchungen mit Kategorie bleiben immer geprüft.
     /// </summary>
     [HttpPut("{id:int}/reviewed")]
@@ -158,13 +207,13 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
         SetReviewed request,
         CancellationToken cancellationToken)
     {
-        var transaction = await context.Transactions.FirstOrDefaultAsync(t => t.Id == id && t.AccountId == accountId, cancellationToken);
+        var transaction = await FindAsync(accountId, id, cancellationToken);
         if (transaction is null)
         {
             return NotFoundProblem("Die Buchung gibt es nicht.");
         }
 
-        transaction.Reviewed = request.Reviewed || transaction.CategoryId is not null;
+        transaction.Reviewed = request.Reviewed || transaction.IsCategorized;
         await context.SaveChangesAsync(cancellationToken);
         return TransactionDto.From(transaction);
     }
@@ -193,6 +242,11 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
             .ExecuteDeleteAsync(cancellationToken);
         return deleted == 0 ? NotFoundProblem("Die Buchung gibt es nicht.") : NoContent();
     }
+
+    private Task<Transaction?> FindAsync(int accountId, int id, CancellationToken cancellationToken) =>
+        context.Transactions
+            .Include(t => t.Splits)
+            .FirstOrDefaultAsync(t => t.Id == id && t.AccountId == accountId, cancellationToken);
 
     private static string EscapeLike(string value) =>
         value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");

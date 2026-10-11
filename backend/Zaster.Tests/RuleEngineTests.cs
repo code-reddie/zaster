@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Zaster.Categories;
 using Zaster.Transactions;
 
@@ -6,16 +7,22 @@ namespace Zaster.Tests;
 
 public sealed class RuleEngineTests
 {
-    private static Transaction Buchung(string auftraggeber, string verwendungszweck = "", int? categoryId = null) => new()
+    private static Transaction Buchung(string auftraggeber, string verwendungszweck = "", int? categoryId = null)
     {
-        Buchung = new DateOnly(2026, 5, 4),
-        Valuta = new DateOnly(2026, 5, 4),
-        Auftraggeber = auftraggeber,
-        Buchungstext = "Lastschrift",
-        Verwendungszweck = verwendungszweck,
-        Betrag = -1m,
-        CategoryId = categoryId,
-    };
+        var transaction = new Transaction
+        {
+            Buchung = new DateOnly(2026, 5, 4),
+            Valuta = new DateOnly(2026, 5, 4),
+            Auftraggeber = auftraggeber,
+            Buchungstext = "Lastschrift",
+            Verwendungszweck = verwendungszweck,
+            Betrag = -1m,
+        };
+        transaction.Categorize(categoryId);
+        return transaction;
+    }
+
+    private static int? CategoryOf(Transaction t) => t.Splits.SingleOrDefault()?.CategoryId;
 
     [Fact]
     public void Erste_passende_Regel_gewinnt_und_Gross_Kleinschreibung_egal()
@@ -30,7 +37,7 @@ public sealed class RuleEngineTests
         var updated = RuleEngine.Apply([transaction], rules);
 
         Assert.Equal(1, updated);
-        Assert.Equal(10, transaction.CategoryId);
+        Assert.Equal(10, CategoryOf(transaction));
         Assert.True(transaction.Reviewed);
     }
 
@@ -41,7 +48,7 @@ public sealed class RuleEngineTests
         var rules = new[] { new Rule { Id = 1, Pattern = "rewe", Field = RuleField.Auftraggeber, CategoryId = 10 } };
 
         Assert.Equal(0, RuleEngine.Apply([transaction], rules));
-        Assert.Null(transaction.CategoryId);
+        Assert.Empty(transaction.Splits);
         Assert.False(transaction.Reviewed);
     }
 
@@ -52,6 +59,17 @@ public sealed class RuleEngineTests
         var rules = new[] { new Rule { Id = 1, Pattern = "rewe", Field = RuleField.Alle, CategoryId = 10 } };
 
         Assert.Equal(0, RuleEngine.Apply([transaction], rules));
-        Assert.Equal(99, transaction.CategoryId);
+        Assert.Equal(99, CategoryOf(transaction));
+    }
+
+    [Fact]
+    public void Aufteilung_wird_nie_ueberschrieben()
+    {
+        var transaction = Buchung("Rewe");
+        transaction.Split([new TransactionSplitDto(1, -0.4m), new TransactionSplitDto(2, -0.6m)]);
+        var rules = new[] { new Rule { Id = 1, Pattern = "rewe", Field = RuleField.Alle, CategoryId = 10 } };
+
+        Assert.Equal(0, RuleEngine.Apply([transaction], rules));
+        Assert.Equal([1, 2], transaction.Splits.Select(s => s.CategoryId));
     }
 }
