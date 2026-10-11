@@ -44,9 +44,9 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 
 ## Push-Benachrichtigungen
 
-- 🟡 Push auf Christophs Geräten, sobald eine oder mehrere neue Buchungen ohne Kategorie da sind, über Home Assistant (siehe Entscheidungen). Die Verbindung steht: Home Assistant ist konfigurierbar (`HomeAssistant__Url`, `__Token`, `__ZasterUrl`), jeder Nutzer wählt unter „Einstellungen“ seine Geräte aus und kann eine Testnachricht schicken. Die automatische Nachricht bei neuen Buchungen ohne Kategorie fehlt noch.
-- 🟡 Ein Tipp auf die Benachrichtigung öffnet die Seite, auf der man den Buchungen Kategorien zuweist. Die Seite gibt es jetzt (`/konten/<id>/offen`); die Testnachricht öffnet noch die Startseite, den Link auf die Seite bekommt die automatische Nachricht.
-- 🟡 Buchungen werden regelmäßig per FinTS geladen; bleibt danach eine Buchung ohne Kategorie, kommt eine Push-Nachricht. Die Abrufzeiten stellt man pro Konto unter „Konto & Abruf“ ein, auch mehrere pro Tag (z. B. 09:00 und 14:00); das ist fertig. Die Push-Nachricht danach fehlt noch.
+- ✅ Push auf Christophs Geräten, sobald eine oder mehrere neue Buchungen ohne Kategorie da sind, über Home Assistant (siehe Entscheidungen). Home Assistant ist konfigurierbar (`HomeAssistant__Url`, `__Token`, `__ZasterUrl`), jeder Nutzer wählt unter „Einstellungen“ seine Geräte aus und kann eine Testnachricht schicken. Nach jedem FinTS-Abruf und CSV-Import bekommen alle Mitglieder des Kontos eine Nachricht mit der Zahl der neuen Buchungen, die nach den Regeln noch ohne Kategorie sind (und wie viele insgesamt offen sind). Von Hand angelegte Buchungen lösen keine Nachricht aus.
+- ✅ Ein Tipp auf die Benachrichtigung öffnet die Seite „Ohne Kategorie“ des Kontos (`/konten/<id>/offen`). Ist man nicht angemeldet, geht es nach der Anmeldung dorthin. Die Testnachricht öffnet die Startseite.
+- ✅Buchungen werden regelmäßig per FinTS geladen; bleibt danach eine Buchung ohne Kategorie, kommt eine Push-Nachricht. Die Abrufzeiten stellt man pro Konto unter „Konto & Abruf“ ein, auch mehrere pro Tag (z. B. 09:00 und 14:00).
 
 ## Diagramme
 

@@ -6,14 +6,16 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Zaster.Categories;
 using Zaster.Database;
+using Zaster.Notifications;
 
 namespace Zaster.Transactions;
 
 /// <summary>
 /// Legt Buchungen in einem Konto an, überspringt solche, die dort schon liegen,
 /// und wendet die Regeln des Kontos auf die neuen an. Gemeinsamer Weg für CSV und FinTS.
+/// Bleiben neue Buchungen ohne Kategorie, bekommen die Mitglieder des Kontos eine Benachrichtigung.
 /// </summary>
-public sealed class TransactionImporter(AppDbContext context, TimeProvider timeProvider)
+public sealed class TransactionImporter(AppDbContext context, TimeProvider timeProvider, OpenTransactionsQueue notifications)
 {
     public async Task<ImportResult> ImportAsync(
         int accountId,
@@ -65,6 +67,12 @@ public sealed class TransactionImporter(AppDbContext context, TimeProvider timeP
 
         context.Transactions.AddRange(transactions);
         await context.SaveChangesAsync(cancellationToken);
+
+        var open = transactions.Count(t => !t.IsCategorized && !t.Reviewed);
+        if (open > 0)
+        {
+            notifications.Enqueue(accountId, open);
+        }
 
         return new ImportResult(transactions.Count, incoming.Count - transactions.Count);
     }

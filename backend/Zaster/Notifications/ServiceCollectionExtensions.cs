@@ -12,6 +12,8 @@ internal static class ServiceCollectionExtensions
         {
             services.Configure<HomeAssistantOptions>(builder.Configuration.GetSection(HomeAssistantOptions.SectionName));
             services.AddHttpClient<HomeAssistantClient>(client => client.Timeout = TimeSpan.FromSeconds(10));
+            services.AddSingleton<OpenTransactionsQueue>();
+            services.AddHostedService<OpenTransactionsNotifier>();
         }
     }
 }
