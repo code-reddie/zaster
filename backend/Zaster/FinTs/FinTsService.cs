@@ -136,7 +136,10 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
 
         diagnostics.Add($"Kontoauszüge: {result.Data.Count}, Buchungen: {result.Data.Sum(statement => statement.SwiftTransactions.Count)}");
 
+        // Vorgemerkte Umsätze (MT942) tragen bei der ING ein vorläufiges Datum in der Zukunft und kämen
+        // nach der echten Buchung ein zweites Mal herein. Erst gebuchte Umsätze übernehmen.
         var transactions = result.Data
+            .Where(statement => !statement.Pending)
             .SelectMany(statement => statement.SwiftTransactions)
             .Select(ToTransaction)
             .OrderByDescending(t => t.Buchung)
