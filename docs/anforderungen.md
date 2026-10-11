@@ -57,6 +57,7 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 - ✅ Taste „Alle nicht kategorisieren“ (pro Buchung „Nicht kategorisieren“); Buchungen dürfen auch ohne Kategorie bleiben. So lassen sich alle alten Buchungen ohne Kategorie abhaken. Jede Buchung hat dafür ein Merkmal „geprüft“; eine Buchung mit Kategorie gilt automatisch als geprüft. Seite „ohne Kategorie“ und Push zählen nur Buchungen, die nicht geprüft sind.
 - ✅ Kategorien einer Buchung lassen sich nachträglich setzen und ändern.
 - ✅ Taste zum Herunterladen der kompletten Datenbank als Sicherung, unter „Einstellungen“ (Christoph, 11.10.2026, ersetzt den CSV-Export; Entscheidung 8).
+- ✅ Automatische Sicherung auf das NAS der FritzBox, einmal am Tag, überschreibt immer dieselbe Datei (Christoph, 11.10.2026; Entscheidung 9).
 
 ## Offene Fragen
 
@@ -74,3 +75,4 @@ Am 10.10.2026 von Christoph entschieden:
 6. **Sankey:** pro Konto.
 7. **Aufteilen von Buchungen** (Christoph wünscht es am 11.10.2026, Details von Claude festgelegt): Eine Buchung hat keine, eine oder mehrere Kategorien mit je einem Teilbetrag. Die Teile ergeben zusammen genau den Buchungsbetrag, halb kategorisierte Buchungen gibt es nicht; im Dialog bekommt die erste Kategorie automatisch den Rest. Eine Kategorie wählen (von Hand, per Schnellwahl oder Regel) weist den ganzen Betrag zu. Regeln überschreiben keine Aufteilung. Wird eine Kategorie gelöscht, verliert eine aufgeteilte Buchung alle Teile und ist wieder offen.
 8. **Sicherung statt CSV-Export** (Christoph, 11.10.2026): Der CSV-Export entfällt. Stattdessen lädt eine Taste unter „Einstellungen“ die komplette Datenbank als SQLite-Datei herunter, eine konsistente Kopie der laufenden Datenbank. Weil die Datei die Daten aller Nutzer samt Passwort-Hashes enthält, sieht die Taste nur der Nutzer, der Zaster eingerichtet hat (der zuerst registrierte). Die Schlüssel für die FinTS-PINs (`/data/keys`) sind nicht dabei.
+9. **Automatische Sicherung auf die FritzBox** (Christoph wünscht es am 11.10.2026, Details von Claude festgelegt): Zaster schreibt jeden Tag zur eingestellten Uhrzeit (Standard 03:00, einstellbar unter „Einstellungen“ → „Sicherung“, leer = aus) eine Kopie der Datenbank als `zaster.db` in einen Ordner und überschreibt sie jedes Mal. Den Ordner (`Backup__Directory`) bindet `docker compose` als SMB-Freigabe der FritzBox ein; Zaster selbst kennt kein SMB. Ohne Ordner gibt es keine automatische Sicherung. Einstellen und „Jetzt sichern“ darf nur, wer Zaster eingerichtet hat, wie beim Herunterladen.

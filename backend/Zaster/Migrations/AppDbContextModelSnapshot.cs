@@ -70,6 +70,33 @@ namespace Zaster.Migrations
                     b.ToTable("Accounts");
                 });
 
+            modelBuilder.Entity("Zaster.Backup.BackupSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastBackupAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Time")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BackupSettings");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Time = "03:00"
+                        });
+                });
+
             modelBuilder.Entity("Zaster.Categories.Category", b =>
                 {
                     b.Property<int>("Id")

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Zaster.Accounts;
+using Zaster.Backup;
 using Zaster.Categories;
 using Zaster.Transactions;
 using Zaster.Users;
@@ -90,5 +91,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
             rule.Property(r => r.Field).HasConversion<string>();
         });
+
+        // Die eine Zeile mit den Einstellungen der automatischen Sicherung.
+        modelBuilder.Entity<BackupSettings>().HasData(new BackupSettings { Id = BackupSettings.SingletonId });
     }
 }

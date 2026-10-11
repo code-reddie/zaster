@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
@@ -8,7 +9,7 @@ import { Icon } from '../../core/ui/icon';
 import { Spinner } from '../../core/ui/spinner';
 import { ToastService } from '../../core/ui/toast';
 import { AccountStore } from '../accounts/account.store';
-import { BackupService } from './backup.service';
+import { BackupSchedule, BackupService } from './backup.service';
 import {
   HomeAssistantDevice,
   NotificationSettings,
@@ -17,7 +18,7 @@ import {
 } from './notifications.service';
 
 @Component({
-  imports: [FormsModule, PageHeader, Button, Icon, Spinner],
+  imports: [DatePipe, FormsModule, PageHeader, Button, Icon, Spinner],
   templateUrl: './settings.page.html',
 })
 export class SettingsPage {
@@ -38,6 +39,11 @@ export class SettingsPage {
   protected readonly canBackup = signal(false);
   protected readonly downloading = signal(false);
   protected readonly backupError = signal<string | null>(null);
+  protected readonly schedule = signal<BackupSchedule | null>(null);
+  protected readonly scheduleError = signal<string | null>(null);
+  protected readonly backupTime = signal('');
+  protected readonly savingSchedule = signal(false);
+  protected readonly running = signal(false);
 
   /** Gespeicherte Geräte, die Home Assistant gerade nicht meldet, z. B. von Hand eingetragene. */
   protected readonly otherSelected = computed(() =>
@@ -55,9 +61,58 @@ export class SettingsPage {
     inject(AccountStore).selectedId.set(null);
     this.load();
     this.backup.canDownload().then(
-      (can) => this.canBackup.set(can),
+      (can) => {
+        this.canBackup.set(can);
+        if (can) {
+          this.loadSchedule();
+        }
+      },
       () => this.canBackup.set(false),
     );
+  }
+
+  protected async saveSchedule() {
+    this.savingSchedule.set(true);
+    this.scheduleError.set(null);
+    try {
+      this.setSchedule(await this.backup.saveSchedule(this.backupTime() || null));
+      this.toast.success('Uhrzeit gespeichert.');
+    } catch (e) {
+      this.scheduleError.set(errorMessage(e, 'Die Uhrzeit konnte nicht gespeichert werden.'));
+    } finally {
+      this.savingSchedule.set(false);
+    }
+  }
+
+  protected async runBackup() {
+    this.running.set(true);
+    this.scheduleError.set(null);
+    try {
+      const schedule = await this.backup.runNow();
+      this.setSchedule(schedule);
+      if (!schedule.lastError) {
+        this.toast.success('Sicherung abgelegt.');
+      }
+    } catch (e) {
+      this.scheduleError.set(errorMessage(e, 'Die Sicherung konnte nicht erstellt werden.'));
+    } finally {
+      this.running.set(false);
+    }
+  }
+
+  private async loadSchedule() {
+    try {
+      this.setSchedule(await this.backup.getSchedule());
+    } catch (e) {
+      this.scheduleError.set(
+        errorMessage(e, 'Die automatische Sicherung konnte nicht geladen werden.'),
+      );
+    }
+  }
+
+  private setSchedule(schedule: BackupSchedule) {
+    this.schedule.set(schedule);
+    this.backupTime.set(schedule.time ?? '');
   }
 
   protected async downloadBackup() {
