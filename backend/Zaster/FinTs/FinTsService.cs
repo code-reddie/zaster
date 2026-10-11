@@ -53,8 +53,8 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
             Account = accountNumber,
             // libfintx 1.4.0 maskiert ?, + und andere FinTS-Sonderzeichen nicht vollständig.
             // Unmaskierte Sonderzeichen machen die Nachricht unlesbar (ING-Meldung 9030).
-            UserId = userId.Replace("?", "??").Replace("@", "?@"),
-            Pin = EscapeFinTs(request.Pin),
+            UserId = FinTsMessages.EscapeUserId(userId),
+            Pin = FinTsMessages.Escape(request.Pin),
         };
 
         // libfintx protokolliert sonst Rohnachrichten (inklusive PIN) in eine Datei.
@@ -83,9 +83,9 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
                 .WaitAsync(TimeSpan.FromSeconds(_options.MaxWaitForApprovalSeconds), cancellationToken);
             AddMessages(messages, sync);
             diagnostics.Add($"Synchronisation: {DescribeSegments(sync.RawData)}");
-            diagnostics.AddRange(ResultSegments(sync.RawData));
+            diagnostics.AddRange(FinTsMessages.ResultSegments(sync.RawData));
 
-            if (sync.HasError || messages.Any(m => m.Code.StartsWith('9')))
+            if (sync.HasError || FinTsMessages.IsRejected(messages))
             {
                 return new FinTsTestResult(false, "Die ING hat die Anmeldung abgelehnt. Details stehen in den Bankmeldungen.", messages, [], diagnostics, LoginRejected: true);
             }
@@ -111,7 +111,7 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
                 .WaitAsync(TimeSpan.FromSeconds(_options.MaxWaitForApprovalSeconds), cancellationToken);
             AddMessages(messages, result);
             diagnostics.Add($"Umsatzabruf: {DescribeSegments(result.RawData)}");
-            diagnostics.AddRange(ResultSegments(result.RawData));
+            diagnostics.AddRange(FinTsMessages.ResultSegments(result.RawData));
         }
         catch (TimeoutException)
         {
@@ -126,7 +126,7 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
         }
 
         // Warnungen wie 3010 („nur die letzten 90 Tage“) kommen ohne Erfolgsmeldung, die Umsätze sind trotzdem da.
-        if (result.HasError || messages.Any(m => m.Code.StartsWith('9')) || result.Data is null)
+        if (result.HasError || FinTsMessages.IsRejected(messages) || result.Data is null)
         {
             var error = result.IsSCARequired
                 ? "Die Bank verlangt eine Freigabe. Bitte einmal im ING-Banking einloggen und erneut versuchen."
@@ -165,13 +165,6 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
 
     private static bool IsAscii(string value) => value.All(char.IsAscii);
 
-    private static string EscapeFinTs(string value) => value
-        .Replace("?", "??")
-        .Replace("+", "?+")
-        .Replace(":", "?:")
-        .Replace("'", "?'")
-        .Replace("@", "?@");
-
     private static FinTsTestResult Failed(string error) => new(false, error, [], [], []);
 
     private static void AddMessages(List<FinTsBankMessage> messages, HBCIDialogResult result)
@@ -181,53 +174,11 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
         // libfintx übersieht Rückmeldungen, die nicht genau seinem Muster entsprechen.
         if (parsed.Count == 0)
         {
-            parsed = ResultSegments(result.RawData)
-                .SelectMany(segment => SplitUnescaped(segment, '+').Skip(1))
-                .Select(element => ResultMessageRegex().Match(element))
-                .Where(match => match.Success)
-                .Select(match => new FinTsBankMessage(match.Groups[1].Value, Unescape(match.Groups[2].Value).Trim()))
-                .ToList();
+            parsed = FinTsMessages.ParseResultMessages(result.RawData);
         }
 
         messages.AddRange(parsed.Where(m => !messages.Contains(m)));
     }
-
-    /// <summary>
-    /// Die Rückmeldungssegmente HIRMG und HIRMS enthalten nur Codes und Texte der Bank, keine Kontodaten.
-    /// </summary>
-    private static IEnumerable<string> ResultSegments(string? rawData) =>
-        string.IsNullOrEmpty(rawData)
-            ? []
-            : SplitUnescaped(rawData, '\'')
-                .Where(segment => segment.StartsWith("HIRMG:", StringComparison.Ordinal) || segment.StartsWith("HIRMS:", StringComparison.Ordinal))
-                .Select(segment => segment.Length > 500 ? segment[..500] + "…" : segment);
-
-    private static List<string> SplitUnescaped(string value, char separator)
-    {
-        var parts = new List<string>();
-        var current = new System.Text.StringBuilder();
-        for (var i = 0; i < value.Length; i++)
-        {
-            if (value[i] == '?' && i + 1 < value.Length)
-            {
-                current.Append(value[i]).Append(value[++i]);
-            }
-            else if (value[i] == separator)
-            {
-                parts.Add(current.ToString());
-                current.Clear();
-            }
-            else
-            {
-                current.Append(value[i]);
-            }
-        }
-
-        parts.Add(current.ToString());
-        return parts;
-    }
-
-    private static string Unescape(string value) => EscapeRegex().Replace(value, "$1");
 
     private static BPD? ParseBpd(string? rawData)
     {
@@ -258,12 +209,6 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
 
     [GeneratedRegex(@"(HIBPA.+?)\b(?:HIUPA|HISYN|HNHBS)\b", RegexOptions.Singleline)]
     private static partial Regex BpdRegex();
-
-    [GeneratedRegex(@"^\s*(\d{4}):[^:]*:(.*)$", RegexOptions.Singleline)]
-    private static partial Regex ResultMessageRegex();
-
-    [GeneratedRegex(@"\?(.)", RegexOptions.Singleline)]
-    private static partial Regex EscapeRegex();
 
     [GeneratedRegex(@"(?:^|')([A-Z]{5,6}:\d+:\d+)")]
     private static partial Regex SegmentHeaderRegex();

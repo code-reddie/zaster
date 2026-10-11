@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="Zaster/Zaster.csproj" />
+  <Project Path="Zaster.Tests/Zaster.Tests.csproj" />
 </Solution>

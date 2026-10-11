@@ -201,7 +201,7 @@ Für die Entwicklung laufen Backend und Frontend getrennt: das Backend auf http:
 
 Andere Pfade oder Ports: `DataDirectory`, `ConnectionStrings:DefaultConnection` und `FinTS:KeyRingPath` lassen sich wie oben beschrieben per user-secrets oder Umgebungsvariable setzen; der Backend-Port steht in `backend/Zaster/Properties/launchSettings.json` und muss zu `frontend/proxy.conf.json` passen.
 
-Migrationen anlegen und die Konventionen im Projekt: siehe [CLAUDE.md](CLAUDE.md).
+Tests laufen mit `dotnet test backend/Zaster.slnx`. Migrationen anlegen und die Konventionen im Projekt: siehe [CLAUDE.md](CLAUDE.md).
 
 ## Lizenz
 
