@@ -15,6 +15,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<Transaction> Transactions => Set<Transaction>();
 
+    public DbSet<TransactionSplit> TransactionSplits => Set<TransactionSplit>();
+
     public DbSet<Category> Categories => Set<Category>();
 
     public DbSet<Rule> Rules => Set<Rule>();
@@ -35,13 +37,23 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .HasForeignKey(t => t.AccountId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            transaction.HasOne(t => t.Category)
-                .WithMany(c => c.Transactions)
-                .HasForeignKey(t => t.CategoryId)
-                .OnDelete(DeleteBehavior.SetNull);
+            transaction.HasMany(t => t.Splits)
+                .WithOne(s => s.Transaction)
+                .HasForeignKey(s => s.TransactionId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             transaction.Property(t => t.Source).HasConversion<string>();
             transaction.HasIndex(t => new { t.AccountId, t.Buchung });
+        });
+
+        modelBuilder.Entity<TransactionSplit>(split =>
+        {
+            split.HasOne(s => s.Category)
+                .WithMany(c => c.Splits)
+                .HasForeignKey(s => s.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            split.HasIndex(s => new { s.TransactionId, s.CategoryId }).IsUnique();
         });
 
         modelBuilder.Entity<Category>(category =>

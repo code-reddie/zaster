@@ -10,7 +10,8 @@ import { CategoryDot } from '../categories/category-dot';
 import { CategoryPicker, CategoryPickerData } from '../categories/category-picker';
 import { CategoryStore } from '../categories/category.store';
 import { RuleSheet, RuleSheetData } from '../categories/rule-sheet';
-import { SOURCE_LABELS, Transaction } from './transaction.models';
+import { SplitSheet } from './split-sheet';
+import { singleCategoryId, SOURCE_LABELS, Transaction } from './transaction.models';
 import { TransactionsService } from './transactions.service';
 
 export type TransactionSheetResult =
@@ -24,11 +25,11 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
   return {
     pattern: t.auftraggeber || t.buchungstext,
     field: t.auftraggeber ? 'Auftraggeber' : 'Buchungstext',
-    categoryId: t.categoryId,
+    categoryId: singleCategoryId(t),
   };
 }
 
-/** Details einer Buchung: Kategorie setzen, abhaken, Regel daraus machen, löschen. */
+/** Details einer Buchung: Kategorie setzen oder aufteilen, abhaken, Regel daraus machen, löschen. */
 @Component({
   imports: [DialogFrame, DialogFooter, Button, Icon, AmountPipe, CategoryDot],
   template: `
@@ -43,20 +44,60 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
         <p class="mt-1 font-medium">{{ transaction().auftraggeber || '–' }}</p>
       </div>
 
-      <button
-        type="button"
-        class="flex w-full items-center gap-3 rounded-xl border border-border px-3 py-3 text-left hover:bg-surface-2"
-        (click)="pickCategory()"
-      >
-        <z-category-dot [color]="category()?.effectiveColor" [empty]="!category()" />
-        <span class="min-w-0 flex-1">
-          <span class="block text-xs text-muted">Kategorie</span>
-          <span class="block truncate font-medium">{{ category()?.path ?? 'Ohne Kategorie' }}</span>
-        </span>
-        <z-icon name="chevron-right" class="size-4 text-muted" />
-      </button>
+      @if (parts().length > 1) {
+        <button
+          type="button"
+          class="w-full rounded-xl border border-border px-3 py-3 text-left hover:bg-surface-2"
+          (click)="split()"
+        >
+          <span class="flex items-center gap-2 text-xs text-muted">
+            <span class="flex-1">Aufgeteilt auf {{ parts().length }} Kategorien</span>
+            <span class="text-accent">Ändern</span>
+          </span>
+          @for (part of parts(); track part.categoryId) {
+            <span class="mt-2 flex items-center gap-3">
+              <z-category-dot [color]="part.category?.effectiveColor" />
+              <span class="min-w-0 flex-1 truncate font-medium">{{
+                part.category?.path ?? '–'
+              }}</span>
+              <span class="amount shrink-0">{{ part.betrag | amount }}</span>
+            </span>
+          }
+        </button>
+        <button
+          type="button"
+          class="mt-1 flex items-center gap-2 rounded-xl px-2 py-2 text-sm text-muted hover:bg-surface-2 hover:text-fg"
+          (click)="pickCategory()"
+        >
+          <z-icon name="tag" class="size-4" /> Eine Kategorie für den ganzen Betrag
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="flex w-full items-center gap-3 rounded-xl border border-border px-3 py-3 text-left hover:bg-surface-2"
+          (click)="pickCategory()"
+        >
+          <z-category-dot [color]="category()?.effectiveColor" [empty]="!category()" />
+          <span class="min-w-0 flex-1">
+            <span class="block text-xs text-muted">Kategorie</span>
+            <span class="block truncate font-medium">{{
+              category()?.path ?? 'Ohne Kategorie'
+            }}</span>
+          </span>
+          <z-icon name="chevron-right" class="size-4 text-muted" />
+        </button>
+        @if (transaction().betrag !== 0) {
+          <button
+            type="button"
+            class="mt-1 flex items-center gap-2 rounded-xl px-2 py-2 text-sm text-accent hover:bg-surface-2"
+            (click)="split()"
+          >
+            <z-icon name="split" class="size-4" /> Auf mehrere Kategorien aufteilen
+          </button>
+        }
+      }
 
-      @if (!category()) {
+      @if (parts().length === 0) {
         <label class="mt-2 flex items-center gap-3 rounded-xl border border-border px-3 py-3">
           <input
             type="checkbox"
@@ -112,25 +153,45 @@ export class TransactionSheet {
   protected readonly transaction = signal(inject<Transaction>(DIALOG_DATA));
   protected readonly error = signal<string | null>(null);
 
-  protected readonly category = computed(() => {
-    const id = this.transaction().categoryId;
-    return id === null ? null : (this.categories.byId().get(id) ?? null);
-  });
+  protected readonly parts = computed(() =>
+    this.transaction().splits.map((s) => ({
+      categoryId: s.categoryId,
+      betrag: Math.abs(s.betrag),
+      category: this.categories.byId().get(s.categoryId),
+    })),
+  );
+  protected readonly category = computed(() =>
+    this.parts().length === 1 ? (this.parts()[0].category ?? null) : null,
+  );
   protected readonly day = computed(() => dayLabel(this.transaction().buchung));
   protected readonly source = computed(() => SOURCE_LABELS[this.transaction().source]);
 
   protected async pickCategory() {
     const categoryId = await this.dialog.result<number | null, CategoryPickerData>(CategoryPicker, {
-      selected: this.transaction().categoryId,
+      selected: singleCategoryId(this.transaction()),
       allowNone: true,
       subtitle: this.transaction().auftraggeber,
     });
-    if (categoryId === undefined || categoryId === this.transaction().categoryId) {
+    if (
+      categoryId === undefined ||
+      (categoryId === singleCategoryId(this.transaction()) && this.transaction().splits.length <= 1)
+    ) {
       return;
     }
     await this.save(() =>
       this.service.setCategory(this.transaction().accountId, this.transaction().id, categoryId),
     );
+  }
+
+  protected async split() {
+    const updated = await this.dialog.result<Transaction, Transaction>(
+      SplitSheet,
+      this.transaction(),
+    );
+    if (updated) {
+      this.transaction.set(updated);
+      this.ref.close({ updated });
+    }
   }
 
   protected async toggleReviewed() {

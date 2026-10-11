@@ -84,5 +84,5 @@ public sealed class AccountsController(AppDbContext context) : ApiControllerBase
                 a.LastSyncedAt,
                 a.LastSyncError,
                 a.Users.OrderBy(u => u.Name).Select(u => u.Name).ToList(),
-                a.Transactions.Count(t => t.CategoryId == null && !t.Reviewed)));
+                a.Transactions.Count(t => !t.Splits.Any() && !t.Reviewed)));
 }

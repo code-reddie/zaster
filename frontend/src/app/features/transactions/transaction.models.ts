@@ -10,10 +10,24 @@ export interface Transaction {
   buchungstext: string;
   verwendungszweck: string;
   betrag: number;
-  categoryId: number | null;
+  /**
+   * Kategorien mit Teilbetrag (Vorzeichen wie `betrag`), größter Teil zuerst. Leer = ohne
+   * Kategorie; sonst ergeben die Teile zusammen genau `betrag`.
+   */
+  splits: TransactionSplit[];
   /** Abgehakt. Mit Kategorie immer true. */
   reviewed: boolean;
   source: TransactionSource;
+}
+
+export interface TransactionSplit {
+  categoryId: number;
+  betrag: number;
+}
+
+/** Die Kategorie, wenn die Buchung genau eine hat (ganzer Betrag), sonst null. */
+export function singleCategoryId(t: Transaction): number | null {
+  return t.splits.length === 1 ? t.splits[0].categoryId : null;
 }
 
 export interface TransactionPage {

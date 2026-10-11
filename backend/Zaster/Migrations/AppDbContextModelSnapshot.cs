@@ -149,9 +149,6 @@ namespace Zaster.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("CategoryId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -171,11 +168,34 @@ namespace Zaster.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CategoryId");
-
                     b.HasIndex("AccountId", "Buchung");
 
                     b.ToTable("Transactions");
+                });
+
+            modelBuilder.Entity("Zaster.Transactions.TransactionSplit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Betrag")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TransactionId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("TransactionId", "CategoryId")
+                        .IsUnique();
+
+                    b.ToTable("TransactionSplits");
                 });
 
             modelBuilder.Entity("Zaster.Users.User", b =>
@@ -261,14 +281,26 @@ namespace Zaster.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Zaster.Categories.Category", "Category")
-                        .WithMany("Transactions")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("Zaster.Transactions.TransactionSplit", b =>
+                {
+                    b.HasOne("Zaster.Categories.Category", "Category")
+                        .WithMany("Splits")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Zaster.Transactions.Transaction", "Transaction")
+                        .WithMany("Splits")
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Category");
+
+                    b.Navigation("Transaction");
                 });
 
             modelBuilder.Entity("Zaster.Accounts.Account", b =>
@@ -284,7 +316,12 @@ namespace Zaster.Migrations
                 {
                     b.Navigation("Children");
 
-                    b.Navigation("Transactions");
+                    b.Navigation("Splits");
+                });
+
+            modelBuilder.Entity("Zaster.Transactions.Transaction", b =>
+                {
+                    b.Navigation("Splits");
                 });
 #pragma warning restore 612, 618
         }
