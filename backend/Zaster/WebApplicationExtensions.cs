@@ -20,8 +20,10 @@ internal static class WebApplicationExtensions
         {
             app.UseDefaultFiles();
             app.UseStaticFiles();
-            // Unbekannte Pfade gehen an Angular, außer unter /api: dort gibt es ein echtes 404.
-            app.MapFallbackToFile("{*path:regex(^(?!api/).*$)}", "index.html");
+            // Unbekannte Pfade gehen an Angular, außer unter /api (dort gibt es ein echtes 404) und
+            // Pfade mit Dateiendung: Ohne „nonfile“ belegt der Fallback auch /main-….js, und
+            // UseStaticFiles liefert nichts mehr aus, sobald schon ein Endpunkt gewählt ist.
+            app.MapFallbackToFile("{*path:nonfile:regex(^(?!api/).*$)}", "index.html");
         }
     }
 }
