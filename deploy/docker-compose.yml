@@ -1,0 +1,25 @@
+services:
+  zaster:
+    image: ghcr.io/code-reddie/zaster:latest
+    container_name: zaster
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Signierschlüssel für die Login-Tokens, mindestens 64 Zeichen (HMAC-SHA512).
+      JwtSettings__Key: ${JWT_KEY:?JWT_KEY fehlt in .env}
+      JwtSettings__Issuer: zaster
+      JwtSettings__Audience: zaster
+      # Optional: eigene FinTS-Produktregistrierungsnummer. Leer = Nummer von libfintx.
+      FinTS__ProductId: ${FINTS_PRODUCT_ID:-}
+      # Optional: Benachrichtigungen über Home Assistant.
+      HomeAssistant__Url: ${HA_URL:-}
+      HomeAssistant__Token: ${HA_TOKEN:-}
+      HomeAssistant__ZasterUrl: ${ZASTER_URL:-}
+      TZ: Europe/Berlin
+    volumes:
+      # SQLite-Datenbank (/data/zaster.db) und Schlüssel für gespeicherte PINs (/data/keys)
+      - zaster-data:/data
+
+volumes:
+  zaster-data:

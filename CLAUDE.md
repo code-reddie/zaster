@@ -44,7 +44,7 @@ Docker:
 docker build -t zaster .
 ```
 
-Betrieb per `docker compose` mit `.env` (`JWT_KEY`, optional `FINTS_PRODUCT_ID`, `HA_URL`, `HA_TOKEN`, `ZASTER_URL`); Volume für `/data`.
+Betrieb per `docker compose` mit `.env` (`JWT_KEY`, optional `FINTS_PRODUCT_ID`, `HA_URL`, `HA_TOKEN`, `ZASTER_URL`); Volume für `/data`. Vorlagen: `deploy/docker-compose.yml` und `deploy/.env.example`.
 
 ## Datenbank und Migrationen
 
@@ -56,7 +56,7 @@ Betrieb per `docker compose` mit `.env` (`JWT_KEY`, optional `FINTS_PRODUCT_ID`,
 
 Die [README.md](README.md) beschreibt den Funktionsumfang (verfügbar, teilweise, geplant) und die Struktur der Konfiguration (`appsettings.json` mit allen Abschnitten, Schlüsseln, Standardwerten und Umgebungsvariablen). Christoph möchte, dass sie immer stimmt. Deshalb gilt für jeden PR:
 
-- Ändert sich die Konfiguration (neuer, geänderter oder entfernter Schlüssel in `appsettings.json` oder einer Options-Klasse wie `FinTsOptions`, geänderter Standardwert, neue Pflicht-Umgebungsvariable, Änderung an `docker-compose.yml`/`.env`), wird der Abschnitt „Konfiguration“ und bei Bedarf „Starten mit Docker Compose“ der README im **selben PR** angepasst.
+- Ändert sich die Konfiguration (neuer, geänderter oder entfernter Schlüssel in `appsettings.json` oder einer Options-Klasse wie `FinTsOptions`, geänderter Standardwert, neue Pflicht-Umgebungsvariable, Änderung an `deploy/docker-compose.yml`/`deploy/.env.example`), werden die Vorlagen in `deploy/`, der Abschnitt „Konfiguration“ und bei Bedarf „Starten mit Docker Compose“ der README im **selben PR** angepasst.
 - Ändert sich der Funktionsumfang (Funktion fertig, neu, teilweise oder entfernt), werden die Funktionslisten der README im selben PR angepasst und der Stand in `docs/anforderungen.md` (✅/🟡/⬜) nachgezogen.
 - In der PR-Beschreibung kurz erwähnen, was an README und Anforderungen geändert wurde, oder dass nichts zu ändern war.
 

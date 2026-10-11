@@ -4,3 +4,6 @@
 
 # Lokaler Datenordner, falls das Backend aus dem Repo-Wurzelordner gestartet wird
 /data/
+
+# Echte Umgebungsdatei mit Geheimnissen (Vorlage: deploy/.env.example)
+.env
