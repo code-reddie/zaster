@@ -45,7 +45,7 @@ Docker:
 docker build -t zaster .
 ```
 
-Betrieb per `docker compose` mit `.env` (`JWT_KEY`, optional `FINTS_PRODUCT_ID`, `HA_URL`, `HA_TOKEN`, `ZASTER_URL`, `BACKUP_DIR` und `FRITZ_*` für die Sicherung auf die FritzBox); Volume für `/data`. Vorlagen: `deploy/docker-compose.yml` und `deploy/.env.example`.
+Betrieb per `docker compose` mit `.env` (`JWT_KEY`, optional `FINTS_PRODUCT_ID`, `HA_URL`, `HA_TOKEN`, `ZASTER_URL`, `BACKUP_DIR` für die Sicherung); Volume für `/data`. Vorlagen: `deploy/docker-compose.yml` und `deploy/.env.example`.
 
 ## Datenbank und Migrationen
 
@@ -142,4 +142,4 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 - Erlaubt nur dem Nutzer mit der kleinsten Id (wer Zaster eingerichtet hat), sonst 403. Es gibt keine Rollen; die Registrierung ist offen, und die Datei enthält alle Nutzer samt Passwort-Hashes. `UserDto.CanDownloadBackup` sagt dem Frontend, ob es die Taste zeigt.
 - Die Data-Protection-Schlüssel (`/data/keys`) sind nicht in der Sicherung.
 - Automatische Sicherung (`Backup/NasBackup.cs`, `Backup/ScheduledBackupService.cs`): Zielordner aus `Backup__Directory` (leer = aus, dann läuft der Dienst gar nicht). Uhrzeit, letzte Sicherung und letzter Fehler stehen in der einzigen Zeile der Tabelle `BackupSettings` (Id 1, Standard `03:00`, null = aus), einstellbar über `PUT /api/backup/schedule`, sofort sichern mit `POST /api/backup/schedule/run`; beides nur für den, der Zaster eingerichtet hat. Die Kopie entsteht lokal per `VACUUM INTO` (SQLite direkt auf einer SMB-Freigabe ist unzuverlässig), wird als `zaster.db.tmp` kopiert und dann auf `zaster.db` umbenannt, damit im Ziel nie eine halbe Datei liegt. Schlägt die zeitgesteuerte Sicherung fehl, schickt `ScheduledBackupService` eine Nachricht „Zaster · Sicherung“ an die `NotificationDevices` des ersten Nutzers, Link `<ZasterUrl>/einstellungen` („Jetzt sichern“ meldet nichts, der Fehler steht ja auf der Seite).
-- Die FritzBox bindet `docker compose` als CIFS-Volume ein (`deploy/docker-compose.yml`, auskommentiert); Zaster selbst spricht kein SMB. Ist die Freigabe nicht erreichbar, startet der Container nicht.
+- Zaster selbst spricht kein SMB. Die FritzBox-Freigabe bindet der Server per `/etc/fstab` ein, `docker compose` reicht den Ordner als `/backup` weiter (`deploy/docker-compose.yml`, auskommentiert). Kein CIFS-Volume in Docker: Läuft Docker in einem unprivilegierten LXC (Proxmox), darf es nichts einbinden; dort bindet der Proxmox-Host ein und reicht per `pct set … -mp0` durch (README).
