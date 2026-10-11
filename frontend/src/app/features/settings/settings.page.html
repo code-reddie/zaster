@@ -1,0 +1,121 @@
+<z-page-header title="Einstellungen" [subtitle]="'Angemeldet als ' + auth.userName()">
+  <button zButton variant="secondary" type="button" (click)="auth.logout()">
+    <z-icon name="logout" class="size-4" /> Abmelden
+  </button>
+</z-page-header>
+
+<section class="z-card p-5 sm:p-6">
+  <div class="mb-4 flex items-start gap-3">
+    <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+      <z-icon name="bell" class="size-5" />
+    </span>
+    <div>
+      <h2 class="font-semibold">Benachrichtigungen</h2>
+      <p class="text-sm text-muted">
+        Über die Home-Assistant-App auf deinem Handy. Ein Tipp auf die Nachricht öffnet Zaster.
+      </p>
+    </div>
+  </div>
+
+  @if (!settings()) {
+    @if (error()) {
+      <p class="z-error">{{ error() }}</p>
+    } @else {
+      <div class="flex justify-center py-6 text-muted"><z-spinner /></div>
+    }
+  } @else if (!settings()!.homeAssistantConfigured) {
+    <p class="rounded-xl bg-warning-soft px-3 py-2.5 text-sm">
+      Home Assistant ist nicht eingerichtet. Dafür in der <code>.env</code> die Werte
+      <code>HA_URL</code> und <code>HA_TOKEN</code> setzen und Zaster neu starten.
+    </p>
+  } @else {
+    @if (!settings()!.zasterUrlConfigured) {
+      <p class="mb-4 rounded-xl bg-warning-soft px-3 py-2.5 text-sm">
+        Die Adresse von Zaster fehlt (<code>ZASTER_URL</code> in der <code>.env</code>). Ohne sie
+        kann Zaster keine Nachricht schicken.
+      </p>
+    }
+
+    <h3 class="mb-2 text-sm font-medium">Geräte</h3>
+    @if (availableError()) {
+      <p class="z-error mb-3">{{ availableError() }}</p>
+    }
+    <div class="flex flex-col gap-1">
+      @for (device of available(); track device.service) {
+        <label class="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-surface-2">
+          <input
+            type="checkbox"
+            class="z-checkbox"
+            [checked]="isSelected(device.service)"
+            (change)="toggle(device.service, $any($event.target).checked)"
+          />
+          <span class="min-w-0 flex-1">
+            <span class="block font-medium">{{ device.name }}</span>
+            <span class="block truncate font-mono text-xs text-muted"
+              >notify.{{ device.service }}</span
+            >
+          </span>
+        </label>
+      }
+      @for (device of otherSelected(); track device) {
+        <label class="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-surface-2">
+          <input type="checkbox" class="z-checkbox" checked (change)="toggle(device, false)" />
+          <span class="truncate font-mono text-sm">notify.{{ device }}</span>
+        </label>
+      }
+      @if (available().length === 0 && otherSelected().length === 0 && !availableError()) {
+        <p class="px-2 py-2 text-sm text-muted">Home Assistant meldet keine Geräte mit der App.</p>
+      }
+    </div>
+
+    <form class="mt-3 flex gap-2" (ngSubmit)="addManualDevice()">
+      <input
+        name="manual"
+        class="z-input font-mono"
+        placeholder="mobile_app_… von Hand"
+        aria-label="Dienst von Hand eintragen"
+        [(ngModel)]="manualDevice"
+      />
+      <button zButton variant="secondary" type="submit" [disabled]="!manualDevice().trim()">
+        Hinzufügen
+      </button>
+    </form>
+
+    @if (error()) {
+      <p class="z-error mt-4">{{ error() }}</p>
+    }
+    @if (testResult(); as result) {
+      <ul class="mt-4 flex flex-col gap-1 text-sm">
+        @for (r of result.results; track r.device) {
+          <li class="flex items-start gap-2">
+            <z-icon
+              [name]="r.success ? 'circle-check' : 'alert'"
+              class="mt-0.5 size-4"
+              [class]="r.success ? 'text-positive' : 'text-danger'"
+            />
+            <span
+              ><span class="font-mono">{{ r.device }}</span
+              >: {{ r.success ? 'gesendet' : r.error }}</span
+            >
+          </li>
+        }
+      </ul>
+    }
+
+    <div class="mt-5 flex flex-wrap justify-end gap-2">
+      <button
+        zButton
+        variant="secondary"
+        type="button"
+        [disabled]="dirty() || selected().length === 0"
+        [loading]="testing()"
+        (click)="test()"
+      >
+        Testnachricht senden
+      </button>
+      <button zButton type="button" [disabled]="!dirty()" [loading]="saving()" (click)="save()">
+        Speichern
+      </button>
+    </div>
+  }
+</section>

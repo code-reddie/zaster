@@ -1,61 +1,162 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-.btn-primary {
-  @apply rounded-md bg-slate-500 px-3 py-1.5 text-sm/6 font-semibold text-white 
-  hover:bg-slate-400 
-  active:scale-98 
-  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500  
-  disabled:opacity-50 disabled:hover:bg-slate-500 disabled:active:scale-100;
+/*
+ * Design-Tokens. Komponenten benutzen nur diese Farben (bg-surface, text-muted, …),
+ * dann stimmen heller und dunkler Modus automatisch. Der Modus folgt der Systemeinstellung.
+ */
+:root {
+  --z-bg: #f6f7f9;
+  --z-surface: #ffffff;
+  --z-surface-2: #f0f2f5;
+  --z-border: #e3e6eb;
+  --z-fg: #14171c;
+  --z-muted: #667085;
+  --z-accent: #0f766e;
+  --z-accent-hover: #115e59;
+  --z-accent-fg: #ffffff;
+  --z-accent-soft: #e6f6f4;
+  --z-positive: #15803d;
+  --z-negative: #c2410c;
+  --z-danger: #dc2626;
+  --z-danger-soft: #fdecec;
+  --z-warning-soft: #fff6e0;
+  --z-shadow: 0 1px 2px rgb(16 24 40 / 0.05), 0 1px 3px rgb(16 24 40 / 0.06);
+  color-scheme: light;
 }
 
-.btn-secondary {
-  @apply rounded-md bg-white/5 px-3 py-1.5 text-sm/6 font-semibold text-white 
-  hover:bg-white/10 
-  active:scale-98 
-  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500 
-  disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white/5 disabled:active:scale-100;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --z-bg: #0c0e12;
+    --z-surface: #15181e;
+    --z-surface-2: #1d2128;
+    --z-border: #2a2f38;
+    --z-fg: #e8eaee;
+    --z-muted: #8d95a3;
+    --z-accent: #2dd4bf;
+    --z-accent-hover: #5eead4;
+    --z-accent-fg: #042f2b;
+    --z-accent-soft: #10302d;
+    --z-positive: #4ade80;
+    --z-negative: #fb923c;
+    --z-danger: #f87171;
+    --z-danger-soft: #3a1d1d;
+    --z-warning-soft: #3a2f12;
+    --z-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+    color-scheme: dark;
+  }
 }
 
-.form-input {
-  @apply rounded-md bg-white/5 px-3 py-1.5 sm:text-sm/6 transition-all text-base text-white outline-1 -outline-offset-1 outline-white/10 
-  placeholder:text-gray-500 
-  focus:outline-2 focus:-outline-offset-2 focus:outline-slate-500;
+@theme inline {
+  --color-bg: var(--z-bg);
+  --color-surface: var(--z-surface);
+  --color-surface-2: var(--z-surface-2);
+  --color-border: var(--z-border);
+  --color-fg: var(--z-fg);
+  --color-muted: var(--z-muted);
+  --color-accent: var(--z-accent);
+  --color-accent-hover: var(--z-accent-hover);
+  --color-accent-fg: var(--z-accent-fg);
+  --color-accent-soft: var(--z-accent-soft);
+  --color-positive: var(--z-positive);
+  --color-negative: var(--z-negative);
+  --color-danger: var(--z-danger);
+  --color-danger-soft: var(--z-danger-soft);
+  --color-warning-soft: var(--z-warning-soft);
+  --shadow-card: var(--z-shadow);
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
 }
 
-.text-white {
-  @apply text-slate-100;
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-bg font-sans text-fg antialiased;
+    font-feature-settings: 'tnum' 0;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
 }
 
-.link-primary {
-  @apply font-semibold text-slate-400 
-  hover:text-slate-300
+@layer components {
+  .z-card {
+    @apply rounded-2xl border border-border bg-surface shadow-card;
+  }
+
+  .z-label {
+    @apply mb-1.5 block text-sm font-medium text-fg;
+  }
+
+  .z-hint {
+    @apply mt-1.5 text-xs text-muted;
+  }
+
+  /* Mindestens 16px Schrift, sonst zoomt Safari auf dem iPhone beim Tippen hinein. */
+  .z-input {
+    @apply block w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-base text-fg transition-colors
+      placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25
+      disabled:opacity-60 sm:text-sm;
+  }
+
+  select.z-input {
+    @apply appearance-none bg-no-repeat pr-9;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23889' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+  }
+
+  .z-checkbox {
+    @apply size-5 shrink-0 rounded-md border-border accent-(--z-accent);
+  }
+
+  .z-error {
+    @apply rounded-xl bg-danger-soft px-3 py-2.5 text-sm text-danger;
+  }
+
+  .amount {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
-.text-danger {
-  @apply text-red-300;
+/* Dialoge (CDK): auf dem Handy als Sheet von unten, sonst mittig. */
+.z-backdrop {
+  @apply bg-black/40 backdrop-blur-[2px];
 }
 
-.bg-dark {
-  @apply bg-slate-950;
+.cdk-overlay-container {
+  z-index: 50;
 }
 
-.dialog{
- @apply bg-slate-900 border border-white/10 p-6 rounded-xl shadow-2xl
+.z-sheet {
+  animation: z-sheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.icon-info {
-  display: inline-block;
-  width: 1em;
-  height: 1em;
-  background-color: currentColor;
-  mask-image: url('./assets/icons/info.svg');
-  mask-repeat: no-repeat;
-  mask-size: contain;
+.z-modal {
+  animation: z-modal-in 160ms ease-out;
 }
 
-.bg-login {
-  background-image: url('./assets/images/login-background.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+@keyframes z-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes z-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .z-sheet,
+  .z-modal {
+    animation: none;
+  }
 }

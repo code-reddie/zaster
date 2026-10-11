@@ -1,0 +1,155 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { errorMessage } from '../../core/errors';
+import { Button } from '../../core/ui/button';
+import { DialogFooter, DialogFrame, DialogService } from '../../core/ui/dialog';
+import { Icon } from '../../core/ui/icon';
+import { ToastService } from '../../core/ui/toast';
+import { CategoryDot } from './category-dot';
+import { CategoryPicker, CategoryPickerData } from './category-picker';
+import { Rule, RULE_FIELDS, RuleField } from './category.models';
+import { CategoryStore } from './category.store';
+
+export interface RuleSheetData {
+  rule?: Rule;
+  pattern?: string;
+  field?: RuleField;
+  categoryId?: number | null;
+}
+
+/**
+ * Regel anlegen oder bearbeiten. Ergebnis: Zahl der Buchungen, die danach eine Kategorie
+ * bekommen haben (0, wenn nicht angewendet), oder undefined bei Abbruch.
+ */
+@Component({
+  imports: [FormsModule, DialogFrame, DialogFooter, Button, Icon, CategoryDot],
+  template: `
+    <z-dialog [title]="data.rule ? 'Regel bearbeiten' : 'Neue Regel'">
+      <form id="rule-form" class="flex flex-col gap-4" (ngSubmit)="save()">
+        <div>
+          <label class="z-label" for="pattern">Wenn dieser Text vorkommt</label>
+          <input id="pattern" name="pattern" class="z-input" [(ngModel)]="pattern" />
+          <p class="z-hint">
+            Groß- und Kleinschreibung spielt keine Rolle, ein Teil des Wortes reicht.
+          </p>
+        </div>
+        <div>
+          <label class="z-label" for="field">in</label>
+          <select id="field" name="field" class="z-input" [(ngModel)]="field">
+            @for (option of fields; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <span class="z-label">dann Kategorie</span>
+          <button
+            type="button"
+            class="z-input flex items-center gap-2.5 text-left"
+            (click)="pickCategory()"
+          >
+            <z-category-dot [color]="category()?.effectiveColor" [empty]="!category()" />
+            <span class="flex-1 truncate" [class.text-muted]="!category()">{{
+              category()?.path ?? 'Kategorie wählen'
+            }}</span>
+            <z-icon name="chevron-down" class="size-4 text-muted" />
+          </button>
+        </div>
+        <label class="flex items-center gap-3">
+          <input type="checkbox" name="apply" class="z-checkbox" [(ngModel)]="apply" />
+          <span class="text-sm">Danach auf alle Buchungen ohne Kategorie anwenden</span>
+        </label>
+        @if (error()) {
+          <p class="z-error">{{ error() }}</p>
+        }
+      </form>
+      <z-dialog-footer>
+        @if (data.rule) {
+          <button zButton variant="ghost" type="button" class="!text-danger" (click)="delete()">
+            <z-icon name="trash" class="size-4" /> Löschen
+          </button>
+          <span class="hidden flex-1 sm:block"></span>
+        }
+        <button zButton variant="secondary" type="button" (click)="ref.close()">Abbrechen</button>
+        <button zButton type="submit" form="rule-form" [loading]="saving()">Speichern</button>
+      </z-dialog-footer>
+    </z-dialog>
+  `,
+})
+export class RuleSheet {
+  protected readonly ref = inject<DialogRef<number>>(DialogRef);
+  protected readonly data = inject<RuleSheetData>(DIALOG_DATA);
+  private readonly store = inject(CategoryStore);
+  private readonly dialog = inject(DialogService);
+  private readonly toast = inject(ToastService);
+
+  protected readonly fields = RULE_FIELDS;
+  protected readonly pattern = signal(this.data.rule?.pattern ?? this.data.pattern ?? '');
+  protected readonly field = signal<RuleField>(this.data.rule?.field ?? this.data.field ?? 'Alle');
+  protected readonly categoryId = signal<number | null>(
+    this.data.rule?.categoryId ?? this.data.categoryId ?? null,
+  );
+  protected readonly apply = signal(true);
+  protected readonly saving = signal(false);
+  protected readonly error = signal<string | null>(null);
+
+  protected readonly category = computed(() => {
+    const id = this.categoryId();
+    return id === null ? null : (this.store.byId().get(id) ?? null);
+  });
+
+  protected async pickCategory() {
+    const id = await this.dialog.result<number | null, CategoryPickerData>(CategoryPicker, {
+      selected: this.categoryId(),
+      title: 'Kategorie für die Regel',
+    });
+    if (id !== undefined && id !== null) {
+      this.categoryId.set(id);
+    }
+  }
+
+  protected async save() {
+    const categoryId = this.categoryId();
+    if (!this.pattern().trim()) {
+      this.error.set('Bitte gib einen Text ein.');
+      return;
+    }
+    if (categoryId === null) {
+      this.error.set('Bitte wähle eine Kategorie.');
+      return;
+    }
+
+    this.saving.set(true);
+    this.error.set(null);
+    try {
+      const dto = { pattern: this.pattern().trim(), field: this.field(), categoryId };
+      if (this.data.rule) {
+        await this.store.updateRule(this.data.rule.id, dto);
+      } else {
+        await this.store.createRule(dto);
+      }
+      const updated = this.apply() ? await this.store.applyRules() : 0;
+      this.toast.success(
+        this.apply()
+          ? `Regel gespeichert, ${updated} ${updated === 1 ? 'Buchung' : 'Buchungen'} zugeordnet.`
+          : 'Regel gespeichert.',
+      );
+      this.ref.close(updated);
+    } catch (e) {
+      this.error.set(errorMessage(e, 'Die Regel konnte nicht gespeichert werden.'));
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  protected async delete() {
+    try {
+      await this.store.deleteRule(this.data.rule!.id);
+      this.toast.success('Regel gelöscht.');
+      this.ref.close(0);
+    } catch (e) {
+      this.error.set(errorMessage(e, 'Die Regel konnte nicht gelöscht werden.'));
+    }
+  }
+}

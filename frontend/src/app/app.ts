@@ -1,12 +1,13 @@
-import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ToastOutlet } from './core/ui/toast';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
-  changeDetection: ChangeDetectionStrategy.Eager,
-  templateUrl: './app.html',
+  imports: [RouterOutlet, ToastOutlet],
+  template: `
+    <router-outlet />
+    <z-toast-outlet />
+  `,
 })
-export class App {
-  protected readonly title = signal('zaster');
-}
+export class App {}

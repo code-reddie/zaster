@@ -1,0 +1,92 @@
+<z-page-header
+  title="Ohne Kategorie"
+  [subtitle]="
+    total() === 1
+      ? 'Eine Buchung wartet auf eine Kategorie.'
+      : total() + ' Buchungen warten auf eine Kategorie.'
+  "
+>
+  @if (categories.rules().length && total()) {
+    <button zButton variant="secondary" type="button" (click)="applyRules()">
+      <z-icon name="zap" class="size-4" />
+      <span class="hidden sm:inline">Regeln anwenden</span>
+    </button>
+  }
+  @if (total()) {
+    <button zButton variant="secondary" type="button" (click)="reviewAll()">
+      <z-icon name="check-all" class="size-4" />
+      Alle als geprüft
+    </button>
+  }
+</z-page-header>
+
+@if (error()) {
+  <p class="z-error mb-4">{{ error() }}</p>
+}
+
+@if (loading() && items().length === 0) {
+  <div class="flex justify-center py-16 text-muted"><z-spinner class="size-6" /></div>
+} @else if (items().length === 0) {
+  <div class="z-card">
+    <z-empty-state
+      icon="circle-check"
+      title="Alles zugeordnet"
+      text="Jede Buchung hat eine Kategorie oder ist geprüft. Neue Buchungen ohne passende Regel tauchen hier auf."
+    />
+  </div>
+} @else {
+  <div class="flex flex-col gap-3">
+    @for (transaction of items(); track transaction.id) {
+      <article class="z-card p-4" [class.opacity-50]="busy() === transaction.id">
+        <button type="button" class="block w-full text-left" (click)="details(transaction)">
+          <z-transaction-row [transaction]="transaction" [showPurpose]="false" />
+          <p class="mt-2 text-sm text-muted">
+            {{ day(transaction.buchung) }}
+            @if (transaction.verwendungszweck) {
+              · <span class="break-words">{{ transaction.verwendungszweck }}</span>
+            }
+          </p>
+        </button>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          @for (category of recent(); track category.id) {
+            <button
+              type="button"
+              class="inline-flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-sm hover:bg-surface-2"
+              [disabled]="busy() !== null"
+              (click)="assign(transaction, category.id)"
+            >
+              <z-category-dot [color]="category.effectiveColor" />
+              {{ category.name }}
+            </button>
+          }
+          <span class="flex-1"></span>
+          <button
+            zButton
+            variant="ghost"
+            size="sm"
+            type="button"
+            [disabled]="busy() !== null"
+            (click)="markReviewed(transaction)"
+          >
+            <z-icon name="check" class="size-4" /> Geprüft
+          </button>
+          <button
+            zButton
+            size="sm"
+            type="button"
+            [disabled]="busy() !== null"
+            (click)="pick(transaction)"
+          >
+            <z-icon name="tag" class="size-4" /> Kategorie
+          </button>
+        </div>
+      </article>
+    }
+  </div>
+
+  @if (items().length < total()) {
+    <div class="mt-6 flex justify-center">
+      <button zButton variant="secondary" type="button" (click)="loadMore()">Weitere laden</button>
+    </div>
+  }
+}

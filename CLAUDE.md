@@ -4,12 +4,12 @@ Web-App, mit der man die eigenen Finanzen kategorisiert und visualisiert. Buchun
 
 Die fachlichen Anforderungen, ihr Umsetzungsstand und offene Fragen stehen in [docs/anforderungen.md](docs/anforderungen.md). Vor jeder neuen Funktion dort nachlesen und die Datei mitpflegen.
 
-Sprache im Projekt ist Deutsch: Oberfläche, Kommentare, Commit-Nachrichten, PR-Beschreibungen und Fehlermeldungen an Nutzer. Fachbegriffe im Datenmodell sind ebenfalls deutsch (`Buchung`, `Valuta`, `Auftragsgeber`, `Buchungstext`, `Verwendungszweck`, `Betrag`).
+Sprache im Projekt ist Deutsch: Oberfläche, Kommentare, Commit-Nachrichten, PR-Beschreibungen und Fehlermeldungen an Nutzer. Fachbegriffe im Datenmodell sind ebenfalls deutsch (`Buchung`, `Valuta`, `Auftraggeber`, `Buchungstext`, `Verwendungszweck`, `Betrag`).
 
 ## Stack
 
 - **Backend** `backend/Zaster`: .NET 10, ASP.NET Core Controller, EF Core mit SQLite, JWT-Login (BCrypt für Passwörter), Swagger. FinTS über `libfintx.FinTS` 1.4.0.
-- **Frontend** `frontend`: Angular 22 (Standalone-Komponenten, Signals, `@ngrx/signals`-Stores), Tailwind CSS 4, `@angular/cdk` für Dialoge. Prettier ist konfiguriert.
+- **Frontend** `frontend`: Angular 22 (Standalone-Komponenten, Signals, zoneless, OnPush), Tailwind CSS 4 mit eigenen Design-Tokens, `@angular/cdk` für Dialoge. Kein UI-Framework, keine Store-Bibliothek. Prettier ist konfiguriert.
 - **Auslieferung**: ein `Dockerfile` baut beides; das Angular-Build landet in `wwwroot` des Backends. Port 8080, Daten unter `/data` (Container läuft als Production).
 - **CI** `.github/workflows/docker-image.yml`: baut bei PRs nur das Image (amd64 + arm64); erst nach Merge auf `main` wird `ghcr.io/code-reddie/zaster:latest` gepusht. `.github/workflows/tests.yml` führt die Backend-Tests aus.
 - **Tests** `backend/Zaster.Tests`: xUnit, `dotnet test backend/Zaster.slnx`. Das Testprojekt sieht `internal`-Klassen (`InternalsVisibleTo`).
@@ -75,6 +75,16 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 - `/api/accounts/{accountId}/transactions` (Filter `from`, `to`, `search`, `categoryId` inkl. Unterkategorien, `withoutCategory`, `open`, `offset`, `limit`), `…/import`, `…/review`, `…/{id}/category`, `…/{id}/reviewed`
 - `/api/accounts/{accountId}/categories` (+ `order`), `/api/accounts/{accountId}/rules` (+ `order`, `apply`)
 - `/api/accounts/{accountId}/fints/sync`, `…/fints/pin`
+
+## Aufbau des Frontends
+
+- `core/`: Anmeldung (`auth/`: Token, Interceptor, Guards), Layout (`layout/`: `Shell` mit Seitenleiste bzw. Navigationsleiste unten, Kontowahl, `PageHeader`) und der Baukasten `ui/` (`zButton`, `z-icon`, `DialogService` mit `z-dialog`/`z-dialog-footer`, `ToastService`, Leerzustand, Spinner). `core/errors.ts` holt die deutsche Meldung (`detail`) aus ProblemDetails.
+- `shared/format.ts`: Betrag (`amount`), IBAN, Datumsangaben.
+- `features/<bereich>/`: Seiten (`*.page.ts`), Sheets/Dialoge (`*-sheet.ts`), Services und Stores. Stores sind einfache `@Injectable`-Klassen mit Signals: `AccountStore` (Konten, gewähltes Konto), `CategoryStore` (Kategorien und Regeln des gewählten Kontos; `Shell` lädt sie beim Kontowechsel).
+- Routen sind deutsch und hängen am Konto: `/konten/:accountId/buchungen`, `…/offen`, `…/kategorien`, `…/konto`, dazu `/konten/neu`, `/einstellungen`, `/anmelden`, `/registrieren`. `/` führt zum zuletzt genutzten Konto.
+- Farben nur über die Tokens aus `styles.css` (`bg-surface`, `text-muted`, `text-positive`, `bg-accent` …), nie feste Tailwind-Farben wie `bg-gray-100`: die Tokens schalten hell/dunkel nach Systemeinstellung um. Wiederkehrende Formularteile: `z-input`, `z-label`, `z-hint`, `z-card`, `z-checkbox`, Beträge mit Klasse `amount` (Ziffern gleich breit).
+- Breakpoints: unter 640 px öffnen Dialoge als Sheet von unten, ab 1024 px gibt es die Seitenleiste statt Kopf- und Navigationsleiste. Neue Seiten in allen drei Breiten prüfen (iPhone 390 px, iPad hoch 820 px, PC), am besten per Playwright mit Screenshot.
+- Formulare mit `FormsModule` und Signals (`[(ngModel)]` auf ein `signal`), keine Reactive Forms.
 
 ## Konventionen
 
