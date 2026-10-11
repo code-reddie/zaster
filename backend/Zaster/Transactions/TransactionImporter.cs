@@ -37,7 +37,7 @@ public sealed class TransactionImporter(AppDbContext context, TimeProvider timeP
             {
                 AccountId = accountId,
                 Buchung = t.Buchung,
-                Valuta = t.Valuta,
+                Valuta = t.Valuta ?? t.Buchung,
                 Auftraggeber = t.Auftraggeber.Trim(),
                 Buchungstext = t.Buchungstext.Trim(),
                 Verwendungszweck = t.Verwendungszweck?.Trim() ?? string.Empty,
