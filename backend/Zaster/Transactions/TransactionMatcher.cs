@@ -33,24 +33,33 @@ internal static class TransactionMatcher
     public static List<T> SelectNew<T>(
         IEnumerable<string> existingKeys,
         IEnumerable<T> incoming,
-        Func<T, string> keySelector)
-    {
-        var remaining = existingKeys
-            .GroupBy(k => k)
-            .ToDictionary(g => g.Key, g => g.Count());
+        Func<T, string> keySelector) =>
+        Match(existingKeys, k => k, incoming, keySelector)
+            .Where(m => m.Existing is null)
+            .Select(m => m.Item)
+            .ToList();
 
-        var result = new List<T>();
+    /// <summary>
+    /// Ordnet jeder eingehenden Buchung die passende vorhandene zu, oder null, wenn sie neu ist.
+    /// Jede vorhandene Buchung wird höchstens einmal zugeordnet.
+    /// </summary>
+    public static List<(T Item, TExisting? Existing)> Match<T, TExisting>(
+        IEnumerable<TExisting> existing,
+        Func<TExisting, string> existingKeySelector,
+        IEnumerable<T> incoming,
+        Func<T, string> keySelector)
+        where TExisting : class
+    {
+        var remaining = existing
+            .GroupBy(existingKeySelector)
+            .ToDictionary(g => g.Key, g => new Queue<TExisting>(g));
+
+        var result = new List<(T, TExisting?)>();
         foreach (var item in incoming)
         {
-            var key = keySelector(item);
-            if (remaining.TryGetValue(key, out var count) && count > 0)
-            {
-                remaining[key] = count - 1;
-            }
-            else
-            {
-                result.Add(item);
-            }
+            result.Add(remaining.TryGetValue(keySelector(item), out var queue) && queue.TryDequeue(out var match)
+                ? (item, match)
+                : (item, null));
         }
 
         return result;

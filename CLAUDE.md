@@ -72,7 +72,7 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 - `/api/auth/login`, `/api/auth/register` (ohne Anmeldung)
 - `/api/me`, `/api/me/notifications…`
 - `/api/accounts`, `/api/accounts/{accountId}`
-- `/api/accounts/{accountId}/transactions` (Filter `from`, `to`, `search`, `categoryId` inkl. Unterkategorien, `withoutCategory`, `open`, `offset`, `limit`), `…/import`, `…/review`, `…/{id}/category`, `…/{id}/splits`, `…/{id}/reviewed`
+- `/api/accounts/{accountId}/transactions` (Filter `from`, `to`, `search`, `categoryId` inkl. Unterkategorien, `withoutCategory`, `open`, `offset`, `limit`), `…/import`, `…/balance-check`, `…/review`, `…/{id}/category`, `…/{id}/splits`, `…/{id}/reviewed`
 - `/api/accounts/{accountId}/categories` (+ `order`), `/api/accounts/{accountId}/rules` (+ `order`, `apply`)
 - `/api/accounts/{accountId}/fints/sync`, `…/fints/times`, `…/fints/pin`
 
@@ -108,6 +108,8 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 - Duplikat-Schlüssel (`Transactions/TransactionMatcher.cs`): Buchungstag + Betrag + die ersten 16 Buchstaben/Ziffern des Auftraggebers, normalisiert (Großbuchstaben, ohne Akzente, Umlaute einheitlich). Grund: FinTS/MT940 kürzt Namen auf 27 Zeichen, die CSV enthält den vollen Namen; Valuta und Verwendungszweck sind je Quelle unterschiedlich formatiert.
 - Gleiche Schlüssel werden gezählt, damit zwei identische Buchungen am selben Tag nicht als Duplikat verloren gehen.
 - Nach dem Import werden die Regeln des Kontos auf neue Buchungen angewendet.
+- Kontostand (`Transaction.Saldo`, nullable): Stand nach der Buchung laut Bank. Die CSV hat ihn pro Zeile (Spalte „Saldo“). MT940 liefert ihn **nicht** pro Buchung, nur Anfangs- (`:60F:`) und Endsaldo (`:62F:`) je Kontoauszug; `FinTsService.ToTransactions` rechnet ihn in der Reihenfolge des Auszugs hoch und lässt ihn leer, wenn die Summe nicht im Endsaldo aufgeht. Bei einem Duplikat trägt der Import einen fehlenden Kontostand nach. Buchungen von Hand haben keinen.
+- Lückenprüfung (`Transactions/BalanceCheck.cs`, `GET …/transactions/balance-check`): pro Tag die Kette aus Stand vorher (`Saldo − Betrag`) und nachher suchen, unabhängig von der Reihenfolge (CSV absteigend, FinTS aufsteigend, die Reihenfolge innerhalb eines Tages ist nicht gespeichert); dann Endstand des Vortags gegen Anfangsstand vergleichen. Bankbuchungen ohne Kontostand werden zwischen zwei bekannten Ständen mitgezählt.
 
 ### Kategorien, Regeln und „geprüft“
 - Kategorien und Regeln gehören dem Konto (`AccountId`), nicht dem Nutzer. Beim Umzug (Migration `Refactoring`, 11.10.2026) wurden die alten Nutzer-Kategorien, Regeln und Zuordnungen gelöscht.

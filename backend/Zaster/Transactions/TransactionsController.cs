@@ -135,6 +135,20 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
         await importer.ImportAsync(accountId, request.Transactions, TransactionSource.Csv, cancellationToken);
 
     /// <summary>
+    /// Prüft anhand der Kontostände der Bank, ob Buchungen fehlen, und liefert den letzten bekannten Kontostand.
+    /// </summary>
+    [HttpGet("balance-check")]
+    public async Task<BalanceCheckDto> CheckBalance(int accountId, CancellationToken cancellationToken)
+    {
+        var entries = await context.Transactions
+            .Where(t => t.AccountId == accountId)
+            .Select(t => new BalanceCheck.Entry(t.Buchung, t.Betrag, t.Saldo, t.Source))
+            .ToListAsync(cancellationToken);
+
+        return BalanceCheck.Check(entries);
+    }
+
+    /// <summary>
     /// Setzt eine Kategorie für den ganzen Betrag (ersetzt eine Aufteilung) oder entfernt alle Kategorien.
     /// Mit Kategorie gilt die Buchung als geprüft.
     /// </summary>

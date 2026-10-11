@@ -43,6 +43,88 @@
       </div>
     </form>
 
+    <!-- Kontostand -->
+    <section class="z-card p-5 sm:p-6">
+      <h2 class="font-semibold">Kontostand</h2>
+      <p class="mt-1 mb-4 text-sm text-muted">
+        Zaster kennt aus Abruf und CSV-Import den Kontostand nach jeder Buchung. Passen die Stände
+        nicht zusammen, fehlen Buchungen.
+      </p>
+      @if (balance(); as check) {
+        @if (check.kontostand !== null) {
+          <div class="mb-4 rounded-xl bg-surface-2 px-3 py-2.5 text-sm">
+            <p class="text-muted">Laut Bank am {{ check.stand! | date: 'd. MMMM y' }}</p>
+            <p class="amount text-xl font-semibold">{{ check.kontostand | amount }}</p>
+          </div>
+        }
+        @if (check.geprueft === 0) {
+          <p class="text-sm text-muted">
+            Noch keine Buchung mit Kontostand. Er kommt mit dem nächsten Abruf oder CSV-Import.
+          </p>
+        } @else if (check.luecken.length === 0) {
+          <p class="flex items-start gap-2 text-sm">
+            <z-icon name="circle-check" class="mt-0.5 size-4 text-positive" />
+            <span
+              >Lückenlos: Die Kontostände aller {{ check.geprueft }} Buchungen passen
+              zusammen.</span
+            >
+          </p>
+        } @else {
+          <div class="rounded-xl bg-warning-soft px-3 py-2.5 text-sm">
+            <p class="flex items-start gap-2 font-medium">
+              <z-icon name="alert" class="mt-0.5 size-4" />
+              <span>
+                {{
+                  check.luecken.length === 1 ? 'Eine Stelle' : check.luecken.length + ' Stellen'
+                }}, an der Buchungen fehlen
+              </span>
+            </p>
+            <ul class="mt-2 flex flex-col gap-1.5 pl-6">
+              @for (gap of shownGaps(); track $index) {
+                <li>
+                  @if (gap.differenz === null) {
+                    Am {{ gap.bis | date: 'd.M.y' }} passen die Kontostände nicht zusammen.
+                  } @else {
+                    {{ gap.von ? 'Zwischen ' + (gap.von | date: 'd.M.y') + ' und ' : 'Bis '
+                    }}{{ gap.bis | date: 'd.M.y' }} fehlen
+                    {{ gap.differenz < 0 ? 'Ausgaben' : 'Einnahmen' }} über
+                    <span class="amount font-medium">{{
+                      (gap.differenz < 0 ? -gap.differenz : gap.differenz) | amount
+                    }}</span
+                    >.
+                  }
+                </li>
+              }
+              @if (check.luecken.length > shownGaps().length) {
+                <li class="text-muted">
+                  und {{ check.luecken.length - shownGaps().length }} ältere
+                </li>
+              }
+            </ul>
+            <p class="mt-2 pl-6 text-muted">
+              Ein CSV-Export der ING über diesen Zeitraum ergänzt die fehlenden Buchungen.
+            </p>
+          </div>
+        }
+        @if (check.ohneKontostand > 0) {
+          <p class="z-hint">
+            {{
+              check.ohneKontostand === 1
+                ? 'Eine Buchung hat'
+                : check.ohneKontostand + ' Buchungen haben'
+            }}
+            noch keinen Kontostand, weil sie vor dieser Funktion abgerufen
+            {{ check.ohneKontostand === 1 ? 'wurde' : 'wurden' }}. Ein CSV-Import über den Zeitraum
+            trägt ihn nach.
+          </p>
+        }
+      } @else if (balanceFailed()) {
+        <p class="text-sm text-muted">Der Kontostand lässt sich gerade nicht prüfen.</p>
+      } @else {
+        <z-spinner />
+      }
+    </section>
+
     <!-- Abruf -->
     <section class="z-card p-5 sm:p-6">
       <h2 class="font-semibold">Online-Abruf (FinTS)</h2>

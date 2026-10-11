@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
+  BalanceCheck,
   CreateTransaction,
   ImportResult,
   ImportTransaction,
@@ -33,6 +34,11 @@ export class TransactionsService {
     return firstValueFrom(
       this.http.post<ImportResult>(`${this.url(accountId)}/import`, { transactions }),
     );
+  }
+
+  /** Prüft über die Kontostände der Bank, ob Buchungen fehlen. */
+  balanceCheck(accountId: number): Promise<BalanceCheck> {
+    return firstValueFrom(this.http.get<BalanceCheck>(`${this.url(accountId)}/balance-check`));
   }
 
   setCategory(accountId: number, id: number, categoryId: number | null): Promise<Transaction> {

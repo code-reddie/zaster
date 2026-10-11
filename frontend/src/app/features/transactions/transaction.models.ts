@@ -10,6 +10,8 @@ export interface Transaction {
   buchungstext: string;
   verwendungszweck: string;
   betrag: number;
+  /** Kontostand nach der Buchung laut Bank; null bei Buchungen von Hand und älteren Abrufen. */
+  saldo: number | null;
   /**
    * Kategorien mit Teilbetrag (Vorzeichen wie `betrag`), größter Teil zuerst. Leer = ohne
    * Kategorie; sonst ergeben die Teile zusammen genau `betrag`.
@@ -64,11 +66,34 @@ export interface ImportTransaction {
   buchungstext: string;
   verwendungszweck: string;
   betrag: number;
+  /** Kontostand nach der Buchung (Spalte „Saldo“ der ING-CSV). */
+  saldo: number | null;
 }
 
 export interface ImportResult {
   imported: number;
   skipped: number;
+}
+
+/** Lückenprüfung über die Kontostände der Bank. */
+export interface BalanceCheck {
+  /** Letzter bekannter Kontostand laut Bank, am Tag `stand`. */
+  kontostand: number | null;
+  stand: string | null;
+  /** Buchungen mit Kontostand. */
+  geprueft: number;
+  /** Buchungen von Bank oder CSV ohne Kontostand (aus älteren Abrufen). */
+  ohneKontostand: number;
+  /** Neueste zuerst. */
+  luecken: BalanceGap[];
+}
+
+export interface BalanceGap {
+  /** Letzter Tag davor mit stimmigem Kontostand, null wenn es keinen gibt. */
+  von: string | null;
+  bis: string;
+  /** Fehlender Betrag (positiv: fehlende Einnahmen); null, wenn es mitten am Tag nicht aufgeht. */
+  differenz: number | null;
 }
 
 export const SOURCE_LABELS: Record<TransactionSource, string> = {

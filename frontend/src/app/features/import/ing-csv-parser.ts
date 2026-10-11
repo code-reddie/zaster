@@ -22,6 +22,7 @@ export function parseIngCsv(content: string): ImportTransaction[] {
     auftraggeber: column((h) => h.startsWith('Auftraggeber'), 2),
     buchungstext: column((h) => h === 'Buchungstext', 3),
     verwendungszweck: column((h) => h === 'Verwendungszweck', 4),
+    saldo: column((h) => h === 'Saldo', -1),
     betrag: column((h) => h === 'Betrag', 7),
   };
 
@@ -39,6 +40,7 @@ export function parseIngCsv(content: string): ImportTransaction[] {
       buchungstext: c[columns.buchungstext]?.trim() ?? '',
       verwendungszweck: c[columns.verwendungszweck]?.trim() ?? '',
       betrag: parseGermanNumber(c[columns.betrag] ?? ''),
+      saldo: optionalNumber(c[columns.saldo]),
     }))
     .filter((t) => Number.isFinite(t.betrag));
 }
@@ -87,6 +89,12 @@ function isGermanDate(value: string | undefined): value is string {
 function toIsoDate(value: string): string {
   const [day, month, year] = value.trim().split('.');
   return `${year}-${month}-${day}`;
+}
+
+/** Ältere Exporte ohne Spalte „Saldo“: kein Kontostand. */
+function optionalNumber(value: string | undefined): number | null {
+  const number = parseGermanNumber(value ?? '');
+  return Number.isFinite(number) ? number : null;
 }
 
 /** -1.000,00 → -1000 */

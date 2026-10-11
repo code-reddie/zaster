@@ -17,7 +17,8 @@ public sealed record FinTsTransaction(
     string Auftraggeber,
     string Buchungstext,
     string Verwendungszweck,
-    decimal Betrag);
+    decimal Betrag,
+    decimal? Saldo);
 
 public sealed record FinTsFetchResult(
     bool Success,
