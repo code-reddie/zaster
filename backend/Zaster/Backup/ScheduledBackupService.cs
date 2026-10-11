@@ -1,11 +1,15 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Zaster.Database;
 using Zaster.FinTs;
+using Zaster.Notifications;
 
 namespace Zaster.Backup;
 
@@ -17,6 +21,7 @@ public sealed partial class ScheduledBackupService(
     IServiceScopeFactory scopeFactory,
     IOptions<BackupOptions> backupOptions,
     IOptions<FinTsOptions> finTsOptions,
+    IOptions<HomeAssistantOptions> homeAssistantOptions,
     TimeProvider timeProvider,
     ILogger<ScheduledBackupService> logger) : BackgroundService
 {
@@ -69,9 +74,56 @@ public sealed partial class ScheduledBackupService(
         }
         else
         {
-            LogBackupFailed(logger, settings.LastError ?? "unbekannter Fehler");
+            var error = settings.LastError ?? "unbekannter Fehler";
+            LogBackupFailed(logger, error);
+            await NotifyFailureAsync(scope.ServiceProvider, error, cancellationToken);
         }
     }
+
+    /// <summary>
+    /// Meldet eine fehlgeschlagene Sicherung an die Geräte dessen, der Zaster eingerichtet hat (nur er sieht die Sicherung).
+    /// Ein Tipp öffnet die Einstellungen mit der Fehlermeldung. Fehler beim Senden landen nur im Log.
+    /// </summary>
+    private async Task NotifyFailureAsync(IServiceProvider services, string error, CancellationToken cancellationToken)
+    {
+        var homeAssistant = services.GetRequiredService<HomeAssistantClient>();
+        if (!homeAssistant.IsConfigured)
+        {
+            return;
+        }
+
+        if (!HomeAssistantClient.TryParseHttpUri(homeAssistantOptions.Value.ZasterUrl, out var zasterUrl))
+        {
+            LogNoZasterUrl(logger);
+            return;
+        }
+
+        var context = services.GetRequiredService<AppDbContext>();
+        var devices = await context.Users
+            .OrderBy(u => u.Id)
+            .Select(u => u.NotificationDevices)
+            .FirstOrDefaultAsync(cancellationToken) ?? [];
+
+        foreach (var device in devices)
+        {
+            try
+            {
+                await homeAssistant.SendNotificationAsync(
+                    device, "Zaster · Sicherung", FailureMessage(error), SettingsLink(zasterUrl), cancellationToken);
+            }
+            catch (HomeAssistantException e)
+            {
+                LogNotifyFailed(logger, device, e.Message);
+            }
+        }
+    }
+
+    internal static string FailureMessage(string error) => $"Die automatische Sicherung ist fehlgeschlagen: {error}";
+
+    /// <summary>
+    /// Seite „Einstellungen“. <paramref name="zasterUrl"/> endet immer auf „/“, ein Pfad darin bleibt erhalten.
+    /// </summary>
+    internal static Uri SettingsLink(Uri zasterUrl) => new(zasterUrl, "einstellungen");
 
     private TimeZoneInfo FindTimeZone(string id)
     {
@@ -93,4 +145,10 @@ public sealed partial class ScheduledBackupService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Automatische Sicherung fehlgeschlagen: {Error}")]
     static partial void LogBackupFailed(ILogger logger, string error);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Keine Benachrichtigung über die fehlgeschlagene Sicherung, HomeAssistant__ZasterUrl fehlt.")]
+    static partial void LogNoZasterUrl(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Benachrichtigung über die fehlgeschlagene Sicherung an {Device} fehlgeschlagen: {Error}")]
+    static partial void LogNotifyFailed(ILogger logger, string device, string error);
 }

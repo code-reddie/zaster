@@ -206,7 +206,11 @@
         </form>
         <p class="z-hint">
           @if (s.time) {
-            Jeden Tag um {{ s.time }} Uhr (deutsche Zeit). Leeren und speichern schaltet sie aus.
+            Jeden Tag um {{ s.time }} Uhr (deutsche Zeit).
+            @if (settings()?.homeAssistantConfigured) {
+              Schlägt sie fehl, kommt eine Nachricht an deine Geräte oben.
+            }
+            Leeren und speichern schaltet sie aus.
           } @else {
             Aus. Eine Uhrzeit eintragen und speichern, um sie einzuschalten.
           }

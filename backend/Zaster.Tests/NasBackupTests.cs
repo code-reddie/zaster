@@ -82,6 +82,15 @@ public sealed class NasBackupTests : IDisposable
         Assert.Null(settings.LastBackupAt);
     }
 
+    [Theory]
+    [InlineData("https://zaster.example.de", "https://zaster.example.de/einstellungen")]
+    [InlineData("https://example.de/zaster/", "https://example.de/zaster/einstellungen")]
+    public void Benachrichtigung_fuehrt_zu_den_Einstellungen(string zasterUrl, string expected)
+    {
+        Assert.True(Zaster.Notifications.HomeAssistantClient.TryParseHttpUri(zasterUrl, out var uri));
+        Assert.Equal(expected, ScheduledBackupService.SettingsLink(uri).AbsoluteUri);
+    }
+
     private NasBackup Backup(string? directory) =>
         new(_context, Options.Create(new BackupOptions { Directory = directory }), _time);
 
