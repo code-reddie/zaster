@@ -16,22 +16,15 @@ services:
       HomeAssistant__Url: ${HA_URL:-}
       HomeAssistant__Token: ${HA_TOKEN:-}
       HomeAssistant__ZasterUrl: ${ZASTER_URL:-}
-      # Optional: Ordner für die tägliche Sicherung, z. B. /backup (siehe Volume fritzbox unten). Leer = aus.
+      # Optional: Ordner für die tägliche Sicherung im Container, /backup (siehe volumes). Leer = aus.
       Backup__Directory: ${BACKUP_DIR:-}
       TZ: Europe/Berlin
     volumes:
       # SQLite-Datenbank (/data/zaster.db) und Schlüssel für gespeicherte PINs (/data/keys)
       - zaster-data:/data
-      # Optional: NAS der FritzBox für die tägliche Sicherung (dazu auch das Volume unten einkommentieren).
-      # - fritzbox:/backup
+      # Optional: Ordner für die tägliche Sicherung, z. B. die auf dem Server eingebundene
+      # NAS-Freigabe der FritzBox (README „Sicherung auf die FritzBox“).
+      # - /mnt/fritzbox:/backup
 
 volumes:
   zaster-data:
-  # Optional: Freigabe FRITZ.NAS der FritzBox per SMB. Docker bindet sie beim Start ein;
-  # ist die FritzBox dabei nicht erreichbar, startet Zaster nicht.
-  # fritzbox:
-  #   driver: local
-  #   driver_opts:
-  #     type: cifs
-  #     device: "//${FRITZ_HOST}/FRITZ.NAS/${FRITZ_FOLDER}"
-  #     o: "addr=${FRITZ_HOST},username=${FRITZ_USER},password=${FRITZ_PASSWORD},vers=3.0,file_mode=0660,dir_mode=0770"

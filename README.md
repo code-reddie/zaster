@@ -27,7 +27,7 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 - Seite „Ohne Kategorie“ mit allen Buchungen, die noch nicht geprüft sind: Kategorie mit einem Tipp setzen (zuletzt benutzte Kategorien stehen direkt an der Buchung), direkt aus einer Buchung eine Regel machen, einzelne Buchungen mit „Nicht kategorisieren“ als geprüft abhaken oder „Alle nicht kategorisieren“. Eine Buchung mit Kategorie gilt automatisch als geprüft.
 - Benachrichtigungen über Home Assistant: Bringt ein FinTS-Abruf (von Hand oder automatisch) oder ein CSV-Import Buchungen, die nach den Regeln noch ohne Kategorie sind, bekommen alle Mitglieder des Kontos eine Nachricht, z. B. „3 neue Buchungen ohne Kategorie (insgesamt 12 offen)“. Ein Tipp darauf öffnet die Seite „Ohne Kategorie“ des Kontos, bei Bedarf nach der Anmeldung. Von Hand angelegte Buchungen lösen keine Nachricht aus. Jeder Nutzer wählt unter „Einstellungen“ seine Geräte mit der Home-Assistant-App aus und kann eine Testnachricht schicken.
 - Sicherung: Unter „Einstellungen“ lädt „Datenbank herunterladen“ die komplette Datenbank als Datei herunter (`zaster-<datum>.db`). Die Taste sieht nur, wer Zaster eingerichtet hat (der zuerst registrierte Nutzer), weil die Datei die Daten aller Nutzer enthält. Wiederherstellen: siehe unten.
-- Automatische Sicherung, z. B. auf das NAS der FritzBox: Zaster legt jeden Tag zur eingestellten Uhrzeit (Standard 03:00) eine Kopie der Datenbank als `zaster.db` in einem Ordner ab und überschreibt sie jedes Mal. Schlägt sie fehl, schickt Zaster über Home Assistant eine Nachricht an die Geräte dessen, der Zaster eingerichtet hat. Uhrzeit, letzte Sicherung, Fehler und „Jetzt sichern“ stehen unter „Einstellungen“ → „Sicherung“ (nur für den, der Zaster eingerichtet hat). Den Ordner bindet man per `docker compose` ein, siehe [Sicherung auf die FritzBox](#sicherung-auf-die-fritzbox).
+- Automatische Sicherung, z. B. auf das NAS der FritzBox: Zaster legt jeden Tag zur eingestellten Uhrzeit (Standard 03:00) eine Kopie der Datenbank als `zaster.db` in einem Ordner ab und überschreibt sie jedes Mal. Schlägt sie fehl, schickt Zaster über Home Assistant eine Nachricht an die Geräte dessen, der Zaster eingerichtet hat. Uhrzeit, letzte Sicherung, Fehler und „Jetzt sichern“ stehen unter „Einstellungen“ → „Sicherung“ (nur für den, der Zaster eingerichtet hat). Den Ordner bindet man auf dem Server ein und reicht ihn per `docker compose` an Zaster weiter, siehe [Sicherung auf die FritzBox](#sicherung-auf-die-fritzbox).
 
 ### Geplant
 
@@ -56,7 +56,6 @@ docker compose up -d
 | `HA_TOKEN` | nein | Long-Lived Access Token aus Home Assistant |
 | `ZASTER_URL` | nein | Adresse von Zaster, wie das Handy sie erreicht (Ziel der Benachrichtigungen) |
 | `BACKUP_DIR` | nein | Ordner im Container für die tägliche Sicherung, z. B. `/backup`; leer = keine |
-| `FRITZ_HOST`, `FRITZ_FOLDER`, `FRITZ_USER`, `FRITZ_PASSWORD` | nein | Zugang zum NAS der FritzBox, nur mit dem Volume `fritzbox` (siehe unten) |
 
 Zaster ist danach unter http://localhost:8080 erreichbar; dort legt man sich zuerst ein Konto über „Registrieren“ an. Die Datenbank-Migrationen laufen beim Start automatisch.
 
@@ -64,17 +63,23 @@ Wichtig: Das Volume `/data` sichern. Gehen die Schlüssel unter `/data/keys` ver
 
 ### Sicherung auf die FritzBox
 
-Zaster kann jeden Tag eine Sicherung auf das NAS der FritzBox legen (USB-Speicher oder interner Speicher). Docker bindet dazu die Freigabe `FRITZ.NAS` per SMB als Ordner `/backup` in den Container ein; Zaster schreibt dort `zaster.db` und überschreibt sie bei jeder Sicherung.
+Zaster kann jeden Tag eine Sicherung auf das NAS der FritzBox legen (USB-Speicher oder interner Speicher). Der Server bindet dazu die Freigabe `FRITZ.NAS` per SMB als Ordner ein, z. B. `/mnt/fritzbox`, `docker compose` reicht diesen Ordner als `/backup` an den Container weiter. Zaster schreibt dort `zaster.db` und überschreibt sie bei jeder Sicherung.
 
-1. In der FritzBox unter „Heimnetz → USB/Speicher“ den Speicher-Zugriff über das Heimnetz (SMB) einschalten und unter „System → FRITZ!Box-Benutzer“ einen Benutzer mit Zugang zu NAS-Inhalten (Lesen und Schreiben) anlegen.
+1. In der FritzBox unter „Heimnetz → USB / Speicher → Heimnetzfreigabe“ den Haken bei „Zugriff über ein Netzlaufwerk (SMB)“ setzen (Name `FRITZ.NAS`, SMBv1 bleibt aus) und unter „System → FRITZ!Box-Benutzer“ einen Benutzer mit Zugang zu NAS-Inhalten (Lesen und Schreiben) anlegen.
 2. Auf dem NAS einen Ordner anlegen, z. B. `Zaster` (bei USB-Speicher liegt er unter dem Namen des Sticks, z. B. `USB-Stick/Zaster`).
-3. In der `.env` `BACKUP_DIR=/backup` und `FRITZ_HOST`, `FRITZ_FOLDER`, `FRITZ_USER`, `FRITZ_PASSWORD` ausfüllen. Das Passwort darf kein Komma enthalten.
-4. In `docker-compose.yml` die Zeile `- fritzbox:/backup` und den Block `fritzbox:` unter `volumes:` einkommentieren, dann `docker compose up -d`.
-5. In Zaster unter „Einstellungen“ → „Sicherung“ auf „Jetzt sichern“ tippen. Klappt es, steht dort die Uhrzeit der letzten Sicherung, sonst die Fehlermeldung.
+3. Auf dem Server, auf dem Docker läuft, `cifs-utils` installieren (`apt install cifs-utils`) und in `/etc/fstab` eine Zeile anfügen (eine Zeile, Benutzer, Passwort und Ordner anpassen; das Passwort darf kein Komma enthalten):
+   ```
+   //192.168.178.1/FRITZ.NAS/Zaster /mnt/fritzbox cifs username=zaster,password=geheim,vers=3.0,file_mode=0660,dir_mode=0770,_netdev,nofail 0 0
+   ```
+   Dann `mkdir /mnt/fritzbox`, `systemctl daemon-reload`, `mount /mnt/fritzbox`. `ls /mnt/fritzbox` zeigt danach ohne Fehler den Ordner auf dem NAS.
+4. In `docker-compose.yml` die Zeile `- /mnt/fritzbox:/backup` einkommentieren, in der `.env` `BACKUP_DIR=/backup` setzen, dann `docker compose up -d`.
+5. In Zaster unter „Einstellungen“ → „Sicherung“ auf „Jetzt sichern“ tippen. Klappt es, steht dort die Uhrzeit der letzten Sicherung, sonst die Fehlermeldung. Auf dem NAS liegt dann `zaster.db`.
 
-Ist die FritzBox zur Uhrzeit der Sicherung nicht erreichbar, fällt nur diese Sicherung aus: Die vorige `zaster.db` auf dem NAS bleibt erhalten, der Fehler steht in den Einstellungen, und mit eingerichtetem Home Assistant ([Benachrichtigungen](#homeassistant-optional)) bekommt, wer Zaster eingerichtet hat, eine Nachricht auf seine Geräte. Ein Tipp darauf öffnet die Einstellungen. Der nächste Versuch kommt am nächsten Tag.
+**Docker in einem LXC-Container (Proxmox):** Ein unprivilegierter LXC darf keine SMB-Freigaben einbinden (`mount` meldet „operation not permitted“; prüfen mit `systemd-detect-virt`, Ausgabe `lxc`). Dann Schritt 3 in der Shell des Proxmox-Hosts ausführen, mit `uid=100000,gid=100000` zusätzlich in den Optionen (das ist root im LXC), und den Ordner an den LXC durchreichen: `pct set <ID> -mp0 /mnt/fritzbox,mp=/mnt/fritzbox`, danach den LXC neu starten. Schritt 4 wie oben im LXC.
 
-Ist die FritzBox beim Start nicht erreichbar oder stimmt das Passwort nicht, startet der Container nicht (`docker compose up` meldet „error while mounting volume“). Nach einer Änderung an den FRITZ-Werten das Volume neu anlegen lassen: `docker compose down`, `docker volume rm <ordner>_fritzbox`, `docker compose up -d`. Statt der FritzBox geht jeder Ordner, den man nach `/backup` einbindet, z. B. ein auf dem Server schon eingehängtes NAS: `- /mnt/nas/zaster:/backup`.
+Ist die FritzBox zur Uhrzeit der Sicherung nicht erreichbar, fällt nur diese Sicherung aus: Die vorige `zaster.db` auf dem NAS bleibt erhalten, der Fehler steht in den Einstellungen, und mit eingerichtetem Home Assistant ([Benachrichtigungen](#homeassistant-optional)) bekommt, wer Zaster eingerichtet hat, eine Nachricht auf seine Geräte. Ein Tipp darauf öffnet die Einstellungen. Der nächste Versuch kommt am nächsten Tag. Ist die Freigabe nach einem Neustart des Servers nicht eingebunden (FritzBox war nicht erreichbar, `nofail` lässt den Server trotzdem starten), schreibt Zaster in den leeren Ordner `/mnt/fritzbox` auf dem Server statt auf das NAS; dann `mount /mnt/fritzbox` ausführen.
+
+Statt der FritzBox geht jeder Ordner, den man nach `/backup` einbindet, z. B. ein anderes NAS oder eine zweite Festplatte.
 
 Auch diese Sicherung enthält die Schlüssel unter `/data/keys` nicht.
 
