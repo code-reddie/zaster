@@ -25,13 +25,12 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 - Buchungen auf mehrere Kategorien aufteilen, z. B. ein Einkauf mit Lebensmitteln und einer Bohrmaschine: Teilbeträge eingeben, die erste Kategorie bekommt den Rest. Kategoriefilter und Summen rechnen mit den Teilbeträgen.
 - Regeln pro Konto zur automatischen Kategorisierung (Text kommt in Auftraggeber, Buchungstext, Verwendungszweck oder einem davon vor). Die Reihenfolge ist einstellbar, die erste passende Regel gewinnt. Neue Buchungen bekommen die passende Kategorie automatisch, und die Regeln lassen sich nachträglich auf alle Buchungen ohne Kategorie anwenden. Aus einer Buchung lässt sich direkt eine Regel machen.
 - Seite „Ohne Kategorie“ mit allen Buchungen, die noch nicht geprüft sind: Kategorie mit einem Tipp setzen (zuletzt benutzte Kategorien stehen direkt an der Buchung), direkt aus einer Buchung eine Regel machen, einzelne Buchungen mit „Nicht kategorisieren“ als geprüft abhaken oder „Alle nicht kategorisieren“. Eine Buchung mit Kategorie gilt automatisch als geprüft.
-- Benachrichtigungen über Home Assistant einrichten: Jeder Nutzer wählt unter „Einstellungen“ seine Geräte mit der Home-Assistant-App aus und kann eine Testnachricht schicken; ein Tipp darauf öffnet Zaster.
+- Benachrichtigungen über Home Assistant: Bringt ein FinTS-Abruf (von Hand oder automatisch) oder ein CSV-Import Buchungen, die nach den Regeln noch ohne Kategorie sind, bekommen alle Mitglieder des Kontos eine Nachricht, z. B. „3 neue Buchungen ohne Kategorie (insgesamt 12 offen)“. Ein Tipp darauf öffnet die Seite „Ohne Kategorie“ des Kontos, bei Bedarf nach der Anmeldung. Von Hand angelegte Buchungen lösen keine Nachricht aus. Jeder Nutzer wählt unter „Einstellungen“ seine Geräte mit der Home-Assistant-App aus und kann eine Testnachricht schicken.
 
 ### Geplant
 
 - Geteilte Konten (z. B. Gemeinschaftskonto), alle Mitglieder gleichberechtigt. Das Datenmodell kann es schon, es fehlt der Weg, ein Konto zu teilen.
 - Buchungen als CSV exportieren.
-- Automatische Push-Benachrichtigung über Home Assistant, sobald neue Buchungen ohne Kategorie da sind; ein Tipp öffnet die Seite „Ohne Kategorie“. Geräteauswahl und Testnachricht gibt es schon.
 - Sankey-Diagramme für Ein- und Ausgaben, pro Konto.
 
 ## Starten mit Docker Compose
@@ -139,13 +138,13 @@ Die Uhrzeiten für den automatischen Abruf stehen nicht in der Konfiguration, so
 
 ### HomeAssistant (optional)
 
-Benachrichtigungen schickt Zaster über die REST-API von Home Assistant an den Dienst `notify.mobile_app_<gerät>`, die Home-Assistant-App auf dem Handy zeigt sie an. Welche Geräte eine Nachricht bekommen, stellt jeder Nutzer in Zaster unter „Einstellungen“ ein; dort gibt es auch die Taste „Testnachricht senden“.
+Benachrichtigungen schickt Zaster über die REST-API von Home Assistant an den Dienst `notify.mobile_app_<gerät>`, die Home-Assistant-App auf dem Handy zeigt sie an. Welche Geräte eine Nachricht bekommen, stellt jeder Nutzer in Zaster unter „Einstellungen“ ein; dort gibt es auch die Taste „Testnachricht senden“. Neue Buchungen ohne Kategorie melden sich automatisch bei allen Mitgliedern des Kontos. Ist Home Assistant nicht erreichbar, läuft der Abruf trotzdem durch, der Fehler steht im Log.
 
 | Schlüssel | Umgebungsvariable | Standard | Bedeutung |
 |---|---|---|---|
 | `Url` | `HomeAssistant__Url` | leer | Adresse von Home Assistant, wie der Zaster-Container sie erreicht, z. B. `http://homeassistant.local:8123`. Leer = keine Benachrichtigungen. |
 | `Token` | `HomeAssistant__Token` | leer | Long-Lived Access Token, anzulegen in Home Assistant unter Profil → Sicherheit. Geheim: Zaster gibt ihn nie an die Oberfläche und schreibt ihn nicht ins Log. |
-| `ZasterUrl` | `HomeAssistant__ZasterUrl` | leer | Adresse von Zaster, wie das Handy sie erreicht, z. B. `https://zaster.example.de`. Ein Tipp auf die Nachricht öffnet sie. Ohne sie lehnt Zaster das Senden mit einer Meldung ab. |
+| `ZasterUrl` | `HomeAssistant__ZasterUrl` | leer | Adresse von Zaster, wie das Handy sie erreicht, z. B. `https://zaster.example.de`. Ein Tipp auf die Nachricht öffnet sie bzw. die Seite „Ohne Kategorie“ darunter (`<ZasterUrl>/konten/<id>/offen`). Ohne sie lehnt Zaster das Senden mit einer Meldung ab. |
 
 ### Logging und AllowedHosts
 

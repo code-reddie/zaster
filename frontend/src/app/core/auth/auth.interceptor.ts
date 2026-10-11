@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 
 /**
  * Hängt den Login-Token an jede Anfrage. Ist er abgelaufen (401 außerhalb des Logins),
- * geht es zurück zur Anmeldung.
+ * geht es zurück zur Anmeldung und danach wieder auf dieselbe Seite.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
@@ -19,7 +19,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         error.status === 401 &&
         !req.url.startsWith('/api/auth/')
       ) {
-        auth.logout();
+        auth.logout(location.pathname + location.search);
       }
       return throwError(() => error);
     }),
