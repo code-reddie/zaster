@@ -40,59 +40,23 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 
 Das Image wird bei jedem Merge auf `main` als `ghcr.io/code-reddie/zaster:latest` gebaut (amd64 und arm64).
 
-`docker-compose.yml`:
-
-```yaml
-services:
-  zaster:
-    image: ghcr.io/code-reddie/zaster:latest
-    container_name: zaster
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    environment:
-      # Signierschlüssel für die Login-Tokens, mindestens 64 Zeichen (HMAC-SHA512).
-      JwtSettings__Key: ${JWT_KEY:?JWT_KEY fehlt in .env}
-      JwtSettings__Issuer: zaster
-      JwtSettings__Audience: zaster
-      # Optional: eigene FinTS-Produktregistrierungsnummer. Leer = Nummer von libfintx.
-      FinTS__ProductId: ${FINTS_PRODUCT_ID:-}
-      # Optional: Benachrichtigungen über Home Assistant.
-      HomeAssistant__Url: ${HA_URL:-}
-      HomeAssistant__Token: ${HA_TOKEN:-}
-      HomeAssistant__ZasterUrl: ${ZASTER_URL:-}
-      TZ: Europe/Berlin
-    volumes:
-      # SQLite-Datenbank (/data/zaster.db) und Schlüssel für gespeicherte PINs (/data/keys)
-      - zaster-data:/data
-
-volumes:
-  zaster-data:
-```
-
-`.env` daneben (gehört nicht ins Git):
+Vorlagen liegen im Ordner [`deploy/`](deploy/): [`docker-compose.yml`](deploy/docker-compose.yml) und [`.env.example`](deploy/.env.example). Beide Dateien in einen eigenen Ordner auf dem Server kopieren, `.env.example` in `.env` umbenennen und ausfüllen (mindestens `JWT_KEY`, die übrigen Werte sind optional). Die `.env` enthält Geheimnisse und gehört nicht ins Git.
 
 ```bash
-# Erzeugen mit: openssl rand -base64 64 | tr -d '\n'
-JWT_KEY=
-
-# Optional, aus der Mail der Deutschen Kreditwirtschaft
-FINTS_PRODUCT_ID=
-
-# Optional, für Benachrichtigungen über Home Assistant
-# Adresse von Home Assistant, wie Zaster sie erreicht
-HA_URL=http://homeassistant.local:8123
-# Long-Lived Access Token (Home Assistant → Profil → Sicherheit)
-HA_TOKEN=
-# Adresse von Zaster, wie das Handy sie erreicht
-ZASTER_URL=https://zaster.example.de
-```
-
-Dann:
-
-```bash
+cp deploy/docker-compose.yml deploy/.env.example /pfad/zu/zaster/
+cd /pfad/zu/zaster
+mv .env.example .env
+openssl rand -base64 64 | tr -d '\n'   # Ergebnis als JWT_KEY in .env eintragen
 docker compose up -d
 ```
+
+| Variable in `.env` | Pflicht | Wirkung |
+|---|---|---|
+| `JWT_KEY` | ja | Signierschlüssel für die Login-Tokens, mindestens 64 Zeichen |
+| `FINTS_PRODUCT_ID` | nein | Eigene FinTS-Produktregistrierungsnummer; leer = Nummer von libfintx |
+| `HA_URL` | nein | Adresse von Home Assistant, wie Zaster sie erreicht |
+| `HA_TOKEN` | nein | Long-Lived Access Token aus Home Assistant |
+| `ZASTER_URL` | nein | Adresse von Zaster, wie das Handy sie erreicht (Ziel der Benachrichtigungen) |
 
 Zaster ist danach unter http://localhost:8080 erreichbar; dort legt man sich zuerst ein Konto über „Registrieren“ an. Die Datenbank-Migrationen laufen beim Start automatisch.
 
