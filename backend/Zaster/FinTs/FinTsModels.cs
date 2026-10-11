@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Zaster.FinTs;
 
-public sealed record FinTsTestRequest(
+public sealed record FinTsFetchRequest(
     string Iban,
     string? UserId,
     string Pin,
@@ -11,19 +11,19 @@ public sealed record FinTsTestRequest(
 
 public sealed record FinTsBankMessage(string Code, string Message);
 
-public sealed record FinTsTransactionPreview(
-    DateTimeOffset Buchung,
-    DateTimeOffset Valuta,
-    string Auftragsgeber,
+public sealed record FinTsTransaction(
+    DateOnly Buchung,
+    DateOnly Valuta,
+    string Auftraggeber,
     string Buchungstext,
     string Verwendungszweck,
     decimal Betrag);
 
-public sealed record FinTsTestResult(
+public sealed record FinTsFetchResult(
     bool Success,
     string? Error,
     IReadOnlyList<FinTsBankMessage> Messages,
-    IReadOnlyList<FinTsTransactionPreview> Transactions,
+    IReadOnlyList<FinTsTransaction> Transactions,
     IReadOnlyList<string> Diagnostics,
     bool LoginRejected = false);
 
@@ -35,6 +35,4 @@ public sealed record FinTsSyncResult(
     IReadOnlyList<FinTsBankMessage> Messages,
     IReadOnlyList<string> Diagnostics,
     int Imported,
-    int Skipped,
-    IReadOnlyList<Models.TransactionDto> Transactions,
-    Models.AccountDto Account);
+    int Skipped);

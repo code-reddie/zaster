@@ -1,12 +1,12 @@
 using System;
 using System.Linq;
-using Zaster.Import;
+using Zaster.Transactions;
 
 namespace Zaster.Tests;
 
 public sealed class TransactionMatcherTests
 {
-    private static readonly DateTimeOffset Day = new(2026, 5, 4, 0, 0, 0, TimeSpan.Zero);
+    private static readonly DateOnly Day = new(2026, 5, 4);
 
     [Fact]
     public void Key_ignoriert_Schreibweise_und_Laenge_des_Auftraggebers()

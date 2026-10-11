@@ -1,4 +1,4 @@
-using Zaster.Models;
+using Zaster.Accounts;
 
 namespace Zaster.Tests;
 

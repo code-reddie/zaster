@@ -32,7 +32,7 @@ namespace Zaster.Migrations
                     b.ToTable("AccountUsers");
                 });
 
-            modelBuilder.Entity("Zaster.Models.Account", b =>
+            modelBuilder.Entity("Zaster.Accounts.Account", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -63,10 +63,44 @@ namespace Zaster.Migrations
                     b.ToTable("Accounts");
                 });
 
-            modelBuilder.Entity("Zaster.Models.CategorizationRule", b =>
+            modelBuilder.Entity("Zaster.Categories.Category", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AccountId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Color")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("ParentId");
+
+                    b.ToTable("Categories");
+                });
+
+            modelBuilder.Entity("Zaster.Categories.Rule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AccountId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("CategoryId")
@@ -80,49 +114,19 @@ namespace Zaster.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("CategorizationRules");
+                    b.ToTable("Rules");
                 });
 
-            modelBuilder.Entity("Zaster.Models.Category", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Color")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Icon")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("ParentCategoryId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ParentCategoryId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Categories");
-                });
-
-            modelBuilder.Entity("Zaster.Models.Transaction", b =>
+            modelBuilder.Entity("Zaster.Transactions.Transaction", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -131,14 +135,14 @@ namespace Zaster.Migrations
                     b.Property<int>("AccountId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Auftragsgeber")
+                    b.Property<string>("Auftraggeber")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("Betrag")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("Buchung")
+                    b.Property<DateOnly>("Buchung")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Buchungstext")
@@ -148,7 +152,17 @@ namespace Zaster.Migrations
                     b.Property<int?>("CategoryId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset>("Valuta")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Reviewed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("Valuta")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Verwendungszweck")
@@ -157,14 +171,14 @@ namespace Zaster.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AccountId");
-
                     b.HasIndex("CategoryId");
+
+                    b.HasIndex("AccountId", "Buchung");
 
                     b.ToTable("Transactions");
                 });
 
-            modelBuilder.Entity("Zaster.Models.User", b =>
+            modelBuilder.Entity("Zaster.Users.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -189,57 +203,65 @@ namespace Zaster.Migrations
 
             modelBuilder.Entity("AccountUsers", b =>
                 {
-                    b.HasOne("Zaster.Models.Account", null)
+                    b.HasOne("Zaster.Accounts.Account", null)
                         .WithMany()
                         .HasForeignKey("AccountsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Zaster.Models.User", null)
+                    b.HasOne("Zaster.Users.User", null)
                         .WithMany()
                         .HasForeignKey("UsersId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Zaster.Models.CategorizationRule", b =>
+            modelBuilder.Entity("Zaster.Categories.Category", b =>
                 {
-                    b.HasOne("Zaster.Models.Category", "Category")
+                    b.HasOne("Zaster.Accounts.Account", "Account")
+                        .WithMany("Categories")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Zaster.Categories.Category", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Account");
+
+                    b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("Zaster.Categories.Rule", b =>
+                {
+                    b.HasOne("Zaster.Accounts.Account", "Account")
+                        .WithMany("Rules")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Zaster.Categories.Category", "Category")
                         .WithMany()
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Account");
+
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("Zaster.Models.Category", b =>
+            modelBuilder.Entity("Zaster.Transactions.Transaction", b =>
                 {
-                    b.HasOne("Zaster.Models.Category", "ParentCategory")
-                        .WithMany("Subcategories")
-                        .HasForeignKey("ParentCategoryId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("Zaster.Models.User", "User")
-                        .WithMany("Categories")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ParentCategory");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Zaster.Models.Transaction", b =>
-                {
-                    b.HasOne("Zaster.Models.Account", "Account")
+                    b.HasOne("Zaster.Accounts.Account", "Account")
                         .WithMany("Transactions")
                         .HasForeignKey("AccountId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Zaster.Models.Category", "Category")
+                    b.HasOne("Zaster.Categories.Category", "Category")
                         .WithMany("Transactions")
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -249,21 +271,20 @@ namespace Zaster.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("Zaster.Models.Account", b =>
-                {
-                    b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("Zaster.Models.Category", b =>
-                {
-                    b.Navigation("Subcategories");
-
-                    b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("Zaster.Models.User", b =>
+            modelBuilder.Entity("Zaster.Accounts.Account", b =>
                 {
                     b.Navigation("Categories");
+
+                    b.Navigation("Rules");
+
+                    b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("Zaster.Categories.Category", b =>
+                {
+                    b.Navigation("Children");
+
+                    b.Navigation("Transactions");
                 });
 #pragma warning restore 612, 618
         }

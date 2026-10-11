@@ -21,7 +21,7 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
     private readonly FinTsOptions _options = options.Value;
     private readonly ILogger<FinTsService> _logger = logger;
 
-    public async Task<FinTsTestResult> FetchTransactionsAsync(FinTsTestRequest request, CancellationToken cancellationToken)
+    public async Task<FinTsFetchResult> FetchTransactionsAsync(FinTsFetchRequest request, CancellationToken cancellationToken)
     {
         var iban = request.Iban.Replace(" ", string.Empty).ToUpperInvariant();
         if (iban.Length != 22 || !iban.StartsWith("DE", StringComparison.Ordinal))
@@ -64,7 +64,7 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
             dialog =>
             {
                 // App-Freigabe: libfintx fragt den Status selbst ab, hier ist nichts einzugeben.
-                // Eine echte TAN-Eingabe unterstützt der Verbindungstest noch nicht.
+                // Eine echte TAN-Eingabe unterstützt Zaster noch nicht.
                 return Task.FromResult<string>(dialog.IsDecoupled ? string.Empty : null!);
             },
             _ => Task.CompletedTask);
@@ -87,7 +87,7 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
 
             if (sync.HasError || FinTsMessages.IsRejected(messages))
             {
-                return new FinTsTestResult(false, "Die ING hat die Anmeldung abgelehnt. Details stehen in den Bankmeldungen.", messages, [], diagnostics, LoginRejected: true);
+                return new FinTsFetchResult(false, "Die ING hat die Anmeldung abgelehnt. Details stehen in den Bankmeldungen.", messages, [], diagnostics, LoginRejected: true);
             }
 
             // libfintx erkennt die Bankparameterdaten nur, wenn sie in einer Zeile stehen.
@@ -98,7 +98,7 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
                 var error = messages.Count > 0
                     ? "Die ING hat keine Bankparameterdaten geschickt. Bitte die Meldungen und die Diagnose unten an Claude schicken."
                     : "Die ING hat auf die Anmeldung ohne verwertbare Antwort reagiert. Bitte die Diagnose unten an Claude schicken.";
-                return new FinTsTestResult(false, error, messages, [], diagnostics);
+                return new FinTsFetchResult(false, error, messages, [], diagnostics);
             }
 
             if (!string.IsNullOrEmpty(client.SystemId))
@@ -116,13 +116,13 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
         catch (TimeoutException)
         {
             tanDialog.IsCancelWaitForApproval = true;
-            return new FinTsTestResult(false, "Die Bank hat nicht rechtzeitig geantwortet. Wurde eine Freigabe in der ING-App erwartet?", messages, [], diagnostics);
+            return new FinTsFetchResult(false, "Die Bank hat nicht rechtzeitig geantwortet. Wurde eine Freigabe in der ING-App erwartet?", messages, [], diagnostics);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogFetchFailed(_logger, ex);
             diagnostics.Add($"Fehler: {ex.GetType().Name} in {ex.TargetSite?.DeclaringType?.Name}.{ex.TargetSite?.Name}");
-            return new FinTsTestResult(false, $"Abruf fehlgeschlagen: {ex.Message}", messages, [], diagnostics);
+            return new FinTsFetchResult(false, $"Abruf fehlgeschlagen: {ex.Message}", messages, [], diagnostics);
         }
 
         // Warnungen wie 3010 („nur die letzten 90 Tage“) kommen ohne Erfolgsmeldung, die Umsätze sind trotzdem da.
@@ -131,27 +131,27 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
             var error = result.IsSCARequired
                 ? "Die Bank verlangt eine Freigabe. Bitte einmal im ING-Banking einloggen und erneut versuchen."
                 : "Die Bank hat den Abruf abgelehnt. Details stehen in den Bankmeldungen.";
-            return new FinTsTestResult(false, error, messages, [], diagnostics);
+            return new FinTsFetchResult(false, error, messages, [], diagnostics);
         }
 
         diagnostics.Add($"Kontoauszüge: {result.Data.Count}, Buchungen: {result.Data.Sum(statement => statement.SwiftTransactions.Count)}");
 
         var transactions = result.Data
             .SelectMany(statement => statement.SwiftTransactions)
-            .Select(ToPreview)
+            .Select(ToTransaction)
             .OrderByDescending(t => t.Buchung)
             .ToList();
 
-        return new FinTsTestResult(true, null, messages, transactions, diagnostics);
+        return new FinTsFetchResult(true, null, messages, transactions, diagnostics);
     }
 
-    private static FinTsTransactionPreview ToPreview(SwiftTransaction transaction)
+    private static FinTsTransaction ToTransaction(SwiftTransaction transaction)
     {
         var verwendungszweck = string.IsNullOrWhiteSpace(transaction.SVWZ)
             ? transaction.Description
             : transaction.SVWZ;
 
-        return new FinTsTransactionPreview(
+        return new FinTsTransaction(
             ToDate(transaction.EntryDate ?? transaction.ValueDate),
             ToDate(transaction.ValueDate),
             transaction.PartnerName?.Trim() ?? string.Empty,
@@ -160,12 +160,11 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
             transaction.Amount);
     }
 
-    private static DateTimeOffset ToDate(DateTime date) =>
-        new(DateTime.SpecifyKind(date.Date, DateTimeKind.Utc));
+    private static DateOnly ToDate(DateTime date) => DateOnly.FromDateTime(date);
 
     private static bool IsAscii(string value) => value.All(char.IsAscii);
 
-    private static FinTsTestResult Failed(string error) => new(false, error, [], [], []);
+    private static FinTsFetchResult Failed(string error) => new(false, error, [], [], []);
 
     private static void AddMessages(List<FinTsBankMessage> messages, HBCIDialogResult result)
     {

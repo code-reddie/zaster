@@ -12,13 +12,16 @@ internal static class WebApplicationExtensions
             app.UseSwaggerUI();
         }
 
+        /// <summary>
+        /// Liefert das Angular-Build aus <c>wwwroot</c>. Im Development läuft das Frontend über
+        /// <c>ng serve</c> mit Proxy auf <c>/api</c>, also ohne CORS.
+        /// </summary>
         public void AddAngularFrontend()
         {
-            app.UseCors("AllowAngularFrontend");
-            app.UseDefaultFiles(); // Looks for index.html
-            app.UseStaticFiles();  // Allows access to files in wwwroot
-            app.MapFallbackToFile("index.html");  // Redirects all unknown routes to Angular (index.html)
+            app.UseDefaultFiles();
+            app.UseStaticFiles();
+            // Unbekannte Pfade gehen an Angular, außer unter /api: dort gibt es ein echtes 404.
+            app.MapFallbackToFile("{*path:regex(^(?!api/).*$)}", "index.html");
         }
     }
-
 }
