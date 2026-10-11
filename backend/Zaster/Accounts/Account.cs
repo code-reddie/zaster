@@ -23,6 +23,12 @@ public sealed record Account : Entity
     /// </summary>
     public string? FinTsPin { get; set; }
 
+    /// <summary>
+    /// Uhrzeiten („HH:mm“, Zeitzone <c>FinTS:TimeZone</c>), zu denen Zaster das Konto automatisch abruft.
+    /// Läuft nur mit gespeicherter PIN. Leer = kein automatischer Abruf.
+    /// </summary>
+    public List<string> SyncTimes { get; set; } = [];
+
     public DateTimeOffset? LastSyncedAt { get; set; }
 
     /// <summary>

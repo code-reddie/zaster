@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,6 +23,29 @@ public sealed class FinTsController(AppDbContext context, AccountSyncService syn
         var account = await context.Accounts.SingleAsync(a => a.Id == accountId, cancellationToken);
         var result = await syncService.SyncAsync(account, request.UserId, request.Pin, request.SavePin, cancellationToken);
         return result is null ? BadRequestProblem("Bitte gib deine PIN ein.") : result;
+    }
+
+    /// <summary>
+    /// Legt die Uhrzeiten für den automatischen Abruf fest. Eine leere Liste schaltet ihn ab.
+    /// </summary>
+    [HttpPut("times")]
+    public async Task<ActionResult<IReadOnlyList<string>>> UpdateSyncTimes(int accountId, UpdateSyncTimes request, CancellationToken cancellationToken)
+    {
+        var times = SyncTimes.Normalize(request.Times ?? []);
+        if (times is null)
+        {
+            return BadRequestProblem("Bitte gib die Uhrzeiten im Format HH:MM an.");
+        }
+
+        if (times.Count > SyncTimes.Max)
+        {
+            return BadRequestProblem($"Höchstens {SyncTimes.Max} Uhrzeiten pro Konto.");
+        }
+
+        var account = await context.Accounts.SingleAsync(a => a.Id == accountId, cancellationToken);
+        account.SyncTimes = times;
+        await context.SaveChangesAsync(cancellationToken);
+        return times;
     }
 
     /// <summary>

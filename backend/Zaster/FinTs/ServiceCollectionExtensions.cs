@@ -38,7 +38,7 @@ internal static class ServiceCollectionExtensions
             services.AddScoped<FinTsService>();
             services.AddScoped<AccountSyncService>();
             services.TryAddSingleton(TimeProvider.System);
-            services.AddHostedService<NightlySyncService>();
+            services.AddHostedService<ScheduledSyncService>();
         }
     }
 }

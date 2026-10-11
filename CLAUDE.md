@@ -74,7 +74,7 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 - `/api/accounts`, `/api/accounts/{accountId}`
 - `/api/accounts/{accountId}/transactions` (Filter `from`, `to`, `search`, `categoryId` inkl. Unterkategorien, `withoutCategory`, `open`, `offset`, `limit`), `…/import`, `…/review`, `…/{id}/category`, `…/{id}/splits`, `…/{id}/reviewed`
 - `/api/accounts/{accountId}/categories` (+ `order`), `/api/accounts/{accountId}/rules` (+ `order`, `apply`)
-- `/api/accounts/{accountId}/fints/sync`, `…/fints/pin`
+- `/api/accounts/{accountId}/fints/sync`, `…/fints/times`, `…/fints/pin`
 
 ## Aufbau des Frontends
 
@@ -123,7 +123,7 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 - libfintx erkennt Fehler in HIRMG nicht zuverlässig (zusätzlicher Doppelpunkt im Segmentkopf). Zaster liest HIRMG/HIRMS selbst aus (`FinTsMessages.ParseResultMessages`). Nur Codes `9xxx` gelten als Ablehnung; `3xxx` sind Warnungen (z. B. 3010: nur die letzten 90 Tage), die Umsätze sind trotzdem da.
 - Die ING liefert höchstens 90 Tage. Der Abruf ist inkrementell ab dem letzten Abruf mit 7 Tagen Überlappung; der Duplikat-Abgleich fängt die Überschneidung ab.
 - Die PIN wird mit ASP.NET Data Protection verschlüsselt in `Account.FinTsPin` gespeichert, Schlüssel unter `FinTS__KeyRingPath` (Standard `<DataDirectory>/keys`, im Container `/data/keys`). Sie wird nur nach einem erfolgreichen Abruf gespeichert, bei einer Ablehnung durch die Bank sofort gelöscht und verlässt das Backend nie (DTO zeigt nur `HasFinTsPin`). Gehen die Schlüssel verloren, sind alle gespeicherten PINs unbrauchbar.
-- Nächtlicher Abruf (`FinTs/NightlySyncService.cs`) für alle Konten mit gespeicherter PIN um `FinTS__NightlySyncTime` (Standard `04:00`, Zeitzone `FinTS__TimeZone`, Standard `Europe/Berlin`; leer = aus). Fehler landen in `Account.LastSyncError`.
+- Automatischer Abruf (`FinTs/ScheduledSyncService.cs`): Jedes Konto hat eine Liste von Uhrzeiten (`Account.SyncTimes`, „HH:mm“, sortiert, leer = aus), einstellbar unter „Konto & Abruf“ (`PUT …/fints/times`). Der Dienst prüft jede Minute, welche Uhrzeiten seit der letzten Prüfung erreicht wurden (Zeitzone `FinTS__TimeZone`, Standard `Europe/Berlin`), und ruft diese Konten ab, sofern eine PIN gespeichert ist. Fehler landen in `Account.LastSyncError`. Konten von vor der Migration `AccountSyncTimes` haben `04:00`, neue Konten keine Uhrzeit.
 - Nie mit ausgedachten Zugangsdaten gegen die echte ING testen: Fehlversuche können den Zugang einer fremden Person sperren.
 
 ### Benachrichtigungen (Home Assistant)

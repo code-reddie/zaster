@@ -9,6 +9,7 @@ public sealed record AccountDto(
     string Iban,
     string? FinTsUserId,
     bool HasFinTsPin,
+    IReadOnlyList<string> SyncTimes,
     DateTimeOffset? LastSyncedAt,
     string? LastSyncError,
     IReadOnlyList<string> Members,

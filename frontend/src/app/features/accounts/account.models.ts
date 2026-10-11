@@ -4,6 +4,8 @@ export interface Account {
   iban: string;
   finTsUserId: string | null;
   hasFinTsPin: boolean;
+  /** Uhrzeiten („HH:mm“) für den automatischen Abruf, sortiert. Leer = aus. */
+  syncTimes: string[];
   lastSyncedAt: string | null;
   lastSyncError: string | null;
   members: string[];

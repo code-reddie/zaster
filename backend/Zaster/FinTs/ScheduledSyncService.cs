@@ -1,5 +1,5 @@
 using System;
-using System.Globalization;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,52 +13,58 @@ using Zaster.Database;
 namespace Zaster.FinTs;
 
 /// <summary>
-/// Ruft jede Nacht die Umsätze aller Konten mit gespeicherter PIN ab.
+/// Ruft die Umsätze der Konten mit gespeicherter PIN zu den Uhrzeiten ab, die am Konto eingestellt sind.
+/// Prüft jede Minute, damit geänderte Uhrzeiten sofort gelten.
 /// </summary>
-public sealed partial class NightlySyncService(
+public sealed partial class ScheduledSyncService(
     IServiceScopeFactory scopeFactory,
     IOptions<FinTsOptions> options,
     TimeProvider timeProvider,
-    ILogger<NightlySyncService> logger) : BackgroundService
+    ILogger<ScheduledSyncService> logger) : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly FinTsOptions _options = options.Value;
     private readonly TimeProvider _timeProvider = timeProvider;
-    private readonly ILogger<NightlySyncService> _logger = logger;
+    private readonly ILogger<ScheduledSyncService> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (string.IsNullOrWhiteSpace(_options.NightlySyncTime))
-        {
-            LogDisabled(_logger);
-            return;
-        }
-
-        if (!TimeOnly.TryParseExact(_options.NightlySyncTime, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
-        {
-            LogInvalidTime(_logger, _options.NightlySyncTime);
-            return;
-        }
-
         var timeZone = FindTimeZone(_options.TimeZone);
+        var lastCheck = _timeProvider.GetUtcNow();
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var now = _timeProvider.GetUtcNow();
-            var next = NextRun(now, time, timeZone);
-            LogNextRun(_logger, next);
-
             try
             {
-                await Task.Delay(next - now, _timeProvider, stoppingToken);
-                await SyncAllAsync(stoppingToken);
+                // Bis kurz nach der nächsten vollen Minute warten.
+                var now = _timeProvider.GetUtcNow();
+                var nextMinute = new DateTimeOffset(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0, TimeSpan.Zero).AddMinutes(1);
+                await Task.Delay(nextMinute - now + TimeSpan.FromSeconds(1), _timeProvider, stoppingToken);
+
+                now = _timeProvider.GetUtcNow();
+                await SyncDueAccountsAsync(lastCheck, now, timeZone, stoppingToken);
+                lastCheck = now;
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 return;
             }
+            catch (Exception ex)
+            {
+                LogCheckFailed(_logger, ex);
+            }
         }
     }
+
+    /// <summary>
+    /// Ob eine der Uhrzeiten <paramref name="times"/> (HH:mm) in der Zeitzone in den Zeitraum
+    /// nach <paramref name="from"/> bis einschließlich <paramref name="to"/> fällt.
+    /// </summary>
+    internal static bool IsDue(IEnumerable<string> times, DateTimeOffset from, DateTimeOffset to, TimeZoneInfo timeZone) =>
+        times
+            .Select(SyncTimes.Parse)
+            .OfType<TimeOnly>()
+            .Any(time => NextRun(from, time, timeZone) <= to);
 
     /// <summary>
     /// Nächster Zeitpunkt nach <paramref name="now"/>, an dem es in der Zeitzone <paramref name="time"/> Uhr ist.
@@ -87,7 +93,7 @@ public sealed partial class NightlySyncService(
         return now.AddDays(1);
     }
 
-    private async Task SyncAllAsync(CancellationToken cancellationToken)
+    private async Task SyncDueAccountsAsync(DateTimeOffset from, DateTimeOffset to, TimeZoneInfo timeZone, CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -97,7 +103,7 @@ public sealed partial class NightlySyncService(
             .Where(a => a.FinTsPin != null)
             .ToListAsync(cancellationToken);
 
-        foreach (var account in accounts)
+        foreach (var account in accounts.Where(a => IsDue(a.SyncTimes, from, to, timeZone)))
         {
             try
             {
@@ -131,17 +137,11 @@ public sealed partial class NightlySyncService(
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Nächtlicher FinTS-Abruf ist abgeschaltet.")]
-    static partial void LogDisabled(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "FinTS:NightlySyncTime '{Time}' ist keine Uhrzeit im Format HH:mm, der nächtliche Abruf ist abgeschaltet.")]
-    static partial void LogInvalidTime(ILogger logger, string time);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Zeitzone '{TimeZone}' unbekannt, der nächtliche Abruf nutzt UTC.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Zeitzone '{TimeZone}' unbekannt, der automatische Abruf nutzt UTC.")]
     static partial void LogUnknownTimeZone(ILogger logger, string timeZone);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Nächster FinTS-Abruf um {Next:u}.")]
-    static partial void LogNextRun(ILogger logger, DateTimeOffset next);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Prüfung auf fällige FinTS-Abrufe fehlgeschlagen.")]
+    static partial void LogCheckFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Konto {AccountId}: {Imported} neue Buchungen, {Skipped} schon vorhanden.")]
     static partial void LogSynced(ILogger logger, int accountId, int imported, int skipped);

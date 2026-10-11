@@ -47,7 +47,8 @@
     <section class="z-card p-5 sm:p-6">
       <h2 class="font-semibold">Online-Abruf (FinTS)</h2>
       <p class="mt-1 mb-4 text-sm text-muted">
-        Zaster holt die Umsätze direkt von der Bank. Mit gespeicherter PIN läuft das automatisch.
+        Zaster holt die Umsätze direkt von der Bank. Mit gespeicherter PIN auch automatisch zu den
+        Uhrzeiten unten.
       </p>
       <dl class="mb-5 grid gap-3 text-sm sm:grid-cols-2">
         <div class="rounded-xl bg-surface-2 px-3 py-2.5">
@@ -63,10 +64,60 @@
         <div class="rounded-xl bg-surface-2 px-3 py-2.5">
           <dt class="text-muted">PIN</dt>
           <dd class="font-medium">
-            {{ account.hasFinTsPin ? 'gespeichert, automatischer Abruf an' : 'nicht gespeichert' }}
+            {{ account.hasFinTsPin ? 'gespeichert' : 'nicht gespeichert' }}
           </dd>
         </div>
       </dl>
+      <div class="mb-5">
+        <span class="z-label">Automatischer Abruf</span>
+        <div class="flex flex-wrap items-center gap-2">
+          @for (time of account.syncTimes; track time) {
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full bg-surface-2 py-1 pr-1 pl-3 text-sm font-medium"
+            >
+              <z-icon name="clock" class="size-4 text-muted" />
+              <span class="amount">{{ time }} Uhr</span>
+              <button
+                type="button"
+                class="grid size-7 place-items-center rounded-full text-muted transition-colors hover:bg-border hover:text-fg disabled:opacity-50"
+                [attr.aria-label]="time + ' Uhr entfernen'"
+                [disabled]="savingTimes()"
+                (click)="removeTime(time)"
+              >
+                <z-icon name="x" class="size-4" />
+              </button>
+            </span>
+          } @empty {
+            <span class="text-sm text-muted">Aus, Zaster ruft nur ab, wenn du es anstößt.</span>
+          }
+        </div>
+        <form class="mt-3 flex gap-2" (ngSubmit)="addTime()">
+          <input
+            type="time"
+            name="newTime"
+            class="z-input w-36"
+            aria-label="Neue Uhrzeit"
+            [(ngModel)]="newTime"
+          />
+          <button
+            zButton
+            variant="secondary"
+            type="submit"
+            [disabled]="!newTime()"
+            [loading]="savingTimes()"
+          >
+            <z-icon name="plus" class="size-4" /> Hinzufügen
+          </button>
+        </form>
+        <p class="z-hint">
+          @if (account.syncTimes.length && !account.hasFinTsPin) {
+            Läuft erst, wenn die PIN gespeichert ist: einmal „Umsätze abrufen“ und „PIN
+            verschlüsselt speichern“ anhaken.
+          } @else {
+            Jeden Tag zu diesen Uhrzeiten (deutsche Zeit), für alle Mitglieder des Kontos.
+          }
+        </p>
+      </div>
       @if (account.lastSyncError) {
         <p class="z-error mb-4">{{ account.lastSyncError }}</p>
       }

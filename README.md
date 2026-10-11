@@ -18,7 +18,7 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 - Buchungen pro Monat oder für alle Zeiträume, nach Tagen gruppiert, Kategorien als farbige Badges (bei aufgeteilten Buchungen eins pro Teil), mit Suche, Kategoriefilter und Summen für Einnahmen, Ausgaben und Saldo. Ein Tipp auf eine Buchung zeigt alle Details.
 - Buchungen von Hand anlegen und löschen.
 - CSV-Import von Kontoumsätzen im ING-Format, mit Vorschau vor dem Übernehmen.
-- Abruf der Umsätze per FinTS von der ING, pro Konto. Die PIN kann verschlüsselt gespeichert werden; dann ruft Zaster die Konten einmal täglich automatisch ab (Uhrzeit einstellbar). Der Abruf ist inkrementell, die ING liefert höchstens 90 Tage. Übernommen werden nur gebuchte Umsätze; vorgemerkte (z. B. frische Kartenzahlungen) kommen erst mit der Buchung.
+- Abruf der Umsätze per FinTS von der ING, pro Konto. Die PIN kann verschlüsselt gespeichert werden; dann ruft Zaster das Konto automatisch zu den Uhrzeiten ab, die unter „Konto & Abruf“ eingestellt sind (eine oder mehrere pro Tag, z. B. 09:00 und 14:00). Der Abruf ist inkrementell, die ING liefert höchstens 90 Tage. Übernommen werden nur gebuchte Umsätze; vorgemerkte (z. B. frische Kartenzahlungen) kommen erst mit der Buchung.
 - Duplikat-Abgleich zwischen CSV-Import und FinTS-Abruf, damit dieselbe Buchung nicht doppelt auftaucht.
 - Kategorien pro Konto als Baum mit beliebig vielen Ebenen, mit Farbe; anlegen, umbenennen, verschieben (auch unter eine andere Kategorie) und löschen.
 - Buchungen auf mehrere Kategorien aufteilen, z. B. ein Einkauf mit Lebensmitteln und einer Bohrmaschine: Teilbeträge eingeben, die erste Kategorie bekommt den Rest. Kategoriefilter und Summen rechnen mit den Teilbeträgen.
@@ -31,7 +31,6 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 - Geteilte Konten (z. B. Gemeinschaftskonto), alle Mitglieder gleichberechtigt. Das Datenmodell kann es schon, es fehlt der Weg, ein Konto zu teilen.
 - Buchungen als CSV exportieren.
 - Automatische Push-Benachrichtigung über Home Assistant, sobald neue Buchungen ohne Kategorie da sind; ein Tipp öffnet die Seite „Ohne Kategorie“. Geräteauswahl und Testnachricht gibt es schon.
-- Mehrere FinTS-Abrufzeiten pro Tag (z. B. 09:00 und 14:00) statt einer.
 - Sankey-Diagramme für Ein- und Ausgaben, pro Konto.
 
 ## Starten mit Docker Compose
@@ -92,7 +91,6 @@ Die vollständige Struktur mit allen Schlüsseln, die Zaster liest (Beispielwert
     "Bic": "INGDDEFFXXX",
     "MaxWaitForApprovalSeconds": 180,
     "KeyRingPath": "/data/keys",
-    "NightlySyncTime": "04:00",
     "TimeZone": "Europe/Berlin"
   },
   "HomeAssistant": {
@@ -134,8 +132,9 @@ Relative Pfade (in `DataDirectory`, im `Data Source` und in `FinTS:KeyRingPath`)
 | `Bic` | `FinTS__Bic` | `INGDDEFFXXX` | BIC der Bank. |
 | `MaxWaitForApprovalSeconds` | `FinTS__MaxWaitForApprovalSeconds` | `180` | So lange wartet Zaster auf eine Freigabe in der Banking-App. |
 | `KeyRingPath` | `FinTS__KeyRingPath` | `<DataDirectory>/keys` | Ordner für die Schlüssel, mit denen gespeicherte PINs verschlüsselt werden. Muss dauerhaft gespeichert und gesichert werden. |
-| `NightlySyncTime` | `FinTS__NightlySyncTime` | `04:00` | Uhrzeit (`HH:mm`) für den täglichen automatischen Abruf aller Konten mit gespeicherter PIN. Leer schaltet ihn ab. |
-| `TimeZone` | `FinTS__TimeZone` | `Europe/Berlin` | Zeitzone für `NightlySyncTime`. Unbekannte Zeitzone = UTC. |
+| `TimeZone` | `FinTS__TimeZone` | `Europe/Berlin` | Zeitzone für die Abrufzeiten der Konten. Unbekannte Zeitzone = UTC. |
+
+Die Uhrzeiten für den automatischen Abruf stehen nicht in der Konfiguration, sondern werden pro Konto in der App unter „Konto & Abruf“ eingestellt. `FinTS__NightlySyncTime` gibt es nicht mehr.
 
 ### HomeAssistant (optional)
 

@@ -108,7 +108,8 @@ import { FinTsService, FinTsSyncResult } from './fints.service';
                 <span class="text-sm">
                   PIN verschlüsselt speichern
                   <span class="block text-xs text-muted"
-                    >Dann ruft Zaster automatisch ab, und ein Tipp reicht.</span
+                    >Dann ruft Zaster zu den eingestellten Uhrzeiten automatisch ab, und ein Tipp
+                    reicht.</span
                   >
                 </span>
               </label>
