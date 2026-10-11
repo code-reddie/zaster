@@ -18,4 +18,5 @@ public sealed record User : Entity
     public List<string> NotificationDevices { get; set; } = [];
 }
 
-public sealed record UserDto(int Id, string Name);
+/// <param name="CanDownloadBackup">Ob der Nutzer die Datenbank sichern darf (nur wer Zaster eingerichtet hat).</param>
+public sealed record UserDto(int Id, string Name, bool CanDownloadBackup);

@@ -65,12 +65,12 @@ Das ist eine Arbeitsanweisung für Claude, keine technische Prüfung: Nichts im 
 
 ## Aufbau des Backends
 
-Ordner nach Fachbereich: `Accounts/`, `Transactions/`, `Categories/` (Kategorien, Regeln, `RuleEngine`), `Users/`, `Auth/`, `FinTs/`, `Notifications/`, dazu `Common/` und `Database/` (DbContext, `Entity`). Pro Bereich liegen Entity, DTOs (`*Models.cs`) und Controller zusammen.
+Ordner nach Fachbereich: `Accounts/`, `Transactions/`, `Categories/` (Kategorien, Regeln, `RuleEngine`), `Users/`, `Auth/`, `FinTs/`, `Notifications/`, `Backup/`, dazu `Common/` und `Database/` (DbContext, `Entity`). Pro Bereich liegen Entity, DTOs (`*Models.cs`) und Controller zusammen.
 
 API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 
 - `/api/auth/login`, `/api/auth/register` (ohne Anmeldung)
-- `/api/me`, `/api/me/notifications…`
+- `/api/me`, `/api/me/notifications…`, `/api/backup` (Datenbank herunterladen)
 - `/api/accounts`, `/api/accounts/{accountId}`
 - `/api/accounts/{accountId}/transactions` (Filter `from`, `to`, `search`, `categoryId` inkl. Unterkategorien, `withoutCategory`, `open`, `offset`, `limit`), `…/import`, `…/balance-check`, `…/review`, `…/{id}/category`, `…/{id}/splits`, `…/{id}/reviewed`
 - `/api/accounts/{accountId}/categories` (+ `order`), `/api/accounts/{accountId}/rules` (+ `order`, `apply`)
@@ -115,7 +115,7 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 - Kategorien und Regeln gehören dem Konto (`AccountId`), nicht dem Nutzer. Beim Umzug (Migration `Refactoring`, 11.10.2026) wurden die alten Nutzer-Kategorien, Regeln und Zuordnungen gelöscht.
 - Kategorien bilden einen Baum beliebiger Tiefe (`ParentId`, Reihenfolge unter Geschwistern `SortOrder`). Die API liefert eine flache Liste, den Baum baut das Frontend. Verschieben unter sich selbst oder eigene Unterkategorien lehnt das Backend ab; Namen sind pro Ebene eindeutig. Löschen nimmt Unterkategorien und deren Regeln mit, die Buchungen werden wieder offen.
 - Regeln (`Categories/RuleEngine.cs`): Teilstring-Vergleich ohne Groß-/Kleinschreibung auf Auftraggeber, Buchungstext, Verwendungszweck oder alle drei. Geprüft wird nach `SortOrder`, die erste passende Regel gewinnt. Regeln überschreiben nie eine schon gesetzte Kategorie oder Aufteilung. `POST …/rules/apply` wendet sie auf alle Buchungen des Kontos ohne Kategorie an.
-- Aufteilen: Eine Buchung hat 0..n Teilbeträge (`TransactionSplit`: Kategorie + Betrag mit dem Vorzeichen der Buchung, jede Kategorie höchstens einmal). Leer = ohne Kategorie, sonst ergeben die Teile zusammen genau `Betrag` (`Transaction.ValidateSplit`); halb kategorisierte Buchungen gibt es nicht. `Transaction.Categorize` legt einen Teil über den ganzen Betrag an, `Transaction.Split` ersetzt alle (Teile müssen per `Include` geladen sein). Auswertungen nach Kategorie (Filter, Summen, später Sankey und CSV-Export) rechnen mit den Teilbeträgen, nicht mit `Betrag`. Wird eine Kategorie gelöscht, verlieren betroffene Buchungen alle Teile und sind wieder offen.
+- Aufteilen: Eine Buchung hat 0..n Teilbeträge (`TransactionSplit`: Kategorie + Betrag mit dem Vorzeichen der Buchung, jede Kategorie höchstens einmal). Leer = ohne Kategorie, sonst ergeben die Teile zusammen genau `Betrag` (`Transaction.ValidateSplit`); halb kategorisierte Buchungen gibt es nicht. `Transaction.Categorize` legt einen Teil über den ganzen Betrag an, `Transaction.Split` ersetzt alle (Teile müssen per `Include` geladen sein). Auswertungen nach Kategorie (Filter, Summen, später Sankey) rechnen mit den Teilbeträgen, nicht mit `Betrag`. Wird eine Kategorie gelöscht, verlieren betroffene Buchungen alle Teile und sind wieder offen.
 - „Geprüft“ (`Transaction.Reviewed`): Kategorie setzen (von Hand oder per Regel) macht die Buchung geprüft, Kategorie entfernen macht sie wieder offen (`Transaction.Categorize`). „Offen“ heißt: ohne Kategorie und nicht geprüft; nur diese zählen für die Seite „Ohne Kategorie“, `AccountDto.OpenTransactions` und die Benachrichtigung. Nach der Migration sind alle alten Buchungen offen.
 
 ### FinTS (ING)
@@ -136,3 +136,8 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 - Automatische Nachricht (`Notifications/OpenTransactionsNotifier.cs`): `TransactionImporter` (CSV und FinTS) zählt nach dem Anwenden der Regeln die neuen offenen Buchungen und legt sie in die `OpenTransactionsQueue`. Ein Hintergrunddienst schickt sie an die Geräte aller Mitglieder des Kontos (doppelte Geräte nur einmal), Titel „Zaster · <Konto>“, Link `<ZasterUrl>/konten/<id>/offen`. So hält ein langsames Home Assistant keinen Import auf; Fehler landen nur im Log. Buchungen von Hand lösen nichts aus.
 - Ein Link in die App ohne Anmeldung führt zu `/anmelden?weiter=<pfad>`, nach der Anmeldung geht es dorthin zurück (nur Pfade innerhalb von Zaster).
 - Lokal testen mit einem Fake-Server, der `/api/services` und `/api/services/notify/<dienst>` beantwortet; gegen ein echtes Home Assistant nur mit eigenem Token.
+
+### Sicherung
+- `GET /api/backup` (`Backup/BackupController.cs`) liefert die ganze Datenbank als SQLite-Datei. `DatabaseBackup.WriteAsync` schreibt per `VACUUM INTO` eine konsistente Kopie in eine temporäre Datei, die nach dem Ausliefern gelöscht wird; nie die laufende Datei direkt ausliefern.
+- Erlaubt nur dem Nutzer mit der kleinsten Id (wer Zaster eingerichtet hat), sonst 403. Es gibt keine Rollen; die Registrierung ist offen, und die Datei enthält alle Nutzer samt Passwort-Hashes. `UserDto.CanDownloadBackup` sagt dem Frontend, ob es die Taste zeigt.
+- Die Data-Protection-Schlüssel (`/data/keys`) sind nicht in der Sicherung.
