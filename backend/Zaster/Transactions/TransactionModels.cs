@@ -50,9 +50,10 @@ public sealed record CreateTransaction(
     string? Verwendungszweck,
     decimal Betrag);
 
+/// <summary>Ohne Valuta gilt der Buchungstag, wie bei Buchungen von Hand.</summary>
 public sealed record ImportTransaction(
     DateOnly Buchung,
-    DateOnly Valuta,
+    DateOnly? Valuta,
     string Auftraggeber,
     string Buchungstext,
     string? Verwendungszweck,
