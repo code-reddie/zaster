@@ -1,39 +1,71 @@
-import { CanActivateFn, Router, Routes } from '@angular/router';
-import { LoginComponent } from './login/login.component';
-import { DashboardComponent } from './dashboard/dashboard.component';
-import { inject } from '@angular/core';
-import { AuthService } from './authentication/auth.service';
-import { RegisterComponent } from './register/register.component';
-
-export const authGuard: CanActivateFn = () => {
-  const authService = inject(AuthService);
-  const router = inject(Router);
-
-  if (authService.isLoggedIn()) {
-    return true;
-  } else {
-    return router.parseUrl('/login');
-  }
-};
-
-export const loginGuard: CanActivateFn = () => {
-  const authService = inject(AuthService);
-  const router = inject(Router);
-
-  if (authService.isLoggedIn()) {
-    return router.parseUrl('/dashboard');
-  }
-
-  return true;
-};
+import { Routes } from '@angular/router';
+import { authGuard, guestGuard } from './core/auth/auth.guards';
+import { Shell } from './core/layout/shell';
+import { accountGuard, startRedirect } from './features/accounts/account.guards';
 
 export const routes: Routes = [
-  { path: 'login', component: LoginComponent, canActivate: [loginGuard] },
-  { path: 'register', component: RegisterComponent, canActivate: [loginGuard] },
   {
-    path: 'dashboard',
-    component: DashboardComponent,
-    canActivate: [authGuard],
+    path: 'anmelden',
+    canActivate: [guestGuard],
+    title: 'Anmelden · Zaster',
+    loadComponent: () => import('./features/auth/login.page').then((m) => m.LoginPage),
   },
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
+  {
+    path: 'registrieren',
+    canActivate: [guestGuard],
+    title: 'Registrieren · Zaster',
+    loadComponent: () => import('./features/auth/register.page').then((m) => m.RegisterPage),
+  },
+  {
+    path: '',
+    component: Shell,
+    canActivate: [authGuard],
+    children: [
+      { path: '', pathMatch: 'full', canActivate: [startRedirect], children: [] },
+      {
+        path: 'konten/neu',
+        title: 'Konto hinzufügen · Zaster',
+        loadComponent: () =>
+          import('./features/accounts/create-account.page').then((m) => m.CreateAccountPage),
+      },
+      {
+        path: 'konten/:accountId',
+        canActivate: [accountGuard],
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'buchungen' },
+          {
+            path: 'buchungen',
+            title: 'Buchungen · Zaster',
+            loadComponent: () =>
+              import('./features/transactions/transactions.page').then((m) => m.TransactionsPage),
+          },
+          {
+            path: 'offen',
+            title: 'Ohne Kategorie · Zaster',
+            loadComponent: () =>
+              import('./features/transactions/open.page').then((m) => m.OpenPage),
+          },
+          {
+            path: 'kategorien',
+            title: 'Kategorien · Zaster',
+            loadComponent: () =>
+              import('./features/categories/categories.page').then((m) => m.CategoriesPage),
+          },
+          {
+            path: 'konto',
+            title: 'Konto · Zaster',
+            loadComponent: () =>
+              import('./features/accounts/account.page').then((m) => m.AccountPage),
+          },
+        ],
+      },
+      {
+        path: 'einstellungen',
+        title: 'Einstellungen · Zaster',
+        loadComponent: () =>
+          import('./features/settings/settings.page').then((m) => m.SettingsPage),
+      },
+    ],
+  },
+  { path: '**', redirectTo: '' },
 ];

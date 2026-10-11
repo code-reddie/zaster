@@ -2,7 +2,9 @@
 
 Zaster ist eine Web-App, mit der man die eigenen Finanzen kategorisiert und visualisiert. Buchungen kommen per FinTS von der Bank (bisher die ING), per CSV-Import (ING-Format) oder werden von Hand angelegt und dann über Kategorien und Regeln eingeordnet.
 
-> **Zaster ist noch in Arbeit.** Vieles funktioniert schon und läuft im Alltag, einige Funktionen fehlen aber noch, und das Datenmodell wird sich noch ändern (z. B. ziehen Kategorien und Regeln vom Nutzer auf das Konto um). Die Liste unten zeigt den aktuellen Stand.
+> **Zaster ist noch in Arbeit.** Die Grundlage steht und läuft im Alltag, einige Funktionen fehlen aber noch. Die Liste unten zeigt den aktuellen Stand.
+
+> **Update auf diese Version:** Kategorien und Regeln gehören jetzt zum Konto statt zum Nutzer. Beim ersten Start migriert Zaster die Datenbank: Nutzer, Konten, Buchungen und gespeicherte PINs bleiben, die bisherigen Kategorien, Regeln und Zuordnungen fallen weg. Alle vorhandenen Buchungen stehen danach unter „Ohne Kategorie“ und lassen sich mit „Alle als geprüft“ in einem Schritt abhaken. Vor dem Update das Volume `/data` sichern.
 
 ## Funktionen
 
@@ -10,29 +12,24 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 
 ### Schon verfügbar
 
+- Oberfläche für PC, iPad und iPhone: am PC und auf dem iPad quer eine Seitenleiste, auf dem Handy Kontowahl oben, Navigation unten und Dialoge als Sheet von unten. Hell oder dunkel nach Systemeinstellung.
 - Mehrere Nutzer mit eigener Anmeldung (Registrierung, Login per JWT); jeder sieht nur seine eigenen Konten.
-- Bankkonten anlegen (IBAN ist Pflicht und wird geprüft) und löschen.
+- Bankkonten anlegen (IBAN ist Pflicht und wird geprüft), umbenennen und löschen.
+- Buchungen pro Monat oder für alle Zeiträume, nach Tagen gruppiert, mit Suche, Kategoriefilter und Summen für Einnahmen, Ausgaben und Saldo. Ein Tipp auf eine Buchung zeigt alle Details.
 - Buchungen von Hand anlegen und löschen.
-- CSV-Import von Kontoumsätzen im ING-Format.
+- CSV-Import von Kontoumsätzen im ING-Format, mit Vorschau vor dem Übernehmen.
 - Abruf der Umsätze per FinTS von der ING, pro Konto. Die PIN kann verschlüsselt gespeichert werden; dann ruft Zaster die Konten einmal täglich automatisch ab (Uhrzeit einstellbar). Der Abruf ist inkrementell, die ING liefert höchstens 90 Tage.
 - Duplikat-Abgleich zwischen CSV-Import und FinTS-Abruf, damit dieselbe Buchung nicht doppelt auftaucht.
-- Kategorien anlegen und löschen, Buchungen einer Kategorie zuordnen und die Zuordnung später ändern.
-- Regeln zur automatischen Kategorisierung (Text kommt in Auftraggeber, Buchungstext, Verwendungszweck oder einem davon vor). Neue Buchungen bekommen die passende Kategorie automatisch, und die Regeln lassen sich nachträglich auf alle Buchungen ohne Kategorie anwenden.
-- Benachrichtigungen über Home Assistant einrichten: Jeder Nutzer wählt unter „Benachrichtigungen“ seine Geräte mit der Home-Assistant-App aus und kann eine Testnachricht schicken; ein Tipp darauf öffnet Zaster.
-
-### Teilweise umgesetzt
-
-- Responsives Design: Tailwind ist im Einsatz, auf Tablet und Handy ist die Oberfläche aber noch nicht gezielt geprüft.
-- Konten und Kategorien bearbeiten: Anlegen und Löschen geht, Umbenennen und Bearbeiten noch nicht.
-- Kategorien und Regeln gehören heute dem Nutzer; geplant ist, dass jedes Konto eigene Kategorien und Regeln hat.
+- Kategorien pro Konto als Baum mit beliebig vielen Ebenen, mit Farbe; anlegen, umbenennen, verschieben (auch unter eine andere Kategorie) und löschen.
+- Regeln pro Konto zur automatischen Kategorisierung (Text kommt in Auftraggeber, Buchungstext, Verwendungszweck oder einem davon vor). Die Reihenfolge ist einstellbar, die erste passende Regel gewinnt. Neue Buchungen bekommen die passende Kategorie automatisch, und die Regeln lassen sich nachträglich auf alle Buchungen ohne Kategorie anwenden. Aus einer Buchung lässt sich direkt eine Regel machen.
+- Seite „Ohne Kategorie“ mit allen Buchungen, die noch nicht geprüft sind: Kategorie mit einem Tipp setzen (zuletzt benutzte Kategorien stehen direkt an der Buchung), einzeln als geprüft abhaken oder „Alle als geprüft“. Eine Buchung mit Kategorie gilt automatisch als geprüft.
+- Benachrichtigungen über Home Assistant einrichten: Jeder Nutzer wählt unter „Einstellungen“ seine Geräte mit der Home-Assistant-App aus und kann eine Testnachricht schicken; ein Tipp darauf öffnet Zaster.
 
 ### Geplant
 
-- Geteilte Konten (z. B. Gemeinschaftskonto), alle Mitglieder gleichberechtigt.
-- Kategorien als Baum mit beliebig vielen Ebenen.
+- Geteilte Konten (z. B. Gemeinschaftskonto), alle Mitglieder gleichberechtigt. Das Datenmodell kann es schon, es fehlt der Weg, ein Konto zu teilen.
 - Buchungen als CSV exportieren.
-- Eigene Seite mit allen Buchungen ohne Kategorie, Merkmal „geprüft“ pro Buchung und Taste „Alle als geprüft markieren“.
-- Automatische Push-Benachrichtigung über Home Assistant, sobald neue Buchungen ohne Kategorie da sind; ein Tipp öffnet die Seite „ohne Kategorie“. Geräteauswahl und Testnachricht gibt es schon.
+- Automatische Push-Benachrichtigung über Home Assistant, sobald neue Buchungen ohne Kategorie da sind; ein Tipp öffnet die Seite „Ohne Kategorie“. Geräteauswahl und Testnachricht gibt es schon.
 - Mehrere FinTS-Abrufzeiten pro Tag (z. B. 09:00 und 14:00) statt einer.
 - Sankey-Diagramme für Ein- und Ausgaben, pro Konto.
 
@@ -141,7 +138,7 @@ Relative Pfade (in `DataDirectory`, im `Data Source` und in `FinTS:KeyRingPath`)
 
 ### HomeAssistant (optional)
 
-Benachrichtigungen schickt Zaster über die REST-API von Home Assistant an den Dienst `notify.mobile_app_<gerät>`, die Home-Assistant-App auf dem Handy zeigt sie an. Welche Geräte eine Nachricht bekommen, stellt jeder Nutzer in Zaster unter „Benachrichtigungen“ ein; dort gibt es auch die Taste „Testnachricht senden“.
+Benachrichtigungen schickt Zaster über die REST-API von Home Assistant an den Dienst `notify.mobile_app_<gerät>`, die Home-Assistant-App auf dem Handy zeigt sie an. Welche Geräte eine Nachricht bekommen, stellt jeder Nutzer in Zaster unter „Einstellungen“ ein; dort gibt es auch die Taste „Testnachricht senden“.
 
 | Schlüssel | Umgebungsvariable | Standard | Bedeutung |
 |---|---|---|---|

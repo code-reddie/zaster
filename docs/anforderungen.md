@@ -1,6 +1,6 @@
 # Anforderungen
 
-Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben Tag eingearbeitet), geordnet nach Bereichen. Hinter jedem Punkt steht der Umsetzungsstand:
+Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben Tag eingearbeitet; Umsetzungsstand nach dem Refactoring vom 11.10.2026), geordnet nach Bereichen. Hinter jedem Punkt steht der Umsetzungsstand:
 
 - ✅ umgesetzt
 - 🟡 teilweise umgesetzt oder weicht ab
@@ -8,17 +8,17 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 
 ## Design
 
-- 🟡 Web-App mit responsivem Design, gut bedienbar auf PC, iPad und iPhone. Tailwind ist im Einsatz; auf Tablet und Handy ist die Oberfläche bisher nicht gezielt geprüft.
-- 🟡 Modern, übersichtlich und aufgeräumt, ohne Schnickschnack.
+- ✅ Web-App mit responsivem Design, gut bedienbar auf PC, iPad und iPhone. Ab 1024 px Breite Seitenleiste, darunter Kontowahl oben, Navigation unten und Dialoge als Sheet von unten. Geprüft in den Breiten von iPhone, iPad hoch und PC, hell und dunkel.
+- ✅ Modern, übersichtlich und aufgeräumt, ohne Schnickschnack.
 
 ## Bankkonten
 
-- 🟡 Bankkonten anlegen, verwalten und löschen. Anlegen (mit Pflicht-IBAN) und Löschen gehen; Umbenennen oder Bearbeiten gibt es noch nicht.
+- ✅ Bankkonten anlegen (mit Pflicht-IBAN), umbenennen, FinTS-Zugangsnummer ändern und löschen.
 
 ## Benutzer
 
 - ✅ Mehrere Benutzer mit eigener Anmeldung; jeder sieht nur seine eigenen Konten.
-- ⬜ Geteilte Konten (z. B. Gemeinschaftskonto). Alle Mitglieder eines Kontos sind gleichberechtigt: Buchungen, Kategorien, Regeln, Teilen und Löschen. Das Datenmodell erlaubt schon mehrere Nutzer pro Konto (`Account.Users`), es gibt aber keinen Weg, ein Konto mit jemandem zu teilen.
+- ⬜ Geteilte Konten (z. B. Gemeinschaftskonto). Alle Mitglieder eines Kontos sind gleichberechtigt: Buchungen, Kategorien, Regeln, Teilen und Löschen. Das Datenmodell erlaubt schon mehrere Nutzer pro Konto (`Account.Users`), und die Kontoseite zeigt die Mitglieder; es gibt aber noch keinen Weg, ein Konto mit jemandem zu teilen.
 
 ## Kontoauszüge
 
@@ -29,21 +29,21 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 
 ## Kategorien
 
-- 🟡 Kategorien anlegen und verwalten, Buchungen zuordnen. Anlegen, Löschen und Zuordnen gehen; Bearbeiten (Name, Farbe, Lage im Baum) fehlt.
-- ⬜ Baumstruktur mit beliebig vielen Ebenen (z. B. Autos → Passat, Corsa; Lebensmittel → Süßkram, Brot). `Category.ParentCategoryId` existiert im Modell, Oberfläche und Regeln nutzen es nicht.
-- 🟡 Jedes Konto hat seine eigenen Kategorien, damit geteilte Konten nicht im Chaos enden. **Abweichung:** heute gehören Kategorien dem Nutzer (PR #5/#6). Beim Umbau startet jedes Konto leer: die heutigen Nutzer-Kategorien und -Regeln werden nicht übernommen, die Zuordnungen der Buchungen fallen damit weg.
+- ✅ Kategorien anlegen und verwalten (Name, Farbe, Lage im Baum, Reihenfolge), Buchungen zuordnen.
+- ✅ Baumstruktur mit beliebig vielen Ebenen (z. B. Autos → Passat, Corsa; Lebensmittel → Süßkram, Brot). Löschen nimmt die Unterkategorien mit, ihre Buchungen sind danach wieder ohne Kategorie.
+- ✅ Jedes Konto hat seine eigenen Kategorien, damit geteilte Konten nicht im Chaos enden. Beim Umbau hat jedes Konto leer angefangen (Entscheidung 4).
 
 ## Regeln
 
 - ✅ Buchungen werden anhand von Regeln automatisch kategorisiert (Teilstring in Auftraggeber, Buchungstext, Verwendungszweck oder allen).
-- 🟡 Jedes Konto hat seine eigenen Regeln. **Abweichung:** Regeln hängen heute an Nutzer-Kategorien; sie ziehen mit den Kategorien auf die Konten um.
+- ✅ Jedes Konto hat seine eigenen Regeln. Die Reihenfolge ist einstellbar, die erste passende Regel gewinnt.
 - ✅ Regeln nachträglich auf alle alten Buchungen ohne Kategorie anwenden.
 - ✅ Neue Buchungen (manuell, CSV, FinTS) bekommen automatisch die passenden Regeln.
 
 ## Push-Benachrichtigungen
 
-- 🟡 Push auf Christophs Geräten, sobald eine oder mehrere neue Buchungen ohne Kategorie da sind, über Home Assistant (siehe Entscheidungen). Die Verbindung steht: Home Assistant ist konfigurierbar (`HomeAssistant__Url`, `__Token`, `__ZasterUrl`), jeder Nutzer wählt unter „Benachrichtigungen“ seine Geräte aus und kann eine Testnachricht schicken. Die automatische Nachricht bei neuen Buchungen ohne Kategorie fehlt noch.
-- 🟡 Ein Tipp auf die Benachrichtigung öffnet die Seite, auf der man den Buchungen Kategorien zuweist. Heute öffnet die Testnachricht die Startseite von Zaster, weil es die Seite „ohne Kategorie“ noch nicht gibt.
+- 🟡 Push auf Christophs Geräten, sobald eine oder mehrere neue Buchungen ohne Kategorie da sind, über Home Assistant (siehe Entscheidungen). Die Verbindung steht: Home Assistant ist konfigurierbar (`HomeAssistant__Url`, `__Token`, `__ZasterUrl`), jeder Nutzer wählt unter „Einstellungen“ seine Geräte aus und kann eine Testnachricht schicken. Die automatische Nachricht bei neuen Buchungen ohne Kategorie fehlt noch.
+- 🟡 Ein Tipp auf die Benachrichtigung öffnet die Seite, auf der man den Buchungen Kategorien zuweist. Die Seite gibt es jetzt (`/konten/<id>/offen`); die Testnachricht öffnet noch die Startseite, den Link auf die Seite bekommt die automatische Nachricht.
 - 🟡 Buchungen werden regelmäßig per FinTS geladen; bleibt danach eine Buchung ohne Kategorie, kommt eine Push-Nachricht. Die Abrufzeiten sind konfigurierbar, auch mehrere pro Tag (z. B. 09:00 und 14:00). Heute gibt es nur eine Uhrzeit (`FinTS__NightlySyncTime`, Standard 04:00); die Liste und die Push-Nachricht fehlen.
 
 ## Diagramme
@@ -52,8 +52,8 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 
 ## Allgemein
 
-- ⬜ Eigene Seite mit allen Buchungen ohne Kategorie.
-- ⬜ Taste „Alle als geprüft markieren“; Buchungen dürfen auch ohne Kategorie bleiben. So lassen sich alle alten Buchungen ohne Kategorie abhaken. Jede Buchung hat dafür ein Merkmal „geprüft“; eine Buchung mit Kategorie gilt automatisch als geprüft. Seite „ohne Kategorie“ und Push zählen nur Buchungen, die nicht geprüft sind.
+- ✅ Eigene Seite mit allen Buchungen ohne Kategorie („Ohne Kategorie“, mit Zähler in der Navigation).
+- ✅ Taste „Alle als geprüft markieren“; Buchungen dürfen auch ohne Kategorie bleiben. So lassen sich alle alten Buchungen ohne Kategorie abhaken. Jede Buchung hat dafür ein Merkmal „geprüft“; eine Buchung mit Kategorie gilt automatisch als geprüft. Seite „ohne Kategorie“ und Push zählen nur Buchungen, die nicht geprüft sind.
 - ✅ Kategorien einer Buchung lassen sich nachträglich setzen und ändern.
 
 ## Offene Fragen

@@ -1,0 +1,109 @@
+@if (store.selected(); as account) {
+  <z-page-header title="Konto & Abruf" [subtitle]="account.name" subtitleDesktopOnly />
+
+  <div class="flex max-w-2xl flex-col gap-6">
+    <!-- Stammdaten -->
+    <form class="z-card p-5 sm:p-6" (ngSubmit)="save()">
+      <h2 class="mb-4 font-semibold">Konto</h2>
+      <div class="flex flex-col gap-4">
+        <div>
+          <label class="z-label" for="name">Name</label>
+          <input id="name" name="name" class="z-input" [(ngModel)]="name" />
+        </div>
+        <div>
+          <span class="z-label">IBAN</span>
+          <p class="font-mono text-sm">{{ account.iban | iban }}</p>
+        </div>
+        <div>
+          <label class="z-label" for="userId">Zugangsnummer für FinTS</label>
+          <input
+            id="userId"
+            name="userId"
+            class="z-input"
+            autocomplete="off"
+            placeholder="Leer = aus der IBAN"
+            [(ngModel)]="finTsUserId"
+          />
+        </div>
+        <div>
+          <span class="z-label">Mitglieder</span>
+          <p class="flex items-center gap-2 text-sm">
+            <z-icon name="users" class="size-4 text-muted" />
+            {{ account.members.join(', ') }}
+          </p>
+        </div>
+        @if (error()) {
+          <p class="z-error">{{ error() }}</p>
+        }
+        <div class="flex justify-end">
+          <button zButton type="submit" [disabled]="!dirty()" [loading]="saving()">
+            Speichern
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Abruf -->
+    <section class="z-card p-5 sm:p-6">
+      <h2 class="font-semibold">Online-Abruf (FinTS)</h2>
+      <p class="mt-1 mb-4 text-sm text-muted">
+        Zaster holt die Umsätze direkt von der Bank. Mit gespeicherter PIN läuft das automatisch.
+      </p>
+      <dl class="mb-5 grid gap-3 text-sm sm:grid-cols-2">
+        <div class="rounded-xl bg-surface-2 px-3 py-2.5">
+          <dt class="text-muted">Letzter Abruf</dt>
+          <dd class="font-medium">
+            {{
+              account.lastSyncedAt
+                ? (account.lastSyncedAt | date: 'd. MMMM y, HH:mm') + ' Uhr'
+                : 'noch nie'
+            }}
+          </dd>
+        </div>
+        <div class="rounded-xl bg-surface-2 px-3 py-2.5">
+          <dt class="text-muted">PIN</dt>
+          <dd class="font-medium">
+            {{ account.hasFinTsPin ? 'gespeichert, automatischer Abruf an' : 'nicht gespeichert' }}
+          </dd>
+        </div>
+      </dl>
+      @if (account.lastSyncError) {
+        <p class="z-error mb-4">{{ account.lastSyncError }}</p>
+      }
+      <div class="flex flex-wrap gap-2">
+        <button zButton type="button" (click)="sync()">
+          <z-icon name="refresh" class="size-4" /> Umsätze abrufen
+        </button>
+        @if (account.hasFinTsPin) {
+          <button zButton variant="secondary" type="button" (click)="deletePin()">
+            <z-icon name="key" class="size-4" /> PIN löschen
+          </button>
+        }
+      </div>
+    </section>
+
+    <!-- Import -->
+    <section class="z-card p-5 sm:p-6">
+      <h2 class="font-semibold">CSV-Import</h2>
+      <p class="mt-1 mb-4 text-sm text-muted">
+        Für ältere Umsätze, die die Bank per FinTS nicht mehr liefert: Umsätze im ING-Banking als
+        CSV exportieren und hier einlesen. Doppelte Buchungen erkennt Zaster.
+      </p>
+      <button zButton variant="secondary" type="button" (click)="importCsv()">
+        <z-icon name="upload" class="size-4" /> CSV importieren
+      </button>
+    </section>
+
+    <!-- Löschen -->
+    <section class="z-card border-danger/40 p-5 sm:p-6">
+      <h2 class="font-semibold">Konto löschen</h2>
+      <p class="mt-1 mb-4 text-sm text-muted">
+        Löscht das Konto mit allen Buchungen, Kategorien und Regeln. Das lässt sich nicht rückgängig
+        machen.
+      </p>
+      <button zButton variant="danger" type="button" (click)="delete()">
+        <z-icon name="trash" class="size-4" /> Konto löschen
+      </button>
+    </section>
+  </div>
+}

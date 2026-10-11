@@ -1,0 +1,194 @@
+<z-page-header title="Buchungen" [subtitle]="accounts.selected()?.name" subtitleDesktopOnly>
+  <button
+    zButton
+    variant="secondary"
+    size="icon"
+    type="button"
+    title="CSV importieren"
+    aria-label="CSV importieren"
+    (click)="importCsv()"
+  >
+    <z-icon name="upload" class="size-[18px]" />
+  </button>
+  <button
+    zButton
+    variant="secondary"
+    size="icon"
+    type="button"
+    title="Buchung von Hand anlegen"
+    aria-label="Buchung von Hand anlegen"
+    (click)="create()"
+  >
+    <z-icon name="plus" class="size-[18px]" />
+  </button>
+  <button zButton type="button" (click)="sync()">
+    <z-icon name="refresh" class="size-4" />
+    Abrufen
+  </button>
+</z-page-header>
+
+<!-- Zeitraum und Filter -->
+<div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+  <div class="flex items-center rounded-xl border border-border bg-surface shadow-card">
+    <button
+      type="button"
+      class="grid size-10 place-items-center rounded-l-xl text-muted hover:bg-surface-2 hover:text-fg disabled:opacity-40"
+      aria-label="Monat zurück"
+      [disabled]="!month()"
+      (click)="shiftMonth(-1)"
+    >
+      <z-icon name="chevron-left" class="size-4" />
+    </button>
+    <button
+      type="button"
+      class="h-10 min-w-36 flex-1 px-2 text-sm font-medium hover:bg-surface-2"
+      title="Zwischen Monat und allen Zeiträumen wechseln"
+      (click)="toggleAll()"
+    >
+      {{ monthLabel() }}
+    </button>
+    <button
+      type="button"
+      class="grid size-10 place-items-center rounded-r-xl text-muted hover:bg-surface-2 hover:text-fg disabled:opacity-40"
+      aria-label="Monat vor"
+      [disabled]="!month()"
+      (click)="shiftMonth(1)"
+    >
+      <z-icon name="chevron-right" class="size-4" />
+    </button>
+  </div>
+
+  <div class="flex flex-1 gap-2">
+    <div class="relative min-w-0 flex-1">
+      <z-icon
+        name="search"
+        class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted"
+      />
+      <input
+        type="search"
+        class="z-input pl-9"
+        placeholder="Suchen"
+        aria-label="Buchungen durchsuchen"
+        [(ngModel)]="searchInput"
+      />
+    </div>
+
+    <select
+      class="z-input w-36 shrink-0 sm:w-52"
+      aria-label="Kategorie"
+      [(ngModel)]="categoryFilter"
+    >
+      <option value="">Alle Kategorien</option>
+      <option value="none">Ohne Kategorie</option>
+      @for (category of categories.tree(); track category.id) {
+        <option [value]="category.id">{{ indent(category.depth) }}{{ category.name }}</option>
+      }
+    </select>
+  </div>
+</div>
+
+<!-- Summen -->
+<div class="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
+  <div class="z-card px-3 py-3 sm:px-4">
+    <p class="text-xs text-muted">Einnahmen</p>
+    <p class="amount mt-0.5 truncate text-sm font-semibold text-positive sm:text-lg">
+      {{ einnahmen() | amount }}
+    </p>
+  </div>
+  <div class="z-card px-3 py-3 sm:px-4">
+    <p class="text-xs text-muted">Ausgaben</p>
+    <p class="amount mt-0.5 truncate text-sm font-semibold sm:text-lg">
+      {{ -ausgaben() | amount }}
+    </p>
+  </div>
+  <div class="z-card px-3 py-3 sm:px-4">
+    <p class="text-xs text-muted">Saldo</p>
+    <p
+      class="amount mt-0.5 truncate text-sm font-semibold sm:text-lg"
+      [class.text-positive]="einnahmen() + ausgaben() > 0"
+    >
+      {{ einnahmen() + ausgaben() | amount: true }}
+    </p>
+  </div>
+</div>
+
+@if (error()) {
+  <p class="z-error mb-4">{{ error() }}</p>
+}
+
+@if (loading() && items().length === 0) {
+  <div class="flex justify-center py-16 text-muted"><z-spinner class="size-6" /></div>
+} @else if (items().length === 0) {
+  <div class="z-card">
+    @if (filtered()) {
+      <z-empty-state
+        icon="search"
+        title="Nichts gefunden"
+        text="Keine Buchung passt zu Suche und Filter."
+      >
+        <button zButton variant="secondary" type="button" (click)="resetFilters()">
+          Filter zurücksetzen
+        </button>
+      </z-empty-state>
+    } @else if (month()) {
+      <z-empty-state
+        icon="list"
+        [title]="'Keine Buchungen im ' + monthLabel()"
+        text="Rufe neue Umsätze ab oder schau dir alle Zeiträume an."
+      >
+        <button zButton variant="secondary" type="button" (click)="toggleAll()">
+          Alle Zeiträume
+        </button>
+        <button zButton type="button" (click)="sync()">Umsätze abrufen</button>
+      </z-empty-state>
+    } @else {
+      <z-empty-state
+        icon="list"
+        title="Noch keine Buchungen"
+        text="Rufe die Umsätze per FinTS ab, importiere eine CSV-Datei der ING oder lege eine Buchung von Hand an."
+      >
+        <button zButton variant="secondary" type="button" (click)="importCsv()">
+          CSV importieren
+        </button>
+        <button zButton type="button" (click)="sync()">Umsätze abrufen</button>
+      </z-empty-state>
+    }
+  </div>
+} @else {
+  <div class="flex flex-col gap-5" [class.opacity-60]="loading()">
+    @for (group of groups(); track group.date) {
+      <section>
+        <div class="mb-1.5 flex items-baseline justify-between px-1 text-sm">
+          <h2 class="font-semibold">{{ group.label }}</h2>
+          <span class="amount text-muted">{{ group.sum | amount: true }}</span>
+        </div>
+        <div class="z-card divide-y divide-border overflow-hidden">
+          @for (transaction of group.items; track transaction.id) {
+            <button
+              type="button"
+              class="block w-full px-4 py-3 text-left transition-colors hover:bg-surface-2"
+              (click)="open(transaction)"
+            >
+              <z-transaction-row [transaction]="transaction" />
+            </button>
+          }
+        </div>
+      </section>
+    }
+  </div>
+
+  <div class="mt-6 flex flex-col items-center gap-3 text-sm text-muted">
+    <span>{{ items().length }} von {{ total() }} Buchungen</span>
+    @if (items().length < total()) {
+      <button
+        zButton
+        variant="secondary"
+        type="button"
+        [loading]="loadingMore()"
+        (click)="loadMore()"
+      >
+        Weitere laden
+      </button>
+    }
+  </div>
+}
