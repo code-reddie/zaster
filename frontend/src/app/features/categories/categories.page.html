@@ -123,7 +123,11 @@
           icon="zap"
           title="Noch keine Regeln"
           text="Regeln ordnen neue Buchungen automatisch zu, z. B. alles mit „REWE“ zu Lebensmittel. Am schnellsten legst du sie direkt an einer Buchung an."
-        />
+        >
+          @if (store.tree().length) {
+            <button zButton type="button" (click)="editRule()">Erste Regel anlegen</button>
+          }
+        </z-empty-state>
       </div>
     } @else {
       <ol class="z-card divide-y divide-border overflow-hidden">
