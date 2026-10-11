@@ -12,9 +12,10 @@ import { AccountStore } from '../accounts/account.store';
 import { CategoryDot } from '../categories/category-dot';
 import { CategoryPicker, CategoryPickerData } from '../categories/category-picker';
 import { CategoryStore } from '../categories/category.store';
+import { RuleSheet, RuleSheetData } from '../categories/rule-sheet';
 import { Transaction } from './transaction.models';
 import { TransactionRow } from './transaction-row';
-import { TransactionSheet, TransactionSheetResult } from './transaction-sheet';
+import { ruleFromTransaction, TransactionSheet, TransactionSheetResult } from './transaction-sheet';
 import { TransactionsService } from './transactions.service';
 
 const PAGE_SIZE = 50;
@@ -97,12 +98,23 @@ export class OpenPage {
     }
   }
 
+  /** Regel aus der Buchung anlegen; hat sie gleich Buchungen zugeordnet, Liste neu laden. */
+  protected async createRule(transaction: Transaction) {
+    const applied = await this.dialog.result<number, RuleSheetData>(
+      RuleSheet,
+      ruleFromTransaction(transaction),
+    );
+    if (applied) {
+      this.reload();
+    }
+  }
+
   protected async reviewAll() {
     const accountId = this.accounts.selectedId();
     const confirmed = await this.dialog.confirm({
-      title: 'Alle als geprüft markieren?',
+      title: 'Alle nicht kategorisieren?',
       text: `${this.total()} Buchungen bleiben ohne Kategorie, verschwinden aber von dieser Seite. In der Buchungsliste lässt sich jede später noch zuordnen.`,
-      confirm: 'Alle als geprüft markieren',
+      confirm: 'Alle nicht kategorisieren',
     });
     if (!confirmed || accountId === null) {
       return;

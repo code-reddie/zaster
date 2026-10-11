@@ -5,7 +5,7 @@ import { booleanAttribute, Component, input } from '@angular/core';
   selector: 'z-page-header',
   host: { class: 'mb-5 flex flex-wrap items-end gap-x-4 gap-y-3 lg:mb-7' },
   template: `
-    <div class="min-w-0 flex-1">
+    <div class="min-w-fit flex-1">
       <h1 class="text-2xl font-bold tracking-tight lg:text-[28px]">{{ title() }}</h1>
       @if (subtitle()) {
         <p class="mt-1 text-sm text-muted" [class.max-lg:hidden]="subtitleDesktopOnly()">
