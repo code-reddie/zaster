@@ -162,6 +162,9 @@ namespace Zaster.Migrations
                     b.Property<bool>("Reviewed")
                         .HasColumnType("INTEGER");
 
+                    b.Property<decimal?>("Saldo")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Source")
                         .IsRequired()
                         .HasColumnType("TEXT");

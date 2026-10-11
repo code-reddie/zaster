@@ -123,6 +123,10 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
         <dd>{{ transaction().buchung.split('-').reverse().join('.') }}</dd>
         <dt class="text-muted">Valuta</dt>
         <dd>{{ transaction().valuta.split('-').reverse().join('.') }}</dd>
+        @if (transaction().saldo !== null) {
+          <dt class="text-muted">Kontostand danach</dt>
+          <dd class="amount">{{ transaction().saldo | amount }}</dd>
+        }
         <dt class="text-muted">Herkunft</dt>
         <dd>{{ source() }}</dd>
       </dl>

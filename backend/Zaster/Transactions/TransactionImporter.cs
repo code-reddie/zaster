@@ -21,15 +21,27 @@ public sealed class TransactionImporter(AppDbContext context, TimeProvider timeP
         TransactionSource source,
         CancellationToken cancellationToken)
     {
+        // Ohne Kategorien laden: Nur der Kontostand wird bei vorhandenen Buchungen nachgetragen.
         var existing = await context.Transactions
             .Where(t => t.AccountId == accountId)
-            .Select(t => new { t.Buchung, t.Betrag, t.Auftraggeber })
             .ToListAsync(cancellationToken);
 
-        var newItems = TransactionMatcher.SelectNew(
-            existing.Select(t => TransactionMatcher.Key(t.Buchung, t.Betrag, t.Auftraggeber)),
+        var matches = TransactionMatcher.Match(
+            existing,
+            t => TransactionMatcher.Key(t.Buchung, t.Betrag, t.Auftraggeber),
             incoming,
             t => TransactionMatcher.Key(t.Buchung, t.Betrag, t.Auftraggeber));
+
+        // Buchungen aus älteren Abrufen kennen ihren Kontostand noch nicht; ein neuer Abruf oder CSV-Import ergänzt ihn.
+        foreach (var (item, match) in matches)
+        {
+            if (match is { Saldo: null } && item.Saldo is { } saldo)
+            {
+                match.Saldo = saldo;
+            }
+        }
+
+        var newItems = matches.Where(m => m.Existing is null).Select(m => m.Item).ToList();
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var transactions = newItems
@@ -42,6 +54,7 @@ public sealed class TransactionImporter(AppDbContext context, TimeProvider timeP
                 Buchungstext = t.Buchungstext.Trim(),
                 Verwendungszweck = t.Verwendungszweck?.Trim() ?? string.Empty,
                 Betrag = t.Betrag,
+                Saldo = t.Saldo,
                 Source = source,
                 CreatedAt = now,
             })

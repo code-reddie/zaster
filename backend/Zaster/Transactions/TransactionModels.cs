@@ -13,6 +13,7 @@ public sealed record TransactionDto(
     string Buchungstext,
     string Verwendungszweck,
     decimal Betrag,
+    decimal? Saldo,
     IReadOnlyList<TransactionSplitDto> Splits,
     bool Reviewed,
     TransactionSource Source)
@@ -26,6 +27,7 @@ public sealed record TransactionDto(
         t.Buchungstext,
         t.Verwendungszweck,
         t.Betrag,
+        t.Saldo,
         t.Splits.OrderBy(s => s.Betrag < 0 ? s.Betrag : -s.Betrag).ThenBy(s => s.Id).Select(s => new TransactionSplitDto(s.CategoryId, s.Betrag)).ToList(),
         t.Reviewed,
         t.Source);
@@ -54,18 +56,42 @@ public sealed record CreateTransaction(
     string? Verwendungszweck,
     decimal Betrag);
 
-/// <summary>Ohne Valuta gilt der Buchungstag, wie bei Buchungen von Hand.</summary>
+/// <summary>
+/// Ohne Valuta gilt der Buchungstag, wie bei Buchungen von Hand. <paramref name="Saldo"/> ist der
+/// Kontostand nach der Buchung, soweit die Quelle ihn kennt.
+/// </summary>
 public sealed record ImportTransaction(
     DateOnly Buchung,
     DateOnly? Valuta,
     string Auftraggeber,
     string Buchungstext,
     string? Verwendungszweck,
-    decimal Betrag);
+    decimal Betrag,
+    decimal? Saldo = null);
 
 public sealed record ImportTransactions(IReadOnlyList<ImportTransaction> Transactions);
 
 public sealed record ImportResult(int Imported, int Skipped);
+
+/// <summary>
+/// Ergebnis der Lückenprüfung über die Kontostände. <paramref name="Kontostand"/> ist der letzte bekannte
+/// Stand laut Bank (am Tag <paramref name="Stand"/>), <paramref name="Geprueft"/> die Zahl der Buchungen mit
+/// Kontostand, <paramref name="OhneKontostand"/> die Zahl der Buchungen von Bank oder CSV ohne Kontostand.
+/// </summary>
+public sealed record BalanceCheckDto(
+    decimal? Kontostand,
+    DateOnly? Stand,
+    int Geprueft,
+    int OhneKontostand,
+    IReadOnlyList<BalanceGap> Luecken);
+
+/// <summary>
+/// Eine Stelle, an der die Kontostände nicht zusammenpassen. <paramref name="Von"/> ist der letzte Tag
+/// davor mit stimmigem Kontostand (null, wenn es keinen gibt), <paramref name="Bis"/> der Tag, an dem es
+/// auffällt. <paramref name="Differenz"/> ist der Betrag, der fehlt (positiv: fehlende Einnahmen), oder null,
+/// wenn die Kontostände innerhalb eines Tages nicht zusammenpassen und sich nicht beziffern lassen.
+/// </summary>
+public sealed record BalanceGap(DateOnly? Von, DateOnly Bis, decimal? Differenz);
 
 public sealed record SetCategory(int? CategoryId);
 

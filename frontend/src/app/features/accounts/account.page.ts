@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PageHeader } from '../../core/layout/page-header';
@@ -8,19 +8,23 @@ import { Button } from '../../core/ui/button';
 import { DialogService } from '../../core/ui/dialog';
 import { Icon } from '../../core/ui/icon';
 import { ToastService } from '../../core/ui/toast';
-import { IbanPipe } from '../../shared/format';
+import { Spinner } from '../../core/ui/spinner';
+import { AmountPipe, IbanPipe } from '../../shared/format';
 import { FinTsService } from '../fints/fints.service';
 import { FinTsSyncSheet } from '../fints/fints-sync-sheet';
 import { CsvImportSheet } from '../import/csv-import-sheet';
+import { BalanceCheck } from '../transactions/transaction.models';
+import { TransactionsService } from '../transactions/transactions.service';
 import { AccountStore } from './account.store';
 
 @Component({
-  imports: [FormsModule, DatePipe, PageHeader, Button, Icon, IbanPipe],
+  imports: [FormsModule, DatePipe, PageHeader, Button, Icon, Spinner, IbanPipe, AmountPipe],
   templateUrl: './account.page.html',
 })
 export class AccountPage {
   protected readonly store = inject(AccountStore);
   private readonly finTs = inject(FinTsService);
+  private readonly transactions = inject(TransactionsService);
   private readonly dialog = inject(DialogService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
@@ -31,6 +35,9 @@ export class AccountPage {
   protected readonly error = signal<string | null>(null);
   protected readonly newTime = signal('');
   protected readonly savingTimes = signal(false);
+  protected readonly balance = signal<BalanceCheck | null>(null);
+  protected readonly balanceFailed = signal(false);
+  protected readonly shownGaps = computed(() => this.balance()?.luecken.slice(0, 10) ?? []);
 
   constructor() {
     // Formular mit dem gewählten Konto füllen, auch nach einem Kontowechsel.
@@ -39,6 +46,26 @@ export class AccountPage {
       this.name.set(account?.name ?? '');
       this.finTsUserId.set(account?.finTsUserId ?? '');
     });
+    effect(() => {
+      const accountId = this.store.selected()?.id;
+      if (accountId !== undefined) {
+        this.loadBalance(accountId);
+      }
+    });
+  }
+
+  private async loadBalance(accountId: number) {
+    this.balance.set(null);
+    this.balanceFailed.set(false);
+    try {
+      const check = await this.transactions.balanceCheck(accountId);
+      if (this.store.selected()?.id === accountId) {
+        this.balance.set(check);
+      }
+    } catch {
+      // Die Prüfung ist nur ein Hinweis; ohne sie bleibt der Rest der Seite benutzbar.
+      this.balanceFailed.set(true);
+    }
   }
 
   protected dirty() {
@@ -113,12 +140,21 @@ export class AccountPage {
     }
   }
 
-  protected sync() {
-    this.dialog.open(FinTsSyncSheet);
+  protected async sync() {
+    await this.dialog.result(FinTsSyncSheet);
+    this.reloadBalance();
   }
 
-  protected importCsv() {
-    this.dialog.open(CsvImportSheet);
+  protected async importCsv() {
+    await this.dialog.result(CsvImportSheet);
+    this.reloadBalance();
+  }
+
+  private reloadBalance() {
+    const account = this.store.selected();
+    if (account) {
+      this.loadBalance(account.id);
+    }
   }
 
   protected async deletePin() {

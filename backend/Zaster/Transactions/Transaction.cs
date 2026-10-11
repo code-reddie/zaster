@@ -43,6 +43,13 @@ public sealed record Transaction : Entity
     public required decimal Betrag { get; init; }
 
     /// <summary>
+    /// Kontostand nach dieser Buchung laut Bank: aus der Spalte „Saldo“ der ING-CSV oder beim FinTS-Abruf
+    /// aus dem Anfangssaldo des Kontoauszugs berechnet. Null bei Buchungen von Hand und bei älteren Abrufen.
+    /// Dient dazu, fehlende Buchungen zu erkennen (<see cref="BalanceCheck"/>).
+    /// </summary>
+    public decimal? Saldo { get; set; }
+
+    /// <summary>
     /// Kategorien der Buchung mit Teilbetrag. Leer = ohne Kategorie, sonst ergeben die Teilbeträge
     /// zusammen genau <see cref="Betrag"/>. Der Normalfall ist ein Teil über den ganzen Betrag.
     /// </summary>

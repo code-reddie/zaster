@@ -38,4 +38,15 @@ public sealed class TransactionMatcherTests
         // Zwei gleiche Kaffeekäufe liegen schon vor, der dritte ist neu.
         Assert.Equal(["a", "c"], result.ToArray());
     }
+
+    [Fact]
+    public void Match_ordnet_jede_vorhandene_Buchung_hoechstens_einmal_zu()
+    {
+        var existing = new[] { "a1", "b1" };
+        var incoming = new[] { "a", "a", "b" };
+
+        var result = TransactionMatcher.Match(existing, e => e[..1], incoming, k => k);
+
+        Assert.Equal(["a1", null, "b1"], result.Select(m => m.Existing).ToArray());
+    }
 }

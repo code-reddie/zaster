@@ -140,15 +140,36 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
         // nach der echten Buchung ein zweites Mal herein. Erst gebuchte Umsätze übernehmen.
         var transactions = result.Data
             .Where(statement => !statement.Pending)
-            .SelectMany(statement => statement.SwiftTransactions)
-            .Select(ToTransaction)
+            .SelectMany(ToTransactions)
             .OrderByDescending(t => t.Buchung)
             .ToList();
 
         return new FinTsFetchResult(true, null, messages, transactions, diagnostics);
     }
 
-    private static FinTsTransaction ToTransaction(SwiftTransaction transaction)
+    /// <summary>
+    /// MT940 liefert keinen Kontostand pro Buchung, nur Anfangs- (:60F:) und Endsaldo (:62F:) je Kontoauszug.
+    /// Der Stand nach jeder Buchung ergibt sich aus dem Anfangssaldo plus den Beträgen in der Reihenfolge des
+    /// Auszugs. Geht die Rechnung nicht im Endsaldo auf, bleibt der Kontostand leer.
+    /// </summary>
+    internal static IEnumerable<FinTsTransaction> ToTransactions(SwiftStatement statement)
+    {
+        var transactions = statement.SwiftTransactions;
+        var balances = new decimal?[transactions.Count];
+        if (statement.StartBalance + transactions.Sum(t => t.Amount) == statement.EndBalance)
+        {
+            var balance = statement.StartBalance;
+            for (var i = 0; i < transactions.Count; i++)
+            {
+                balance += transactions[i].Amount;
+                balances[i] = balance;
+            }
+        }
+
+        return transactions.Select((t, i) => ToTransaction(t, balances[i]));
+    }
+
+    private static FinTsTransaction ToTransaction(SwiftTransaction transaction, decimal? saldo)
     {
         var verwendungszweck = string.IsNullOrWhiteSpace(transaction.SVWZ)
             ? transaction.Description
@@ -160,7 +181,8 @@ public sealed partial class FinTsService(IOptions<FinTsOptions> options, ILogger
             transaction.PartnerName?.Trim() ?? string.Empty,
             transaction.Text?.Trim() ?? string.Empty,
             verwendungszweck?.Trim() ?? string.Empty,
-            transaction.Amount);
+            transaction.Amount,
+            saldo);
     }
 
     private static DateOnly ToDate(DateTime date) => DateOnly.FromDateTime(date);

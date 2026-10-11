@@ -97,7 +97,7 @@ public sealed class AccountSyncService(
         var imported = await importer.ImportAsync(
             account.Id,
             fetched.Transactions
-                .Select(t => new ImportTransaction(t.Buchung, t.Valuta, t.Auftraggeber, t.Buchungstext, t.Verwendungszweck, t.Betrag))
+                .Select(t => new ImportTransaction(t.Buchung, t.Valuta, t.Auftraggeber, t.Buchungstext, t.Verwendungszweck, t.Betrag, t.Saldo))
                 .ToList(),
             TransactionSource.FinTs,
             cancellationToken);
