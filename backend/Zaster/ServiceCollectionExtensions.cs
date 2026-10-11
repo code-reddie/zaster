@@ -31,20 +31,5 @@ internal static class ServiceCollectionExtensions
                 options.LowercaseUrls = true;
             });
         }
-
-        public void AddAngularFrontend()
-        {
-            services.AddCors(options =>
-            {
-                options.AddPolicy("AllowAngularFrontend",
-                policy =>
-                {
-                    policy.WithOrigins("http://localhost:4200")
-                          .AllowAnyHeader()
-                          .AllowAnyMethod()
-                          .AllowCredentials();
-                });
-            });
-        }
     }
 }

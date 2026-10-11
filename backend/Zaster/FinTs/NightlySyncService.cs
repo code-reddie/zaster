@@ -94,22 +94,14 @@ public sealed partial class NightlySyncService(
         var syncService = scope.ServiceProvider.GetRequiredService<AccountSyncService>();
 
         var accounts = await context.Accounts
-            .Include(a => a.Users)
             .Where(a => a.FinTsPin != null)
             .ToListAsync(cancellationToken);
 
         foreach (var account in accounts)
         {
-            // Kategorie-Regeln gehören Nutzern; bei geteilten Konten gelten die des ersten.
-            var userId = account.Users.Select(u => u.Id).DefaultIfEmpty().Min();
-            if (userId == 0)
-            {
-                continue;
-            }
-
             try
             {
-                var result = await syncService.SyncAsync(account, userId, null, null, false, cancellationToken);
+                var result = await syncService.SyncAsync(account, null, null, false, cancellationToken);
                 if (result is { Success: true })
                 {
                     LogSynced(_logger, account.Id, result.Imported, result.Skipped);

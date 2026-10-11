@@ -63,10 +63,26 @@ Die [README.md](README.md) beschreibt den Funktionsumfang (verfügbar, teilweise
 
 Das ist eine Arbeitsanweisung für Claude, keine technische Prüfung: Nichts im Build oder in der CI schlägt fehl, wenn die README veraltet ist. Wer ohne Claude ändert, muss selbst daran denken.
 
+## Aufbau des Backends
+
+Ordner nach Fachbereich: `Accounts/`, `Transactions/`, `Categories/` (Kategorien, Regeln, `RuleEngine`), `Users/`, `Auth/`, `FinTs/`, `Notifications/`, dazu `Common/` und `Database/` (DbContext, `Entity`). Pro Bereich liegen Entity, DTOs (`*Models.cs`) und Controller zusammen.
+
+API (alle Routen klein geschrieben, Swagger unter `/swagger`):
+
+- `/api/auth/login`, `/api/auth/register` (ohne Anmeldung)
+- `/api/me`, `/api/me/notifications…`
+- `/api/accounts`, `/api/accounts/{accountId}`
+- `/api/accounts/{accountId}/transactions` (Filter `from`, `to`, `search`, `categoryId` inkl. Unterkategorien, `withoutCategory`, `open`, `offset`, `limit`), `…/import`, `…/review`, `…/{id}/category`, `…/{id}/reviewed`
+- `/api/accounts/{accountId}/categories` (+ `order`), `/api/accounts/{accountId}/rules` (+ `order`, `apply`)
+- `/api/accounts/{accountId}/fints/sync`, `…/fints/pin`
+
 ## Konventionen
 
-- Controller holen die Nutzer-ID aus dem JWT und filtern jede Abfrage darauf; Konten gehören Nutzern über die n:m-Beziehung `Account.Users`. Fremde Daten liefern 404, nicht 403.
-- Entities sind `record`s mit `Entity`-Basis (`Id`); nach außen gehen nur DTOs (`*Dto`, Eingaben `Create*`).
+- Controller erben von `Common/ApiControllerBase` (`UserId` aus dem JWT, Fehler als ProblemDetails mit deutscher Meldung in `detail`). Alles, was zu einem Konto gehört, hängt unter `api/accounts/{accountId}/…` und trägt `[AccountMember]`: der Filter prüft die Mitgliedschaft und liefert sonst 404 (nie 403), der Controller muss es nicht selbst tun. Abfragen filtern trotzdem immer auf `AccountId`.
+- Konten gehören Nutzern über die n:m-Tabelle `AccountUsers` (`Account.Users`); alle Mitglieder sind gleichberechtigt.
+- Entities sind `record`s mit `Entity`-Basis (`Id`); nach außen gehen nur DTOs (`*Dto`, Eingaben `Create*`/`Save*`/`Update*`).
+- Datum von Buchungen ist `DateOnly` (SQLite-Text `yyyy-MM-dd`, sortier- und vergleichbar). Kein `DateTimeOffset` in Spalten, nach denen gefiltert oder sortiert wird: SQLite kann das nicht vergleichen. Zeitpunkte als `DateTime` in UTC. `decimal` kann SQLite nicht summieren, Summen entstehen im Speicher.
+- Uhrzeit immer über `TimeProvider` holen, damit Tests sie festlegen können.
 - Ein Feature pro Branch und PR, Branch ab `main`. Christoph merged selbst; GitHub löscht Branches beim Merge automatisch, also nicht manuell löschen.
 - Wer Logik mit Randfällen ändert (Duplikat-Abgleich, Regeln, FinTS-Parsing, Abrufzeiten), bringt Tests dafür mit (`backend/Zaster.Tests`). Testdaten sind ausgedacht, nie echte Buchungen oder IBANs.
 - Keine persönlichen Daten ins Repo: keine eigene FinTS-Produkt-ID, keine Zugangsnummern, PINs, IBANs oder echten Buchungen.
@@ -74,18 +90,20 @@ Das ist eine Arbeitsanweisung für Claude, keine technische Prüfung: Nichts im 
 ## Fachliche Regeln und Stolperfallen
 
 ### Konten
-- IBAN ist Pflicht beim Anlegen und wird geprüft (Länge, Aufbau, Prüfziffer Modulo 97), siehe `Models/Iban.cs`.
+- IBAN ist Pflicht beim Anlegen und wird geprüft (Länge, Aufbau, Prüfziffer Modulo 97), siehe `Accounts/Iban.cs`. Sie lässt sich danach nicht ändern, nur Name und FinTS-Kennung.
+- Ein Konto löschen löscht es für alle Mitglieder, mit Buchungen, Kategorien und Regeln.
 
 ### Import und Duplikate
-- CSV und FinTS laufen beide über `POST /api/transaction/import` (`Import/TransactionImporter.cs`).
-- Duplikat-Schlüssel (`Import/TransactionMatcher.cs`): Buchungstag (UTC-Datum) + Betrag + die ersten 16 Buchstaben/Ziffern des Auftraggebers, normalisiert (Großbuchstaben, ohne Akzente, Umlaute einheitlich). Grund: FinTS/MT940 kürzt Namen auf 27 Zeichen, die CSV enthält den vollen Namen; Valuta und Verwendungszweck sind je Quelle unterschiedlich formatiert.
+- CSV (`POST /api/accounts/{accountId}/transactions/import`) und FinTS laufen beide über `Transactions/TransactionImporter.cs`; jede Buchung merkt sich ihre Herkunft (`Source`: `Manuell`, `Csv`, `FinTs`, `Unbekannt` für Buchungen von vor dem Refactoring).
+- Duplikat-Schlüssel (`Transactions/TransactionMatcher.cs`): Buchungstag + Betrag + die ersten 16 Buchstaben/Ziffern des Auftraggebers, normalisiert (Großbuchstaben, ohne Akzente, Umlaute einheitlich). Grund: FinTS/MT940 kürzt Namen auf 27 Zeichen, die CSV enthält den vollen Namen; Valuta und Verwendungszweck sind je Quelle unterschiedlich formatiert.
 - Gleiche Schlüssel werden gezählt, damit zwei identische Buchungen am selben Tag nicht als Duplikat verloren gehen.
-- Nach dem Import werden die Kategorisierungsregeln auf neue Buchungen angewendet.
+- Nach dem Import werden die Regeln des Kontos auf neue Buchungen angewendet.
 
-### Kategorien und Regeln
-- Heute gehören Kategorien und Regeln dem Nutzer (`Category.UserId`), nicht dem Konto. Die Anforderung ist „pro Konto“, siehe docs/anforderungen.md.
-- `Category.ParentCategoryId` existiert im Modell, die Oberfläche legt aber nur oberste Kategorien an.
-- Regeln (`Categorization/RuleEngine.cs`): Teilstring-Vergleich ohne Groß-/Kleinschreibung auf Auftraggeber, Buchungstext, Verwendungszweck oder alle drei. Die Regel mit der kleinsten Id gewinnt. Regeln überschreiben nie eine schon gesetzte Kategorie. `POST /api/categorizationrule/apply` wendet sie auf alte Buchungen ohne Kategorie an.
+### Kategorien, Regeln und „geprüft“
+- Kategorien und Regeln gehören dem Konto (`AccountId`), nicht dem Nutzer. Beim Umzug (Migration `Refactoring`, 11.10.2026) wurden die alten Nutzer-Kategorien, Regeln und Zuordnungen gelöscht.
+- Kategorien bilden einen Baum beliebiger Tiefe (`ParentId`, Reihenfolge unter Geschwistern `SortOrder`). Die API liefert eine flache Liste, den Baum baut das Frontend. Verschieben unter sich selbst oder eigene Unterkategorien lehnt das Backend ab; Namen sind pro Ebene eindeutig. Löschen nimmt Unterkategorien und deren Regeln mit, die Buchungen werden wieder offen.
+- Regeln (`Categories/RuleEngine.cs`): Teilstring-Vergleich ohne Groß-/Kleinschreibung auf Auftraggeber, Buchungstext, Verwendungszweck oder alle drei. Geprüft wird nach `SortOrder`, die erste passende Regel gewinnt. Regeln überschreiben nie eine schon gesetzte Kategorie. `POST …/rules/apply` wendet sie auf alle Buchungen des Kontos ohne Kategorie an.
+- „Geprüft“ (`Transaction.Reviewed`): Kategorie setzen (von Hand oder per Regel) macht die Buchung geprüft, Kategorie entfernen macht sie wieder offen (`Transaction.Categorize`). „Offen“ heißt: ohne Kategorie und nicht geprüft; nur diese zählen für die Seite „Ohne Kategorie“, `AccountDto.OpenTransactions` und später Push. Nach der Migration sind alle alten Buchungen offen.
 
 ### FinTS (ING)
 - Konfiguration in `FinTs/FinTsOptions.cs`, Abschnitt `FinTS` (Umgebungsvariablen `FinTS__...`): URL, BLZ und BIC der ING sind voreingestellt.
@@ -101,5 +119,5 @@ Das ist eine Arbeitsanweisung für Claude, keine technische Prüfung: Nichts im 
 - Konfiguration in `Notifications/HomeAssistantOptions.cs`, Abschnitt `HomeAssistant`: `Url` (wie Zaster HA erreicht), `Token` (Long-Lived Access Token), `ZasterUrl` (wie das Handy Zaster erreicht; Ziel des Links in der Nachricht). Ohne `Url`/`Token` gibt es keine Benachrichtigungen, ohne `ZasterUrl` lehnt Zaster das Senden ab.
 - Der Token verlässt das Backend nie (DTO zeigt nur `HomeAssistantConfigured`) und wird nicht geloggt. Fehlermeldungen von `HomeAssistantClient` dürfen ihn nicht enthalten.
 - Zaster ruft `POST /api/services/notify/<dienst>` auf, mit `data.url` (iOS) und `data.clickAction` (Android) auf dieselbe absolute Adresse. Die Geräteliste kommt aus `GET /api/services` (Dienste `notify.mobile_app_*`).
-- Jeder Nutzer speichert seine Geräte in `User.NotificationDevices` (JSON-Liste von Dienstnamen ohne `notify.`, nur `[a-z0-9_]`). `POST /api/notification/test` schickt eine Testnachricht an alle.
+- Jeder Nutzer speichert seine Geräte in `User.NotificationDevices` (JSON-Liste von Dienstnamen ohne `notify.`, nur `[a-z0-9_]`). `POST /api/me/notifications/test` schickt eine Testnachricht an alle.
 - Lokal testen mit einem Fake-Server, der `/api/services` und `/api/services/notify/<dienst>` beantwortet; gegen ein echtes Home Assistant nur mit eigenem Token.
