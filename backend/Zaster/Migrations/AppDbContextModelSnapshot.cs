@@ -64,6 +64,9 @@ namespace Zaster.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Iban")
+                        .IsUnique();
+
                     b.ToTable("Accounts");
                 });
 
@@ -221,6 +224,9 @@ namespace Zaster.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("Users");
                 });

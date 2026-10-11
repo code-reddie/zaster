@@ -22,6 +22,8 @@ public sealed class AccountsController(AppDbContext context) : ApiControllerBase
     public async Task<AccountDto> GetAccount(int accountId, CancellationToken cancellationToken) =>
         await ToDtos(context.Accounts.Where(a => a.Id == accountId)).SingleAsync(cancellationToken);
 
+    private const string AccountExists = "Ein Konto mit dieser IBAN gibt es in Zaster schon.";
+
     [HttpPost]
     public async Task<ActionResult<AccountDto>> CreateAccount(CreateAccount request, CancellationToken cancellationToken)
     {
@@ -36,10 +38,22 @@ public sealed class AccountsController(AppDbContext context) : ApiControllerBase
             return BadRequestProblem("Bitte gib eine gültige IBAN ein.");
         }
 
+        if (await context.Accounts.AnyAsync(a => a.Iban == iban, cancellationToken))
+        {
+            return ConflictProblem(AccountExists);
+        }
+
         var user = await context.Users.SingleAsync(u => u.Id == UserId, cancellationToken);
         var account = new Account { Name = request.Name.Trim(), Iban = iban, Users = [user] };
         context.Accounts.Add(account);
-        await context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException e) when (IsUniqueViolation(e))
+        {
+            return ConflictProblem(AccountExists);
+        }
 
         return await GetAccount(account.Id, cancellationToken);
     }

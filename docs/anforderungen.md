@@ -13,12 +13,12 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 
 ## Bankkonten
 
-- ✅ Bankkonten anlegen (mit Pflicht-IBAN), umbenennen, FinTS-Zugangsnummer ändern und löschen.
+- ✅ Bankkonten anlegen (mit Pflicht-IBAN, jede IBAN gibt es in Zaster nur einmal), umbenennen, FinTS-Zugangsnummer ändern und löschen.
 
 ## Benutzer
 
 - ✅ Mehrere Benutzer mit eigener Anmeldung; jeder sieht nur seine eigenen Konten.
-- ⬜ Geteilte Konten (z. B. Gemeinschaftskonto). Alle Mitglieder eines Kontos sind gleichberechtigt: Buchungen, Kategorien, Regeln, Teilen und Löschen. Das Datenmodell erlaubt schon mehrere Nutzer pro Konto (`Account.Users`), und die Kontoseite zeigt die Mitglieder; es gibt aber noch keinen Weg, ein Konto mit jemandem zu teilen.
+- ⬜ Geteilte Konten (z. B. Gemeinschaftskonto). Alle Mitglieder eines Kontos sind gleichberechtigt: Buchungen, Kategorien, Regeln, Teilen und Löschen. Das Datenmodell erlaubt schon mehrere Nutzer pro Konto (`Account.Users`), und die Kontoseite zeigt die Mitglieder; es gibt aber noch keinen Weg, ein Konto mit jemandem zu teilen. Weil jede IBAN nur einmal vorkommen darf, kann ein zweiter Nutzer dasselbe Bankkonto nicht selbst anlegen, sondern kommt später nur über das Teilen dazu.
 
 ## Kontoauszüge
 
