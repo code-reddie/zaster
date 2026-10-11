@@ -1,4 +1,6 @@
+using System.IO;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,13 +13,20 @@ internal static class ServiceCollectionExtensions
     {
         public void AddDatabase(WebApplicationBuilder builder)
         {
-            // 1. Load connection string from appsettings.json or specify directly
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-                                   ?? "Data Source=zaster.db";
+            // Ohne eigenen Eintrag liegt die Datenbank im Datenordner (/data bzw. lokal ./data).
+            var connection = new SqliteConnectionStringBuilder(
+                builder.Configuration.GetConnectionString("DefaultConnection")
+                ?? $"Data Source={Path.Combine(builder.GetDataDirectory(), "zaster.db")}");
 
-            // 2. Den DbContext registrieren (Standardmäßig "Scoped")
+            if (connection.DataSource != ":memory:" && !connection.DataSource.StartsWith("file:"))
+            {
+                connection.DataSource = builder.ResolvePath(connection.DataSource);
+                // SQLite legt die Datei an, aber keine fehlenden Ordner.
+                Directory.CreateDirectory(Path.GetDirectoryName(connection.DataSource)!);
+            }
+
             services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlite(connectionString));
+                options.UseSqlite(connection.ToString()));
         }
     }
 }

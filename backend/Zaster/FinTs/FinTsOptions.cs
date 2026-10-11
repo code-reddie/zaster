@@ -21,8 +21,9 @@ public sealed class FinTsOptions
     /// <summary>
     /// Ordner für die Schlüssel, mit denen gespeicherte PINs verschlüsselt werden.
     /// Ohne diese Schlüssel lassen sich die PINs nicht mehr entschlüsseln.
+    /// Leer = Unterordner <c>keys</c> im Datenordner (<c>/data/keys</c>, lokal <c>./data/keys</c>).
     /// </summary>
-    public string KeyRingPath { get; set; } = "/data/keys";
+    public string? KeyRingPath { get; set; }
 
     /// <summary>
     /// Uhrzeit (HH:mm), zu der Konten mit gespeicherter PIN jede Nacht abgerufen werden.
