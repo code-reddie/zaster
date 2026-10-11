@@ -19,6 +19,15 @@ export type TransactionSheetResult =
   /** Regeln haben sich geändert und wurden angewendet: Liste neu laden. */
   | { reload: true };
 
+/** Vorbelegung für eine neue Regel aus einer Buchung. */
+export function ruleFromTransaction(t: Transaction): RuleSheetData {
+  return {
+    pattern: t.auftraggeber || t.buchungstext,
+    field: t.auftraggeber ? 'Auftraggeber' : 'Buchungstext',
+    categoryId: t.categoryId,
+  };
+}
+
 /** Details einer Buchung: Kategorie setzen, abhaken, Regel daraus machen, löschen. */
 @Component({
   imports: [DialogFrame, DialogFooter, Button, Icon, AmountPipe, CategoryDot],
@@ -135,12 +144,10 @@ export class TransactionSheet {
   }
 
   protected async createRule() {
-    const t = this.transaction();
-    const applied = await this.dialog.result<number, RuleSheetData>(RuleSheet, {
-      pattern: t.auftraggeber || t.buchungstext,
-      field: t.auftraggeber ? 'Auftraggeber' : 'Buchungstext',
-      categoryId: t.categoryId,
-    });
+    const applied = await this.dialog.result<number, RuleSheetData>(
+      RuleSheet,
+      ruleFromTransaction(this.transaction()),
+    );
     if (applied !== undefined) {
       this.ref.close({ reload: true });
     }

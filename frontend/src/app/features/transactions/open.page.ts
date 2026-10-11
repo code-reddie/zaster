@@ -12,9 +12,10 @@ import { AccountStore } from '../accounts/account.store';
 import { CategoryDot } from '../categories/category-dot';
 import { CategoryPicker, CategoryPickerData } from '../categories/category-picker';
 import { CategoryStore } from '../categories/category.store';
+import { RuleSheet, RuleSheetData } from '../categories/rule-sheet';
 import { Transaction } from './transaction.models';
 import { TransactionRow } from './transaction-row';
-import { TransactionSheet, TransactionSheetResult } from './transaction-sheet';
+import { ruleFromTransaction, TransactionSheet, TransactionSheetResult } from './transaction-sheet';
 import { TransactionsService } from './transactions.service';
 
 const PAGE_SIZE = 50;
@@ -93,6 +94,17 @@ export class OpenPage {
   protected async details(transaction: Transaction) {
     const result = await this.dialog.result<TransactionSheetResult>(TransactionSheet, transaction);
     if (result) {
+      this.reload();
+    }
+  }
+
+  /** Regel aus der Buchung anlegen; hat sie gleich Buchungen zugeordnet, Liste neu laden. */
+  protected async createRule(transaction: Transaction) {
+    const applied = await this.dialog.result<number, RuleSheetData>(
+      RuleSheet,
+      ruleFromTransaction(transaction),
+    );
+    if (applied) {
       this.reload();
     }
   }
