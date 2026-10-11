@@ -1,13 +1,13 @@
 import { Component, computed, inject, input } from '@angular/core';
-import { Icon } from '../../core/ui/icon';
 import { AmountPipe } from '../../shared/format';
+import { CategoryBadge } from '../categories/category-badge';
 import { CategoryStore } from '../categories/category.store';
 import { Transaction } from './transaction.models';
 
-/** Eine Buchung in Listen: Kürzel, Auftraggeber, Kategorie(n) und Betrag. */
+/** Eine Buchung in Listen: Kürzel, Auftraggeber, Kategorien als Badges und Betrag. */
 @Component({
   selector: 'z-transaction-row',
-  imports: [AmountPipe, Icon],
+  imports: [AmountPipe, CategoryBadge],
   host: { class: 'flex min-w-0 items-center gap-3' },
   template: `
     <span
@@ -19,20 +19,22 @@ import { Transaction } from './transaction.models';
       <span class="block truncate font-medium">{{
         transaction().auftraggeber || transaction().buchungstext
       }}</span>
-      <span class="flex min-w-0 items-center gap-1.5 text-sm text-muted">
-        @if (categories().length > 1) {
-          <z-icon name="split" class="size-3.5 shrink-0" />
-          <span class="truncate">{{ splitLabel() }}</span>
-        } @else if (categories()[0]; as c) {
-          <span class="truncate">{{ c.path }}</span>
-        } @else {
-          <span class="shrink-0 italic">Ohne Kategorie</span>
+      <span class="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-muted">
+        @for (part of parts(); track part.category.id) {
+          <z-category-badge
+            [category]="part.category"
+            [amount]="parts().length > 1 ? part.betrag : null"
+          />
+        } @empty {
+          <z-category-badge class="shrink-0" />
           @if (transaction().reviewed) {
-            <span class="shrink-0">· geprüft</span>
+            <span class="shrink-0">geprüft</span>
           }
         }
         @if (showPurpose() && transaction().verwendungszweck) {
-          <span class="hidden truncate sm:inline">· {{ transaction().verwendungszweck }}</span>
+          <span class="hidden min-w-0 truncate sm:inline">{{
+            transaction().verwendungszweck
+          }}</span>
         }
       </span>
     </span>
@@ -49,17 +51,12 @@ export class TransactionRow {
   readonly transaction = input.required<Transaction>();
   readonly showPurpose = input(true);
 
-  /** Kategorien der Teilbeträge, größter Teil zuerst. */
-  protected readonly categories = computed(() =>
-    this.transaction()
-      .splits.map((s) => this.store.byId().get(s.categoryId))
-      .filter((c) => c !== undefined),
-  );
-
-  protected readonly splitLabel = computed(() =>
-    this.categories()
-      .map((c) => c.name)
-      .join(' + '),
+  /** Teilbeträge mit Kategorie, größter Teil zuerst. */
+  protected readonly parts = computed(() =>
+    this.transaction().splits.flatMap((s) => {
+      const category = this.store.byId().get(s.categoryId);
+      return category ? [{ category, betrag: Math.abs(s.betrag) }] : [];
+    }),
   );
 
   protected readonly initial = computed(() => {
@@ -68,7 +65,7 @@ export class TransactionRow {
   });
 
   protected readonly avatarStyle = computed(() => {
-    const color = this.categories()[0]?.effectiveColor;
+    const color = this.parts()[0]?.category.effectiveColor;
     return color
       ? `background-color: color-mix(in srgb, ${color} 16%, transparent); color: ${color}`
       : 'border: 1.5px dashed var(--z-border); color: var(--z-muted)';
