@@ -26,11 +26,11 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 - Regeln pro Konto zur automatischen Kategorisierung (Text kommt in Auftraggeber, Buchungstext, Verwendungszweck oder einem davon vor). Die Reihenfolge ist einstellbar, die erste passende Regel gewinnt. Neue Buchungen bekommen die passende Kategorie automatisch, und die Regeln lassen sich nachträglich auf alle Buchungen ohne Kategorie anwenden. Aus einer Buchung lässt sich direkt eine Regel machen.
 - Seite „Ohne Kategorie“ mit allen Buchungen, die noch nicht geprüft sind: Kategorie mit einem Tipp setzen (zuletzt benutzte Kategorien stehen direkt an der Buchung), direkt aus einer Buchung eine Regel machen, einzelne Buchungen mit „Nicht kategorisieren“ als geprüft abhaken oder „Alle nicht kategorisieren“. Eine Buchung mit Kategorie gilt automatisch als geprüft.
 - Benachrichtigungen über Home Assistant: Bringt ein FinTS-Abruf (von Hand oder automatisch) oder ein CSV-Import Buchungen, die nach den Regeln noch ohne Kategorie sind, bekommen alle Mitglieder des Kontos eine Nachricht, z. B. „3 neue Buchungen ohne Kategorie (insgesamt 12 offen)“. Ein Tipp darauf öffnet die Seite „Ohne Kategorie“ des Kontos, bei Bedarf nach der Anmeldung. Von Hand angelegte Buchungen lösen keine Nachricht aus. Jeder Nutzer wählt unter „Einstellungen“ seine Geräte mit der Home-Assistant-App aus und kann eine Testnachricht schicken.
+- Sicherung: Unter „Einstellungen“ lädt „Datenbank herunterladen“ die komplette Datenbank als Datei herunter (`zaster-<datum>.db`). Die Taste sieht nur, wer Zaster eingerichtet hat (der zuerst registrierte Nutzer), weil die Datei die Daten aller Nutzer enthält. Wiederherstellen: siehe unten.
 
 ### Geplant
 
 - Geteilte Konten (z. B. Gemeinschaftskonto), alle Mitglieder gleichberechtigt. Das Datenmodell kann es schon, es fehlt der Weg, ein Konto zu teilen.
-- Buchungen als CSV exportieren.
 - Sankey-Diagramme für Ein- und Ausgaben, pro Konto.
 
 ## Starten mit Docker Compose
@@ -58,6 +58,20 @@ docker compose up -d
 Zaster ist danach unter http://localhost:8080 erreichbar; dort legt man sich zuerst ein Konto über „Registrieren“ an. Die Datenbank-Migrationen laufen beim Start automatisch.
 
 Wichtig: Das Volume `/data` sichern. Gehen die Schlüssel unter `/data/keys` verloren, sind gespeicherte FinTS-PINs unbrauchbar und müssen neu eingegeben werden.
+
+### Sicherung wiederherstellen
+
+Die Datei aus „Datenbank herunterladen“ ist eine vollständige SQLite-Datenbank. Zum Wiederherstellen:
+
+```bash
+docker compose down
+# Datei als zaster.db ins Volume legen und alte WAL-Dateien entfernen
+docker run --rm -v zaster_zaster-data:/data -v "$PWD":/backup alpine \
+  sh -c 'cp /backup/zaster-2026-10-11.db /data/zaster.db && rm -f /data/zaster.db-wal /data/zaster.db-shm'
+docker compose up -d
+```
+
+Der Volume-Name hängt vom Ordner ab, in dem `docker-compose.yml` liegt (`docker volume ls`). Die Schlüssel unter `/data/keys` stecken nicht in der Datei: Bleiben sie im Volume erhalten, funktionieren gespeicherte FinTS-PINs weiter, sonst müssen sie neu eingegeben werden.
 
 ## Konfiguration (appsettings.json)
 

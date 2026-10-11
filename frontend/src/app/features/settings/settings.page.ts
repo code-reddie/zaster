@@ -8,6 +8,7 @@ import { Icon } from '../../core/ui/icon';
 import { Spinner } from '../../core/ui/spinner';
 import { ToastService } from '../../core/ui/toast';
 import { AccountStore } from '../accounts/account.store';
+import { BackupService } from './backup.service';
 import {
   HomeAssistantDevice,
   NotificationSettings,
@@ -23,6 +24,7 @@ export class SettingsPage {
   protected readonly auth = inject(AuthService);
   private readonly service = inject(NotificationsService);
   private readonly toast = inject(ToastService);
+  private readonly backup = inject(BackupService);
 
   protected readonly settings = signal<NotificationSettings | null>(null);
   protected readonly available = signal<HomeAssistantDevice[]>([]);
@@ -33,6 +35,9 @@ export class SettingsPage {
   protected readonly testing = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly testResult = signal<NotificationTestResult | null>(null);
+  protected readonly canBackup = signal(false);
+  protected readonly downloading = signal(false);
+  protected readonly backupError = signal<string | null>(null);
 
   /** Gespeicherte Geräte, die Home Assistant gerade nicht meldet, z. B. von Hand eingetragene. */
   protected readonly otherSelected = computed(() =>
@@ -49,6 +54,22 @@ export class SettingsPage {
     // Die Einstellungen gelten für den Nutzer, nicht für ein Konto.
     inject(AccountStore).selectedId.set(null);
     this.load();
+    this.backup.canDownload().then(
+      (can) => this.canBackup.set(can),
+      () => this.canBackup.set(false),
+    );
+  }
+
+  protected async downloadBackup() {
+    this.downloading.set(true);
+    this.backupError.set(null);
+    try {
+      await this.backup.download();
+    } catch (e) {
+      this.backupError.set(errorMessage(e, 'Die Sicherung konnte nicht erstellt werden.'));
+    } finally {
+      this.downloading.set(false);
+    }
   }
 
   protected isSelected(service: string) {

@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Zaster.Backup;
 using Zaster.Common;
 using Zaster.Database;
 
@@ -15,7 +16,12 @@ public sealed class MeController(AppDbContext context) : ApiControllerBase
     public async Task<ActionResult<UserDto>> GetMe(CancellationToken cancellationToken)
     {
         var user = await context.Users.FirstOrDefaultAsync(u => u.Id == UserId, cancellationToken);
-        return user is null ? Unauthorized() : new UserDto(user.Id, user.Name);
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
+        return new UserDto(user.Id, user.Name, await DatabaseBackup.IsAllowedAsync(context, user.Id, cancellationToken));
     }
 
     /// <summary>

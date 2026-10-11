@@ -120,3 +120,32 @@
     </div>
   }
 </section>
+
+@if (canBackup()) {
+  <section class="z-card mt-4 p-5 sm:p-6">
+    <div class="mb-4 flex items-start gap-3">
+      <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+        <z-icon name="database" class="size-5" />
+      </span>
+      <div>
+        <h2 class="font-semibold">Sicherung</h2>
+        <p class="text-sm text-muted">
+          Die komplette Datenbank als Datei: alle Nutzer, Konten, Buchungen, Kategorien und Regeln.
+          Gespeicherte FinTS-PINs funktionieren nur mit den Schlüsseln aus <code>/data/keys</code>,
+          die nicht in der Datei stecken. Ohne sie muss die PIN nach einer Wiederherstellung neu
+          eingegeben werden.
+        </p>
+      </div>
+    </div>
+
+    @if (backupError()) {
+      <p class="z-error mb-4">{{ backupError() }}</p>
+    }
+
+    <div class="flex justify-end">
+      <button zButton type="button" [loading]="downloading()" (click)="downloadBackup()">
+        <z-icon name="download" class="size-4" /> Datenbank herunterladen
+      </button>
+    </div>
+  </section>
+}
