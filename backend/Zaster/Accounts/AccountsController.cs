@@ -81,6 +81,7 @@ public sealed class AccountsController(AppDbContext context) : ApiControllerBase
                 a.Iban,
                 a.FinTsUserId,
                 a.FinTsPin != null,
+                a.SyncTimes,
                 a.LastSyncedAt,
                 a.LastSyncError,
                 a.Users.OrderBy(u => u.Name).Select(u => u.Name).ToList(),

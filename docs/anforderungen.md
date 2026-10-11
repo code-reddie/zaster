@@ -22,7 +22,7 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 
 ## Kontoauszüge
 
-- ✅ Buchungen über FinTS abrufen (ING), pro Konto, mit gespeicherter PIN und nächtlichem Abruf.
+- ✅ Buchungen über FinTS abrufen (ING), pro Konto, mit gespeicherter PIN und automatischem Abruf zu einstellbaren Uhrzeiten.
 - ✅ Buchungen per CSV importieren (ING-Format), mit Duplikat-Abgleich gegen FinTS-Buchungen.
 - ⬜ Buchungen als CSV exportieren.
 - ✅ Buchungen von Hand anlegen.
@@ -45,7 +45,7 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 
 - 🟡 Push auf Christophs Geräten, sobald eine oder mehrere neue Buchungen ohne Kategorie da sind, über Home Assistant (siehe Entscheidungen). Die Verbindung steht: Home Assistant ist konfigurierbar (`HomeAssistant__Url`, `__Token`, `__ZasterUrl`), jeder Nutzer wählt unter „Einstellungen“ seine Geräte aus und kann eine Testnachricht schicken. Die automatische Nachricht bei neuen Buchungen ohne Kategorie fehlt noch.
 - 🟡 Ein Tipp auf die Benachrichtigung öffnet die Seite, auf der man den Buchungen Kategorien zuweist. Die Seite gibt es jetzt (`/konten/<id>/offen`); die Testnachricht öffnet noch die Startseite, den Link auf die Seite bekommt die automatische Nachricht.
-- 🟡 Buchungen werden regelmäßig per FinTS geladen; bleibt danach eine Buchung ohne Kategorie, kommt eine Push-Nachricht. Die Abrufzeiten sind konfigurierbar, auch mehrere pro Tag (z. B. 09:00 und 14:00). Heute gibt es nur eine Uhrzeit (`FinTS__NightlySyncTime`, Standard 04:00); die Liste und die Push-Nachricht fehlen.
+- 🟡 Buchungen werden regelmäßig per FinTS geladen; bleibt danach eine Buchung ohne Kategorie, kommt eine Push-Nachricht. Die Abrufzeiten stellt man pro Konto unter „Konto & Abruf“ ein, auch mehrere pro Tag (z. B. 09:00 und 14:00); das ist fertig. Die Push-Nachricht danach fehlt noch.
 
 ## Diagramme
 
@@ -69,6 +69,6 @@ Am 10.10.2026 von Christoph entschieden:
 2. **Push über Home Assistant** statt Web-Push. Zaster ruft über die REST-API von Home Assistant den Dienst `notify.mobile_app_<gerät>` auf; die Home-Assistant-App zeigt die Nachricht, ein Tipp öffnet die Seite „ohne Kategorie“. Adresse und Token (Long-Lived Access Token) von Home Assistant kommen in die Konfiguration (`.env`), das Zielgerät stellt jeder Nutzer in Zaster selbst ein. Zaster muss vom Handy aus erreichbar sein, damit der Link funktioniert. Kein MQTT nötig.
 3. **„Geprüft“** (statt „erledigt“): Merkmal pro Buchung; eine Buchung mit Kategorie gilt automatisch als geprüft. Tasten heißen „Nicht kategorisieren“ und „Alle nicht kategorisieren“ (Christoph, 11.10.2026).
 4. **Kategorien beim Umbau auf „pro Konto“:** jedes Konto startet leer.
-5. **FinTS-Abruf:** Uhrzeiten konfigurierbar, als Liste mit mehreren Zeitpunkten (z. B. 09:00 und 14:00).
+5. **FinTS-Abruf:** Uhrzeiten konfigurierbar, als Liste mit mehreren Zeitpunkten (z. B. 09:00 und 14:00). Eingestellt werden sie pro Konto in der App unter „Konto & Abruf“, nicht in `appsettings.json` (Christoph, 11.10.2026). Leere Liste = kein automatischer Abruf.
 6. **Sankey:** pro Konto.
 7. **Aufteilen von Buchungen** (Christoph wünscht es am 11.10.2026, Details von Claude festgelegt): Eine Buchung hat keine, eine oder mehrere Kategorien mit je einem Teilbetrag. Die Teile ergeben zusammen genau den Buchungsbetrag, halb kategorisierte Buchungen gibt es nicht; im Dialog bekommt die erste Kategorie automatisch den Rest. Eine Kategorie wählen (von Hand, per Schnellwahl oder Regel) weist den ganzen Betrag zu. Regeln überschreiben keine Aufteilung. Wird eine Kategorie gelöscht, verliert eine aufgeteilte Buchung alle Teile und ist wieder offen.

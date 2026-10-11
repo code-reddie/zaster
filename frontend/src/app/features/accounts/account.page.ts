@@ -29,6 +29,8 @@ export class AccountPage {
   protected readonly finTsUserId = signal('');
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly newTime = signal('');
+  protected readonly savingTimes = signal(false);
 
   constructor() {
     // Formular mit dem gewählten Konto füllen, auch nach einem Kontowechsel.
@@ -69,6 +71,45 @@ export class AccountPage {
       this.error.set(errorMessage(e, 'Das Konto konnte nicht gespeichert werden.'));
     } finally {
       this.saving.set(false);
+    }
+  }
+
+  protected async addTime() {
+    const account = this.store.selected();
+    const time = this.newTime();
+    if (!account || !time) {
+      return;
+    }
+    if (account.syncTimes.includes(time)) {
+      this.newTime.set('');
+      return;
+    }
+    if (await this.saveTimes(account.id, [...account.syncTimes, time])) {
+      this.newTime.set('');
+    }
+  }
+
+  protected async removeTime(time: string) {
+    const account = this.store.selected();
+    if (account) {
+      await this.saveTimes(
+        account.id,
+        account.syncTimes.filter((t) => t !== time),
+      );
+    }
+  }
+
+  private async saveTimes(accountId: number, times: string[]) {
+    this.savingTimes.set(true);
+    try {
+      await this.finTs.updateSyncTimes(accountId, times);
+      await this.store.refresh(accountId);
+      return true;
+    } catch (e) {
+      this.toast.error(errorMessage(e, 'Die Uhrzeiten konnten nicht gespeichert werden.'));
+      return false;
+    } finally {
+      this.savingTimes.set(false);
     }
   }
 

@@ -27,6 +27,8 @@ public sealed record FinTsFetchResult(
     IReadOnlyList<string> Diagnostics,
     bool LoginRejected = false);
 
+public sealed record UpdateSyncTimes(List<string> Times);
+
 public sealed record FinTsSyncRequest(string? UserId, string? Pin, bool SavePin);
 
 public sealed record FinTsSyncResult(

@@ -32,6 +32,12 @@ export class FinTsService {
     );
   }
 
+  updateSyncTimes(accountId: number, times: string[]): Promise<string[]> {
+    return firstValueFrom(
+      this.http.put<string[]>(`/api/accounts/${accountId}/fints/times`, { times }),
+    );
+  }
+
   deletePin(accountId: number): Promise<unknown> {
     return firstValueFrom(this.http.delete(`/api/accounts/${accountId}/fints/pin`));
   }
