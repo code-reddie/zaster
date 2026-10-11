@@ -64,38 +64,40 @@
               {{ category.name }}
             </button>
           }
-          <span class="flex-1"></span>
-          <button
-            zButton
-            variant="ghost"
-            size="sm"
-            type="button"
-            title="Regel daraus machen"
-            aria-label="Regel daraus machen"
-            [disabled]="busy() !== null"
-            (click)="createRule(transaction)"
-          >
-            <z-icon name="zap" class="size-4" /><span class="hidden sm:inline">Regel</span>
-          </button>
-          <button
-            zButton
-            variant="ghost"
-            size="sm"
-            type="button"
-            [disabled]="busy() !== null"
-            (click)="markReviewed(transaction)"
-          >
-            <z-icon name="check" class="size-4" /> Geprüft
-          </button>
-          <button
-            zButton
-            size="sm"
-            type="button"
-            [disabled]="busy() !== null"
-            (click)="pick(transaction)"
-          >
-            <z-icon name="tag" class="size-4" /> Kategorie
-          </button>
+          <div class="ml-auto flex items-center gap-1">
+            <button
+              zButton
+              variant="ghost"
+              size="sm"
+              type="button"
+              class="!px-2 sm:!px-3"
+              title="Regel daraus machen"
+              aria-label="Regel daraus machen"
+              [disabled]="busy() !== null"
+              (click)="createRule(transaction)"
+            >
+              <z-icon name="zap" class="size-4" /><span class="hidden sm:inline">Regel</span>
+            </button>
+            <button
+              zButton
+              variant="ghost"
+              size="sm"
+              type="button"
+              [disabled]="busy() !== null"
+              (click)="markReviewed(transaction)"
+            >
+              Nicht kategorisieren
+            </button>
+            <button
+              zButton
+              size="sm"
+              type="button"
+              [disabled]="busy() !== null"
+              (click)="pick(transaction)"
+            >
+              <z-icon name="tag" class="size-4" /> Kategorie
+            </button>
+          </div>
         </div>
       </article>
     }
