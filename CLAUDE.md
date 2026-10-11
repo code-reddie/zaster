@@ -11,7 +11,8 @@ Sprache im Projekt ist Deutsch: Oberfläche, Kommentare, Commit-Nachrichten, PR-
 - **Backend** `backend/Zaster`: .NET 10, ASP.NET Core Controller, EF Core mit SQLite, JWT-Login (BCrypt für Passwörter), Swagger. FinTS über `libfintx.FinTS` 1.4.0.
 - **Frontend** `frontend`: Angular 22 (Standalone-Komponenten, Signals, `@ngrx/signals`-Stores), Tailwind CSS 4, `@angular/cdk` für Dialoge. Prettier ist konfiguriert.
 - **Auslieferung**: ein `Dockerfile` baut beides; das Angular-Build landet in `wwwroot` des Backends. Port 8080, Daten unter `/data` (Container läuft als Production).
-- **CI** `.github/workflows/docker-image.yml`: baut bei PRs nur das Image (amd64 + arm64); erst nach Merge auf `main` wird `ghcr.io/code-reddie/zaster:latest` gepusht.
+- **CI** `.github/workflows/docker-image.yml`: baut bei PRs nur das Image (amd64 + arm64); erst nach Merge auf `main` wird `ghcr.io/code-reddie/zaster:latest` gepusht. `.github/workflows/tests.yml` führt die Backend-Tests aus.
+- **Tests** `backend/Zaster.Tests`: xUnit, `dotnet test backend/Zaster.slnx`. Das Testprojekt sieht `internal`-Klassen (`InternalsVisibleTo`).
 
 ## Lokal bauen und starten
 
@@ -67,7 +68,7 @@ Das ist eine Arbeitsanweisung für Claude, keine technische Prüfung: Nichts im 
 - Controller holen die Nutzer-ID aus dem JWT und filtern jede Abfrage darauf; Konten gehören Nutzern über die n:m-Beziehung `Account.Users`. Fremde Daten liefern 404, nicht 403.
 - Entities sind `record`s mit `Entity`-Basis (`Id`); nach außen gehen nur DTOs (`*Dto`, Eingaben `Create*`).
 - Ein Feature pro Branch und PR, Branch ab `main`. Christoph merged selbst; GitHub löscht Branches beim Merge automatisch, also nicht manuell löschen.
-- Es gibt noch keine Tests. Wer Logik mit Randfällen ändert (Duplikat-Abgleich, Regeln, FinTS-Parsing), sollte Tests dafür mitbringen.
+- Wer Logik mit Randfällen ändert (Duplikat-Abgleich, Regeln, FinTS-Parsing, Abrufzeiten), bringt Tests dafür mit (`backend/Zaster.Tests`). Testdaten sind ausgedacht, nie echte Buchungen oder IBANs.
 - Keine persönlichen Daten ins Repo: keine eigene FinTS-Produkt-ID, keine Zugangsnummern, PINs, IBANs oder echten Buchungen.
 
 ## Fachliche Regeln und Stolperfallen
@@ -89,8 +90,8 @@ Das ist eine Arbeitsanweisung für Claude, keine technische Prüfung: Nichts im 
 ### FinTS (ING)
 - Konfiguration in `FinTs/FinTsOptions.cs`, Abschnitt `FinTS` (Umgebungsvariablen `FinTS__...`): URL, BLZ und BIC der ING sind voreingestellt.
 - `FinTS__ProductId` ist optional. Ohne eigene Produktregistrierungsnummer nimmt libfintx seine eigene; damit funktioniert die ING. Eine neue DK-Nummer wirkt bei Banken erst nach einigen Werktagen.
-- libfintx 1.4.0 maskiert Sonderzeichen (`?`, `@`, `'`, `+`, `:`) in PIN und Kennung nicht. Das führt bei der ING zu Fehler 9030 „Die Daten konnten nicht entschlüsselt werden“. Zaster maskiert selbst (`EscapeFinTs` in `FinTs/FinTsService.cs`) und lehnt Zeichen außerhalb von ASCII ab, weil libfintx sie zu `?` macht.
-- libfintx erkennt Fehler in HIRMG nicht zuverlässig (zusätzlicher Doppelpunkt im Segmentkopf). Zaster liest HIRMG/HIRMS selbst aus. Nur Codes `9xxx` gelten als Ablehnung; `3xxx` sind Warnungen (z. B. 3010: nur die letzten 90 Tage), die Umsätze sind trotzdem da.
+- libfintx 1.4.0 maskiert Sonderzeichen (`?`, `@`, `'`, `+`, `:`) in PIN und Kennung nicht. Das führt bei der ING zu Fehler 9030 „Die Daten konnten nicht entschlüsselt werden“. Zaster maskiert selbst (`FinTs/FinTsMessages.cs`) und lehnt Zeichen außerhalb von ASCII ab, weil libfintx sie zu `?` macht.
+- libfintx erkennt Fehler in HIRMG nicht zuverlässig (zusätzlicher Doppelpunkt im Segmentkopf). Zaster liest HIRMG/HIRMS selbst aus (`FinTsMessages.ParseResultMessages`). Nur Codes `9xxx` gelten als Ablehnung; `3xxx` sind Warnungen (z. B. 3010: nur die letzten 90 Tage), die Umsätze sind trotzdem da.
 - Die ING liefert höchstens 90 Tage. Der Abruf ist inkrementell ab dem letzten Abruf mit 7 Tagen Überlappung; der Duplikat-Abgleich fängt die Überschneidung ab.
 - Die PIN wird mit ASP.NET Data Protection verschlüsselt in `Account.FinTsPin` gespeichert, Schlüssel unter `FinTS__KeyRingPath` (Standard `<DataDirectory>/keys`, im Container `/data/keys`). Sie wird nur nach einem erfolgreichen Abruf gespeichert, bei einer Ablehnung durch die Bank sofort gelöscht und verlässt das Backend nie (DTO zeigt nur `HasFinTsPin`). Gehen die Schlüssel verloren, sind alle gespeicherten PINs unbrauchbar.
 - Nächtlicher Abruf (`FinTs/NightlySyncService.cs`) für alle Konten mit gespeicherter PIN um `FinTS__NightlySyncTime` (Standard `04:00`, Zeitzone `FinTS__TimeZone`, Standard `Europe/Berlin`; leer = aus). Fehler landen in `Account.LastSyncError`.
