@@ -9,6 +9,7 @@ import { TransactionsComponent } from '../transaction/transactions.component';
 import { CsvImportDialog } from '../csv-import/csv-import-dialog/csv-import-dialog.component';
 import { CategoriesDialog } from '../category/categories-dialog/categories-dialog.component';
 import { FinTsSyncDialog } from '../fints/fints-sync-dialog/fints-sync-dialog.component';
+import { NotificationDialog } from '../notification/notification-dialog/notification-dialog.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -52,6 +53,12 @@ export class DashboardComponent {
 
   openFinTsSyncDialog() {
     this.dialog.open(FinTsSyncDialog, {
+      backdropClass: ['bg-black/60', 'backdrop-blur-sm'],
+    });
+  }
+
+  openNotificationDialog() {
+    this.dialog.open(NotificationDialog, {
       backdropClass: ['bg-black/60', 'backdrop-blur-sm'],
     });
   }
