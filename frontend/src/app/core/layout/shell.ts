@@ -59,6 +59,7 @@ export class Shell {
         icon: 'inbox',
         badge: account.openTransactions,
       },
+      { path: `${base}/verteilung`, label: 'Verteilung', short: 'Verteilung', icon: 'flow' },
       {
         path: `${base}/kategorien`,
         label: 'Kategorien & Regeln',
