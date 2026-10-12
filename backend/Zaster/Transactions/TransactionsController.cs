@@ -17,6 +17,8 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
 {
     private const int MaxLimit = 500;
 
+    private static readonly string TooLong = $"Die Bemerkung darf höchstens {Transaction.MaxBemerkung} Zeichen haben.";
+
     /// <summary>
     /// Buchungen des Kontos, neueste zuerst, gefiltert und seitenweise. Einnahmen und Ausgaben
     /// beziehen sich auf alle Treffer, nicht nur auf die Seite; mit Kategorie-Filter zählen bei
@@ -46,7 +48,8 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
             transactions = transactions.Where(t =>
                 EF.Functions.Like(t.Auftraggeber, pattern, "\\")
                 || EF.Functions.Like(t.Buchungstext, pattern, "\\")
-                || EF.Functions.Like(t.Verwendungszweck, pattern, "\\"));
+                || EF.Functions.Like(t.Verwendungszweck, pattern, "\\")
+                || (t.Bemerkung != null && EF.Functions.Like(t.Bemerkung, pattern, "\\")));
         }
 
         HashSet<int>? categoryIds = null;
@@ -105,6 +108,12 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
             return BadRequestProblem("Bitte gib einen Auftraggeber oder Empfänger an.");
         }
 
+        var bemerkung = Transaction.NormalizeBemerkung(request.Bemerkung);
+        if (bemerkung?.Length > Transaction.MaxBemerkung)
+        {
+            return BadRequestProblem(TooLong);
+        }
+
         var transaction = new Transaction
         {
             AccountId = accountId,
@@ -114,6 +123,7 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
             Buchungstext = request.Buchungstext?.Trim() ?? string.Empty,
             Verwendungszweck = request.Verwendungszweck?.Trim() ?? string.Empty,
             Betrag = request.Betrag,
+            Bemerkung = bemerkung,
             Source = TransactionSource.Manuell,
             CreatedAt = timeProvider.GetUtcNow().UtcDateTime,
         };
@@ -228,6 +238,33 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
         }
 
         transaction.Reviewed = request.Reviewed || transaction.IsCategorized;
+        await context.SaveChangesAsync(cancellationToken);
+        return TransactionDto.From(transaction);
+    }
+
+    /// <summary>
+    /// Setzt die eigene Bemerkung zur Buchung oder entfernt sie (leer). Ändert nichts an Kategorie oder „geprüft“.
+    /// </summary>
+    [HttpPut("{id:int}/bemerkung")]
+    public async Task<ActionResult<TransactionDto>> SetBemerkung(
+        int accountId,
+        int id,
+        SetBemerkung request,
+        CancellationToken cancellationToken)
+    {
+        var bemerkung = Transaction.NormalizeBemerkung(request.Bemerkung);
+        if (bemerkung?.Length > Transaction.MaxBemerkung)
+        {
+            return BadRequestProblem(TooLong);
+        }
+
+        var transaction = await FindAsync(accountId, id, cancellationToken);
+        if (transaction is null)
+        {
+            return NotFoundProblem("Die Buchung gibt es nicht.");
+        }
+
+        transaction.Bemerkung = bemerkung;
         await context.SaveChangesAsync(cancellationToken);
         return TransactionDto.From(transaction);
     }

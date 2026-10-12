@@ -12,6 +12,8 @@ export interface Transaction {
   betrag: number;
   /** Kontostand nach der Buchung laut Bank; null bei Buchungen von Hand und älteren Abrufen. */
   saldo: number | null;
+  /** Eigene Bemerkung, z. B. worum es ging, wenn der Verwendungszweck es nicht verrät. */
+  bemerkung: string | null;
   /**
    * Kategorien mit Teilbetrag (Vorzeichen wie `betrag`), größter Teil zuerst. Leer = ohne
    * Kategorie; sonst ergeben die Teile zusammen genau `betrag`.
@@ -21,6 +23,9 @@ export interface Transaction {
   reviewed: boolean;
   source: TransactionSource;
 }
+
+/** Höchstlänge der Bemerkung, wie im Backend. */
+export const MAX_BEMERKUNG = 500;
 
 export interface TransactionSplit {
   categoryId: number;
@@ -57,6 +62,7 @@ export interface CreateTransaction {
   buchungstext: string | null;
   verwendungszweck: string | null;
   betrag: number;
+  bemerkung: string | null;
 }
 
 export interface ImportTransaction {
