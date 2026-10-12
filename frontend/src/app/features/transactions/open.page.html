@@ -63,13 +63,13 @@
               {{ category.name }}
             </button>
           }
-          <div class="ml-auto flex items-center gap-1">
+          <div class="ml-auto flex flex-wrap items-center justify-end gap-0.5 sm:gap-1">
             <button
               zButton
               variant="ghost"
               size="sm"
               type="button"
-              class="!px-2 sm:!px-3"
+              class="!px-1.5 sm:!px-3"
               title="Regel daraus machen"
               aria-label="Regel daraus machen"
               [disabled]="busy() !== null"
@@ -83,7 +83,7 @@
                 variant="ghost"
                 size="sm"
                 type="button"
-                class="!px-2 sm:!px-3"
+                class="!px-1.5 sm:!px-3"
                 title="Auf mehrere Kategorien aufteilen"
                 aria-label="Aufteilen"
                 [disabled]="busy() !== null"
@@ -99,6 +99,7 @@
               variant="ghost"
               size="sm"
               type="button"
+              class="!px-2 sm:!px-3"
               [disabled]="busy() !== null"
               (click)="markReviewed(transaction)"
             >
@@ -108,6 +109,7 @@
               zButton
               size="sm"
               type="button"
+              class="!px-2 sm:!px-3"
               [disabled]="busy() !== null"
               (click)="pick(transaction)"
             >

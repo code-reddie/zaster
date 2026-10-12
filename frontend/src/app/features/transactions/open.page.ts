@@ -21,7 +21,7 @@ import { ruleFromTransaction, TransactionSheet, TransactionSheetResult } from '.
 import { TransactionsService } from './transactions.service';
 
 const PAGE_SIZE = 50;
-const RECENT_COUNT = 5;
+const RECENT_COUNT = 4;
 const RECENT_KEY = 'zaster_recent_categories';
 
 /**

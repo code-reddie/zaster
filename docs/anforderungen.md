@@ -54,7 +54,7 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 ## Allgemein
 
 - ✅ Eigene Seite mit allen Buchungen ohne Kategorie („Ohne Kategorie“, mit Zähler in der Navigation).
-- ✅ Schnellwahl „Schnell zuordnen:“ an jeder Buchung mit den fünf zuletzt benutzten Kategorien. Der Browser speichert sie im Local Storage pro Nutzer und Konto, sie bleiben also beim Seitenwechsel und nach dem Neuladen erhalten. Gelöschte Kategorien fallen heraus.
+- ✅ Schnellwahl „Schnell zuordnen:“ an jeder Buchung mit den vier zuletzt benutzten Kategorien. Der Browser speichert sie im Local Storage pro Nutzer und Konto, sie bleiben also beim Seitenwechsel und nach dem Neuladen erhalten. Gelöschte Kategorien fallen heraus.
 - ✅ Taste „Alle nicht kategorisieren“ (pro Buchung „Nicht kategorisieren“); Buchungen dürfen auch ohne Kategorie bleiben. So lassen sich alle alten Buchungen ohne Kategorie abhaken. Jede Buchung hat dafür ein Merkmal „geprüft“; eine Buchung mit Kategorie gilt automatisch als geprüft. Seite „ohne Kategorie“ und Push zählen nur Buchungen, die nicht geprüft sind.
 - ✅ Kategorien einer Buchung lassen sich nachträglich setzen und ändern.
 - ✅ Taste zum Herunterladen der kompletten Datenbank als Sicherung, unter „Einstellungen“ (Christoph, 11.10.2026, ersetzt den CSV-Export; Entscheidung 8).
