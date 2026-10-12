@@ -36,12 +36,26 @@ export class AccountStore {
 
   async create(dto: CreateAccount): Promise<Account> {
     const account = await firstValueFrom(this.http.post<Account>('/api/accounts', dto));
-    this.accounts.update((a) => [...a, account].sort((x, y) => x.name.localeCompare(y.name)));
+    // Neu laden, damit das Konto an der Stelle steht, an der das Backend es einsortiert.
+    await this.load();
     return account;
   }
 
   async update(id: number, dto: UpdateAccount) {
     this.replace(await firstValueFrom(this.http.put<Account>(`/api/accounts/${id}`, dto)));
+  }
+
+  /** Verschiebt ein Konto in der eigenen Reihenfolge um eine Stelle nach oben (-1) oder unten (1). */
+  async move(id: number, direction: -1 | 1) {
+    const accounts = [...this.accounts()];
+    const index = accounts.findIndex((a) => a.id === id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= accounts.length) {
+      return;
+    }
+    [accounts[index], accounts[target]] = [accounts[target], accounts[index]];
+    this.accounts.set(accounts);
+    await firstValueFrom(this.http.put('/api/accounts/order', { ids: accounts.map((a) => a.id) }));
   }
 
   async delete(id: number) {

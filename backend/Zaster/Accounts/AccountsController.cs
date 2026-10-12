@@ -12,10 +12,51 @@ namespace Zaster.Accounts;
 [Route("api/accounts")]
 public sealed class AccountsController(AppDbContext context) : ApiControllerBase
 {
+    /// <summary>
+    /// Die eigenen Konten in der Reihenfolge, die der Nutzer unter Einstellungen festgelegt hat.
+    /// </summary>
     [HttpGet]
-    public async Task<IReadOnlyList<AccountDto>> GetAccounts(CancellationToken cancellationToken) =>
-        await ToDtos(context.Accounts.Where(a => a.Users.Any(u => u.Id == UserId)))
+    public async Task<IReadOnlyList<AccountDto>> GetAccounts(CancellationToken cancellationToken)
+    {
+        var accounts = await ToDtos(context.Accounts.Where(a => a.Users.Any(u => u.Id == UserId)))
             .ToListAsync(cancellationToken);
+        var order = await context.Users
+            .Where(u => u.Id == UserId)
+            .Select(u => u.AccountOrder)
+            .SingleAsync(cancellationToken);
+        return Sort(accounts, order);
+    }
+
+    /// <summary>
+    /// Legt die eigene Reihenfolge der Konten fest. Die anderen Mitglieder geteilter Konten behalten ihre.
+    /// </summary>
+    [HttpPut("order")]
+    public async Task<IActionResult> Reorder(ReorderAccounts request, CancellationToken cancellationToken)
+    {
+        var user = await context.Users
+            .Include(u => u.Accounts)
+            .SingleAsync(u => u.Id == UserId, cancellationToken);
+        if (!user.Accounts.Select(a => a.Id).Order().SequenceEqual(request.Ids.Order()))
+        {
+            return BadRequestProblem("Die Liste passt nicht zu deinen Konten. Lade die Seite neu und versuche es noch einmal.");
+        }
+
+        user.AccountOrder = [.. request.Ids];
+        await context.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Sortiert nach der eigenen Reihenfolge; Konten, die darin fehlen, kommen dahinter und behalten
+    /// ihre bisherige Reihenfolge (nach Name).
+    /// </summary>
+    internal static IReadOnlyList<AccountDto> Sort(IReadOnlyList<AccountDto> accounts, IReadOnlyList<int> order)
+    {
+        var positions = order.Select((id, index) => (id, index)).ToDictionary(p => p.id, p => p.index);
+        return accounts
+            .OrderBy(a => positions.TryGetValue(a.Id, out var index) ? index : int.MaxValue)
+            .ToList();
+    }
 
     [HttpGet("{accountId:int}")]
     [AccountMember]
