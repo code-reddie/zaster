@@ -24,8 +24,12 @@ export type TransactionSheetResult =
 /** Vorbelegung für eine neue Regel aus einer Buchung. */
 export function ruleFromTransaction(t: Transaction): RuleSheetData {
   return {
-    pattern: t.auftraggeber || t.buchungstext,
-    field: t.auftraggeber ? 'Auftraggeber' : 'Buchungstext',
+    conditions: [
+      {
+        pattern: t.auftraggeber || t.buchungstext,
+        field: t.auftraggeber ? 'Auftraggeber' : 'Buchungstext',
+      },
+    ],
     direction: t.betrag > 0 ? 'Eingang' : t.betrag < 0 ? 'Ausgang' : 'Beide',
     categoryId: singleCategoryId(t),
   };

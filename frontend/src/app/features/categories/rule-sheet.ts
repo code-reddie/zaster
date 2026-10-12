@@ -8,15 +8,25 @@ import { Icon } from '../../core/ui/icon';
 import { ToastService } from '../../core/ui/toast';
 import { CategoryDot } from './category-dot';
 import { CategoryPicker, CategoryPickerData } from './category-picker';
-import { Rule, RULE_DIRECTIONS, RULE_FIELDS, RuleDirection, RuleField } from './category.models';
+import {
+  Rule,
+  RuleCondition,
+  RULE_DIRECTIONS,
+  RULE_FIELDS,
+  RuleDirection,
+} from './category.models';
 import { CategoryStore } from './category.store';
 
 export interface RuleSheetData {
   rule?: Rule;
-  pattern?: string;
-  field?: RuleField;
+  conditions?: RuleCondition[];
   direction?: RuleDirection;
   categoryId?: number | null;
+}
+
+interface ConditionRow extends RuleCondition {
+  /** Nur fürs Rendern, damit Eingabefelder beim Entfernen nicht springen. */
+  key: number;
 }
 
 /**
@@ -28,21 +38,67 @@ export interface RuleSheetData {
   template: `
     <z-dialog [title]="data.rule ? 'Regel bearbeiten' : 'Neue Regel'">
       <form id="rule-form" class="flex flex-col gap-4" (ngSubmit)="save()">
-        <div>
-          <label class="z-label" for="pattern">Wenn dieser Text vorkommt</label>
-          <input id="pattern" name="pattern" class="z-input" [(ngModel)]="pattern" />
-          <p class="z-hint">
-            Groß- und Kleinschreibung spielt keine Rolle, ein Teil des Wortes reicht.
-          </p>
-        </div>
-        <div>
-          <label class="z-label" for="field">in</label>
-          <select id="field" name="field" class="z-input" [(ngModel)]="field">
-            @for (option of fields; track option.value) {
-              <option [value]="option.value">{{ option.label }}</option>
+        <fieldset class="flex flex-col gap-2">
+          <legend class="z-label">
+            {{
+              conditions().length > 1 ? 'Wenn alle Bedingungen passen' : 'Wenn dieser Text vorkommt'
+            }}
+          </legend>
+          @for (condition of conditions(); track condition.key; let i = $index) {
+            @if (i > 0) {
+              <span class="px-1 text-xs font-medium uppercase tracking-wide text-muted">und</span>
             }
-          </select>
-        </div>
+            <div class="flex flex-col gap-2 rounded-xl bg-surface-2 p-2">
+              <div class="flex items-center gap-2">
+                <input
+                  class="z-input min-w-0 flex-1"
+                  [name]="'pattern-' + condition.key"
+                  [attr.aria-label]="'Text der Bedingung ' + (i + 1)"
+                  placeholder="Text, z. B. Miete"
+                  [ngModel]="condition.pattern"
+                  (ngModelChange)="update(i, { pattern: $event })"
+                />
+                @if (conditions().length > 1) {
+                  <button
+                    zButton
+                    variant="ghost"
+                    size="icon"
+                    type="button"
+                    class="shrink-0"
+                    [attr.aria-label]="'Bedingung ' + (i + 1) + ' entfernen'"
+                    (click)="remove(i)"
+                  >
+                    <z-icon name="x" class="size-4" />
+                  </button>
+                }
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="shrink-0 pl-1 text-sm text-muted">in</span>
+                <select
+                  class="z-input min-w-0 flex-1"
+                  [name]="'field-' + condition.key"
+                  [attr.aria-label]="'Feld der Bedingung ' + (i + 1)"
+                  [ngModel]="condition.field"
+                  (ngModelChange)="update(i, { field: $event })"
+                >
+                  @for (option of fields; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+          }
+          <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <p class="z-hint !mt-0">
+              Groß- und Kleinschreibung spielt keine Rolle, ein Teil des Wortes reicht.
+            </p>
+            @if (conditions().length < maxConditions) {
+              <button zButton variant="ghost" size="sm" type="button" (click)="add()">
+                <z-icon name="plus" class="size-4" /> Bedingung hinzufügen
+              </button>
+            }
+          </div>
+        </fieldset>
         <div>
           <span class="z-label" id="direction">bei</span>
           <div
@@ -106,8 +162,14 @@ export class RuleSheet {
   private readonly toast = inject(ToastService);
 
   protected readonly fields = RULE_FIELDS;
-  protected readonly pattern = signal(this.data.rule?.pattern ?? this.data.pattern ?? '');
-  protected readonly field = signal<RuleField>(this.data.rule?.field ?? this.data.field ?? 'Alle');
+  /** Höchstzahl wie im Backend. */
+  protected readonly maxConditions = 10;
+  private nextKey = 0;
+  protected readonly conditions = signal<ConditionRow[]>(
+    (this.data.rule?.conditions ?? this.data.conditions ?? [{ field: 'Alle', pattern: '' }]).map(
+      (c) => this.row(c),
+    ),
+  );
   protected readonly directions = RULE_DIRECTIONS;
   protected readonly direction = signal<RuleDirection>(
     this.data.rule?.direction ?? this.data.direction ?? 'Beide',
@@ -131,6 +193,25 @@ export class RuleSheet {
     );
   }
 
+  private row(condition: RuleCondition): ConditionRow {
+    return { ...condition, key: this.nextKey++ };
+  }
+
+  protected update(index: number, change: Partial<RuleCondition>) {
+    this.conditions.update((rows) => rows.map((r, i) => (i === index ? { ...r, ...change } : r)));
+  }
+
+  protected add() {
+    this.conditions.update((rows) => [
+      ...rows,
+      this.row({ field: 'Verwendungszweck', pattern: '' }),
+    ]);
+  }
+
+  protected remove(index: number) {
+    this.conditions.update((rows) => rows.filter((_, i) => i !== index));
+  }
+
   protected async pickCategory() {
     const id = await this.dialog.result<number | null, CategoryPickerData>(CategoryPicker, {
       selected: this.categoryId(),
@@ -143,8 +224,16 @@ export class RuleSheet {
 
   protected async save() {
     const categoryId = this.categoryId();
-    if (!this.pattern().trim()) {
-      this.error.set('Bitte gib einen Text ein.');
+    const conditions = this.conditions().map((c) => ({
+      field: c.field,
+      pattern: c.pattern.trim(),
+    }));
+    if (conditions.some((c) => !c.pattern)) {
+      this.error.set(
+        conditions.length > 1
+          ? 'Bitte gib in jeder Bedingung einen Text ein.'
+          : 'Bitte gib einen Text ein.',
+      );
       return;
     }
     if (categoryId === null) {
@@ -156,8 +245,7 @@ export class RuleSheet {
     this.error.set(null);
     try {
       const dto = {
-        pattern: this.pattern().trim(),
-        field: this.field(),
+        conditions,
         direction: this.direction(),
         categoryId,
       };

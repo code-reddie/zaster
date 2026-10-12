@@ -62,7 +62,7 @@ public sealed class TransactionImporter(AppDbContext context, TimeProvider timeP
             })
             .ToList();
 
-        var rules = await context.Rules.Where(r => r.AccountId == accountId).ToListAsync(cancellationToken);
+        var rules = await context.Rules.Include(r => r.Conditions).Where(r => r.AccountId == accountId).ToListAsync(cancellationToken);
         RuleEngine.Apply(transactions, rules);
 
         context.Transactions.AddRange(transactions);

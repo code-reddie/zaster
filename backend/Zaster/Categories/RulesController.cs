@@ -18,12 +18,14 @@ public sealed class RulesController(AppDbContext context) : ApiControllerBase
     /// </summary>
     [HttpGet]
     public async Task<IReadOnlyList<RuleDto>> GetRules(int accountId, CancellationToken cancellationToken) =>
-        await context.Rules
+        (await context.Rules
+            .Include(r => r.Conditions)
             .Where(r => r.AccountId == accountId)
             .OrderBy(r => r.SortOrder)
             .ThenBy(r => r.Id)
-            .Select(r => new RuleDto(r.Id, r.Pattern, r.Field, r.Direction, r.CategoryId, r.SortOrder))
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken))
+            .Select(RuleDto.From)
+            .ToList();
 
     /// <summary>
     /// Legt eine Regel am Ende der Reihenfolge an.
@@ -44,8 +46,7 @@ public sealed class RulesController(AppDbContext context) : ApiControllerBase
         var rule = new Rule
         {
             AccountId = accountId,
-            Pattern = request.Pattern.Trim(),
-            Field = request.Field,
+            Conditions = ToConditions(request),
             Direction = request.Direction,
             CategoryId = request.CategoryId,
             SortOrder = sortOrder + 1,
@@ -59,7 +60,9 @@ public sealed class RulesController(AppDbContext context) : ApiControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<RuleDto>> UpdateRule(int accountId, int id, SaveRule request, CancellationToken cancellationToken)
     {
-        var rule = await context.Rules.FirstOrDefaultAsync(r => r.Id == id && r.AccountId == accountId, cancellationToken);
+        var rule = await context.Rules
+            .Include(r => r.Conditions)
+            .FirstOrDefaultAsync(r => r.Id == id && r.AccountId == accountId, cancellationToken);
         if (rule is null)
         {
             return NotFoundProblem("Die Regel gibt es nicht.");
@@ -70,8 +73,8 @@ public sealed class RulesController(AppDbContext context) : ApiControllerBase
             return BadRequestProblem(error);
         }
 
-        rule.Pattern = request.Pattern.Trim();
-        rule.Field = request.Field;
+        rule.Conditions.Clear();
+        rule.Conditions.AddRange(ToConditions(request));
         rule.Direction = request.Direction;
         rule.CategoryId = request.CategoryId;
         await context.SaveChangesAsync(cancellationToken);
@@ -111,7 +114,7 @@ public sealed class RulesController(AppDbContext context) : ApiControllerBase
     [HttpPost("apply")]
     public async Task<ApplyRulesResult> ApplyRules(int accountId, CancellationToken cancellationToken)
     {
-        var rules = await context.Rules.Where(r => r.AccountId == accountId).ToListAsync(cancellationToken);
+        var rules = await context.Rules.Include(r => r.Conditions).Where(r => r.AccountId == accountId).ToListAsync(cancellationToken);
         var transactions = await context.Transactions
             .Where(t => t.AccountId == accountId && !t.Splits.Any())
             .ToListAsync(cancellationToken);
@@ -122,11 +125,26 @@ public sealed class RulesController(AppDbContext context) : ApiControllerBase
         return new ApplyRulesResult(updated);
     }
 
+    private const int MaxConditions = 10;
+
+    private static List<RuleCondition> ToConditions(SaveRule request) =>
+        request.Conditions.Select(c => new RuleCondition { Field = c.Field, Pattern = c.Pattern.Trim() }).ToList();
+
     private async Task<string?> ValidateAsync(int accountId, SaveRule request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Pattern))
+        if (request.Conditions is not { Count: > 0 })
         {
-            return "Bitte gib einen Suchbegriff ein.";
+            return "Eine Regel braucht mindestens eine Bedingung.";
+        }
+
+        if (request.Conditions.Count > MaxConditions)
+        {
+            return $"Eine Regel hat höchstens {MaxConditions} Bedingungen.";
+        }
+
+        if (request.Conditions.Any(c => string.IsNullOrWhiteSpace(c.Pattern)))
+        {
+            return "Bitte gib in jeder Bedingung einen Suchbegriff ein.";
         }
 
         var categoryExists = await context.Categories.AnyAsync(c => c.Id == request.CategoryId && c.AccountId == accountId, cancellationToken);
