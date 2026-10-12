@@ -11,7 +11,7 @@ using Zaster.Database;
 namespace Zaster.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261012125855_RuleDirections")]
+    [Migration("20261012131850_RuleDirections")]
     partial class RuleDirections
     {
         /// <inheritdoc />
@@ -117,9 +117,6 @@ namespace Zaster.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("ParentId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SortOrder")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
