@@ -1,6 +1,6 @@
 # Zaster
 
-Zaster ist eine Web-App, mit der man die eigenen Finanzen kategorisiert und visualisiert. Buchungen kommen per FinTS von der Bank (bisher die ING), per CSV-Import (ING-Format) oder werden von Hand angelegt und dann über Kategorien und Regeln eingeordnet.
+Zaster ist eine Web-App, mit der man die eigenen Finanzen kategorisiert und visualisiert. Buchungen kommen per FinTS von der Bank (bisher die ING), per CSV-Import (ING-Export oder eigene Umsatzliste) oder werden von Hand angelegt und dann über Kategorien und Regeln eingeordnet.
 
 > **Zaster ist noch in Arbeit.** Die Grundlage steht und läuft im Alltag, einige Funktionen fehlen aber noch. Die Liste unten zeigt den aktuellen Stand.
 
@@ -17,10 +17,10 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 - Bankkonten anlegen (IBAN ist Pflicht, wird geprüft und darf in Zaster nur einmal vorkommen), umbenennen und löschen.
 - Buchungen pro Monat oder für alle Zeiträume, nach Tagen gruppiert, Kategorien als farbige Badges (bei aufgeteilten Buchungen eins pro Teil), mit Suche, Kategoriefilter und Summen für Einnahmen, Ausgaben und Saldo. Ein Tipp auf eine Buchung zeigt alle Details.
 - Buchungen von Hand anlegen und löschen.
-- CSV-Import von Kontoumsätzen im ING-Format, mit Vorschau vor dem Übernehmen.
+- CSV-Import von Kontoumsätzen, mit Vorschau vor dem Übernehmen. Zaster erkennt den Aufbau selbst: den Umsatzexport der ING (mit Kopfbereich, Spalten `Buchung;Wertstellungsdatum;…;Saldo;Währung;Betrag;Währung`) und eine eigene Umsatzliste ohne Kopfbereich (`Buchung;Valuta;Auftraggeber/Empfänger;Buchungstext;Verwendungszweck;Betrag;Saldo`, Beträge auch mit „€“, mehrzeilige Felder in Anführungszeichen). So lassen sich auch alte Buchungen nachtragen, die die ING nicht mehr exportiert.
 - Abruf der Umsätze per FinTS von der ING, pro Konto. Die PIN kann verschlüsselt gespeichert werden; dann ruft Zaster das Konto automatisch zu den Uhrzeiten ab, die unter „Konto & Abruf“ eingestellt sind (eine oder mehrere pro Tag, z. B. 09:00 und 14:00). Der Abruf ist inkrementell, die ING liefert höchstens 90 Tage. Übernommen werden nur gebuchte Umsätze; vorgemerkte (z. B. frische Kartenzahlungen) kommen erst mit der Buchung.
 - Duplikat-Abgleich zwischen CSV-Import und FinTS-Abruf, damit dieselbe Buchung nicht doppelt auftaucht.
-- Kontostand nach jeder Buchung (aus der Spalte „Saldo“ der ING-CSV bzw. beim FinTS-Abruf aus dem Anfangssaldo des Kontoauszugs berechnet). Unter „Konto & Abruf“ zeigt Zaster den letzten Kontostand laut Bank und prüft darüber, ob Buchungen fehlen: Passen die Stände nicht zusammen, nennt es den Zeitraum und den fehlenden Betrag. Ein CSV-Import trägt den Kontostand auch bei schon vorhandenen Buchungen nach.
+- Kontostand nach jeder Buchung (aus der Spalte „Saldo“ der CSV bzw. beim FinTS-Abruf aus dem Anfangssaldo des Kontoauszugs berechnet). Unter „Konto & Abruf“ zeigt Zaster den letzten Kontostand laut Bank und prüft darüber, ob Buchungen fehlen: Passen die Stände nicht zusammen, nennt es den Zeitraum und den fehlenden Betrag. Ein CSV-Import trägt den Kontostand auch bei schon vorhandenen Buchungen nach.
 - Kategorien pro Konto als Baum mit beliebig vielen Ebenen, mit Farbe; anlegen, umbenennen, verschieben (auch unter eine andere Kategorie) und löschen.
 - Buchungen auf mehrere Kategorien aufteilen, z. B. ein Einkauf mit Lebensmitteln und einer Bohrmaschine: Teilbeträge eingeben, die erste Kategorie bekommt den Rest. Kategoriefilter und Summen rechnen mit den Teilbeträgen.
 - Regeln pro Konto zur automatischen Kategorisierung (Text kommt in Auftraggeber, Buchungstext, Verwendungszweck oder einem davon vor). Die Reihenfolge ist einstellbar, die erste passende Regel gewinnt. Neue Buchungen bekommen die passende Kategorie automatisch, und die Regeln lassen sich nachträglich auf alle Buchungen ohne Kategorie anwenden. Aus einer Buchung lässt sich direkt eine Regel machen.
