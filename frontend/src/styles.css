@@ -144,14 +144,24 @@
 }
 
 .z-sheet {
-  /* Über der Bildschirmtastatur bleiben (siehe trackKeyboard in dialog.ts). */
-  margin-bottom: var(--z-keyboard, 0px) !important;
-  max-height: min(92dvh, calc(var(--z-viewport-height, 100dvh) - 1rem)) !important;
+  /*
+   * Bei offener Tastatur (siehe trackKeyboard in dialog.ts) reicht das Sheet weiter bis zum
+   * unteren Rand, sein Inhalt endet aber über der Tastatur. So bleibt keine Lücke, falls
+   * Safari die Tastatur etwas größer meldet, als sie aussieht (Adressleiste, Leiste über der Tastatur).
+   */
+  max-height: min(
+    92dvh,
+    calc(var(--z-viewport-height, 100dvh) + var(--z-keyboard, 0px) - 1rem)
+  ) !important;
   animation: z-sheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .z-modal {
   animation: z-modal-in 160ms ease-out;
+}
+
+.z-sheet z-dialog {
+  padding-bottom: var(--z-keyboard, 0px);
 }
 
 @keyframes z-sheet-in {
