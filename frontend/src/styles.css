@@ -133,6 +133,16 @@
   z-index: 50;
 }
 
+/*
+ * Die Höchsthöhe des Panels bis zu <z-dialog> durchreichen. Dazwischen liegt das Host-Element
+ * der jeweiligen Dialog-Komponente; ohne diese Regel wächst der Dialog über den Bildschirm hinaus
+ * und sein Inhalt lässt sich nicht scrollen.
+ */
+.z-dialog-panel .cdk-dialog-container > * {
+  display: block;
+  max-height: inherit;
+}
+
 .z-sheet {
   animation: z-sheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
