@@ -28,23 +28,6 @@ export class CategoriesPage {
     this.store.rules().map((rule) => ({ rule, category: this.store.byId().get(rule.categoryId) })),
   );
 
-  /** Erste und letzte Kategorie jeder Ebene, für die Pfeile zum Verschieben. */
-  protected readonly edges = computed(() => {
-    const first = new Set<number>();
-    const last = new Set<number>();
-    const seen = new Map<number | null, number>();
-    for (const c of this.store.tree()) {
-      if (!seen.has(c.parentId)) {
-        first.add(c.id);
-      }
-      seen.set(c.parentId, c.id);
-    }
-    for (const id of seen.values()) {
-      last.add(id);
-    }
-    return { first, last };
-  });
-
   protected fieldLabel(rule: Rule) {
     return rule.field === 'Alle'
       ? 'irgendwo'
@@ -53,15 +36,6 @@ export class CategoriesPage {
 
   protected editCategory(category?: CategoryNode, parentId: number | null = null) {
     this.dialog.open<boolean, CategorySheetData>(CategorySheet, { category, parentId });
-  }
-
-  protected async move(category: CategoryNode, direction: -1 | 1) {
-    try {
-      await this.store.moveCategory(category.id, direction);
-    } catch (e) {
-      this.toast.error(errorMessage(e, 'Die Reihenfolge konnte nicht gespeichert werden.'));
-      await this.store.reload();
-    }
   }
 
   protected editRule(rule?: Rule) {

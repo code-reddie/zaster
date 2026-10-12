@@ -52,24 +52,6 @@
             >
               <button
                 type="button"
-                class="grid size-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-fg disabled:invisible"
-                aria-label="Nach oben"
-                [disabled]="edges().first.has(category.id)"
-                (click)="move(category, -1)"
-              >
-                <z-icon name="arrow-up" class="size-4" />
-              </button>
-              <button
-                type="button"
-                class="grid size-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-fg disabled:invisible"
-                aria-label="Nach unten"
-                [disabled]="edges().last.has(category.id)"
-                (click)="move(category, 1)"
-              >
-                <z-icon name="arrow-down" class="size-4" />
-              </button>
-              <button
-                type="button"
                 class="grid size-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-fg"
                 [attr.aria-label]="'Unterkategorie in ' + category.name"
                 title="Unterkategorie anlegen"

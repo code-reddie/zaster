@@ -15,15 +15,13 @@ namespace Zaster.Categories;
 public sealed partial class CategoriesController(AppDbContext context) : ApiControllerBase
 {
     /// <summary>
-    /// Alle Kategorien des Kontos als flache Liste; den Baum ergeben <c>parentId</c> und <c>sortOrder</c>.
+    /// Alle Kategorien des Kontos als flache Liste; den Baum ergibt <c>parentId</c>. Sortiert wird im Frontend alphabetisch.
     /// </summary>
     [HttpGet]
     public async Task<IReadOnlyList<CategoryDto>> GetCategories(int accountId, CancellationToken cancellationToken) =>
         await context.Categories
             .Where(c => c.AccountId == accountId)
-            .OrderBy(c => c.SortOrder)
-            .ThenBy(c => c.Name)
-            .Select(c => new CategoryDto(c.Id, c.Name, c.Color, c.ParentId, c.SortOrder))
+            .Select(c => new CategoryDto(c.Id, c.Name, c.Color, c.ParentId))
             .ToListAsync(cancellationToken);
 
     [HttpPost]
@@ -41,7 +39,6 @@ public sealed partial class CategoriesController(AppDbContext context) : ApiCont
             Name = request.Name.Trim(),
             Color = NormalizeColor(request.Color),
             ParentId = request.ParentId,
-            SortOrder = NextSortOrder(categories, request.ParentId),
         };
         context.Categories.Add(category);
         await context.SaveChangesAsync(cancellationToken);
@@ -67,37 +64,12 @@ public sealed partial class CategoriesController(AppDbContext context) : ApiCont
             return BadRequestProblem(error);
         }
 
-        if (category.ParentId != request.ParentId)
-        {
-            category.ParentId = request.ParentId;
-            category.SortOrder = NextSortOrder(categories, request.ParentId);
-        }
-
+        category.ParentId = request.ParentId;
         category.Name = request.Name.Trim();
         category.Color = NormalizeColor(request.Color);
         await context.SaveChangesAsync(cancellationToken);
 
         return CategoryDto.From(category);
-    }
-
-    [HttpPut("order")]
-    public async Task<IActionResult> Reorder(int accountId, ReorderCategories request, CancellationToken cancellationToken)
-    {
-        var siblings = await context.Categories
-            .Where(c => c.AccountId == accountId && c.ParentId == request.ParentId)
-            .ToListAsync(cancellationToken);
-        if (!siblings.Select(c => c.Id).Order().SequenceEqual(request.Ids.Order()))
-        {
-            return BadRequestProblem("Die Liste passt nicht zu den Kategorien auf dieser Ebene.");
-        }
-
-        foreach (var category in siblings)
-        {
-            category.SortOrder = IndexOf(request.Ids, category.Id);
-        }
-
-        await context.SaveChangesAsync(cancellationToken);
-        return NoContent();
     }
 
     /// <summary>
@@ -169,21 +141,6 @@ public sealed partial class CategoriesController(AppDbContext context) : ApiCont
         return duplicate ? "Auf dieser Ebene gibt es schon eine Kategorie mit diesem Namen." : null;
     }
 
-    private static int NextSortOrder(List<Category> categories, int? parentId) =>
-        categories.Where(c => c.ParentId == parentId).Select(c => c.SortOrder + 1).DefaultIfEmpty(0).Max();
-
-    private static int IndexOf(IReadOnlyList<int> ids, int id)
-    {
-        for (var i = 0; i < ids.Count; i++)
-        {
-            if (ids[i] == id)
-            {
-                return i;
-            }
-        }
-
-        return ids.Count;
-    }
 
     private static string? NormalizeColor(string? color) =>
         string.IsNullOrWhiteSpace(color) ? null

@@ -3,7 +3,6 @@ export interface Category {
   name: string;
   color: string | null;
   parentId: number | null;
-  sortOrder: number;
 }
 
 export interface SaveCategory {
@@ -62,8 +61,8 @@ export const CATEGORY_COLORS = [
 ];
 
 /**
- * Sortiert die flache Liste in Baumreihenfolge (Eltern vor Kindern, Geschwister nach sortOrder
- * und Name) und ergänzt Tiefe, Pfad und geerbte Farbe.
+ * Sortiert die flache Liste in Baumreihenfolge (Eltern vor Kindern, Geschwister alphabetisch) und
+ * ergänzt Tiefe, Pfad und geerbte Farbe.
  */
 export function buildTree(categories: Category[]): CategoryNode[] {
   const children = new Map<number | null, Category[]>();
@@ -73,7 +72,7 @@ export function buildTree(categories: Category[]): CategoryNode[] {
     children.set(category.parentId, list);
   }
   for (const list of children.values()) {
-    list.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'de'));
+    list.sort((a, b) => compareText(a.name, b.name));
   }
 
   const result: CategoryNode[] = [];
@@ -92,6 +91,13 @@ export function buildTree(categories: Category[]): CategoryNode[] {
   };
   visit(null, 0, '', null);
   return result;
+}
+
+const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
+
+/** Alphabetisch nach deutscher Sortierung, Groß-/Kleinschreibung egal, „Konto 2“ vor „Konto 10“. */
+export function compareText(a: string, b: string): number {
+  return collator.compare(a, b);
 }
 
 /** Die Kategorie und alle darunter. */
