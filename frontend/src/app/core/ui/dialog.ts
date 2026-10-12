@@ -15,6 +15,10 @@ export class DialogService {
   private readonly dialog = inject(Dialog);
   private readonly overlay = inject(Overlay);
 
+  constructor() {
+    trackKeyboard();
+  }
+
   open<R, D = unknown, C = unknown>(component: ComponentType<C>, data?: D): DialogRef<R, C> {
     const small = window.matchMedia('(max-width: 639px)').matches;
     const position = this.overlay.position().global().centerHorizontally();
@@ -98,6 +102,30 @@ export class DialogFrame {
   template: `<ng-content />`,
 })
 export class DialogFooter {}
+
+/**
+ * Safari am iPhone verkleinert beim Öffnen der Tastatur nicht die Seite, sondern legt die
+ * Tastatur darüber. Ein Sheet, das unten am Bildschirm klebt, liegt dann dahinter; solange es
+ * hoch genug ist, schiebt Safari das Eingabefeld noch ins Bild, schrumpft der Inhalt (z. B. bei
+ * einer Suche ohne Treffer), rutscht alles unter die Tastatur. Deshalb hier die Höhe der Tastatur
+ * und des sichtbaren Bereichs als CSS-Variablen setzen; styles.css hebt die Sheets damit an.
+ */
+function trackKeyboard() {
+  const viewport = window.visualViewport;
+  const root = document.documentElement;
+  if (!viewport || root.dataset['keyboardTracked']) {
+    return;
+  }
+  root.dataset['keyboardTracked'] = '';
+  const update = () => {
+    const keyboard = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+    root.style.setProperty('--z-keyboard', `${Math.round(keyboard)}px`);
+    root.style.setProperty('--z-viewport-height', `${Math.round(viewport.height)}px`);
+  };
+  viewport.addEventListener('resize', update);
+  viewport.addEventListener('scroll', update);
+  update();
+}
 
 export interface ConfirmOptions {
   title: string;
