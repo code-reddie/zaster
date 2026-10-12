@@ -11,11 +11,11 @@ using Zaster.Users;
 namespace Zaster.Auth;
 
 [Route("api/auth")]
-[AllowAnonymous]
 public sealed partial class AuthController(ILogger<AuthController> logger, AppDbContext context, AuthService authService) : ApiControllerBase
 {
     private const int MinPasswordLength = 8;
 
+    [AllowAnonymous]
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request, CancellationToken cancellationToken)
     {
@@ -51,6 +51,7 @@ public sealed partial class AuthController(ILogger<AuthController> logger, AppDb
         return new AuthResponse(user.Id, user.Name, authService.CreateToken(user));
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request, CancellationToken cancellationToken)
     {
@@ -60,6 +61,21 @@ public sealed partial class AuthController(ILogger<AuthController> logger, AppDb
         {
             LogLoginFailed(logger, name);
             return Problem(detail: "Name oder Passwort stimmen nicht.", statusCode: 401);
+        }
+
+        return new AuthResponse(user.Id, user.Name, authService.CreateToken(user));
+    }
+
+    /// <summary>
+    /// Neuer Token für den angemeldeten Nutzer, solange der alte noch gilt. So bleibt angemeldet, wer Zaster regelmäßig nutzt.
+    /// </summary>
+    [HttpPost("refresh")]
+    public async Task<ActionResult<AuthResponse>> Refresh(CancellationToken cancellationToken)
+    {
+        var user = await context.Users.FirstOrDefaultAsync(u => u.Id == UserId, cancellationToken);
+        if (user is null)
+        {
+            return Problem(detail: "Bitte melde dich neu an.", statusCode: 401);
         }
 
         return new AuthResponse(user.Id, user.Name, authService.CreateToken(user));
