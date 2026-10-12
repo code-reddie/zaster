@@ -19,6 +19,9 @@ public sealed record AccountMemberDto(int Id, string Name);
 
 public sealed record CreateAccount(string Name, string Iban);
 
+/// <param name="Ids">Alle eigenen Konten in der gewünschten Reihenfolge.</param>
+public sealed record ReorderAccounts(List<int> Ids);
+
 public sealed record UpdateAccount(string Name, string? FinTsUserId);
 
 /// <param name="Name">Anmeldename eines schon registrierten Nutzers.</param>

@@ -7,6 +7,61 @@
 <section class="z-card p-5 sm:p-6">
   <div class="mb-4 flex items-start gap-3">
     <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+      <z-icon name="bank" class="size-5" />
+    </span>
+    <div>
+      <h2 class="font-semibold">Konten</h2>
+      <p class="text-sm text-muted">
+        In dieser Reihenfolge stehen deine Konten in der Seitenleiste und in der Kontoauswahl. Sie
+        gilt nur für dich, auch bei geteilten Konten. Neue Konten kommen ans Ende.
+      </p>
+    </div>
+  </div>
+
+  @if (accounts.accounts().length === 0) {
+    <p class="px-2 py-2 text-sm text-muted">Du hast noch kein Konto.</p>
+  } @else {
+    <ol class="-mx-2 flex flex-col">
+      @for (account of accounts.accounts(); track account.id; let first = $first, last = $last) {
+        <li class="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-surface-2">
+          <span
+            class="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent"
+          >
+            <z-icon [name]="account.members.length > 1 ? 'users' : 'wallet'" class="size-4" />
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-medium">{{ account.name }}</span>
+            <span class="block truncate text-xs text-muted">{{ account.iban | iban }}</span>
+          </span>
+          <div class="flex shrink-0 gap-0.5">
+            <button
+              type="button"
+              class="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-fg disabled:invisible"
+              [attr.aria-label]="account.name + ' nach oben'"
+              [disabled]="first"
+              (click)="moveAccount(account.id, -1)"
+            >
+              <z-icon name="arrow-up" class="size-4" />
+            </button>
+            <button
+              type="button"
+              class="grid size-9 place-items-center rounded-lg text-muted hover:bg-surface hover:text-fg disabled:invisible"
+              [attr.aria-label]="account.name + ' nach unten'"
+              [disabled]="last"
+              (click)="moveAccount(account.id, 1)"
+            >
+              <z-icon name="arrow-down" class="size-4" />
+            </button>
+          </div>
+        </li>
+      }
+    </ol>
+  }
+</section>
+
+<section class="z-card mt-4 p-5 sm:p-6">
+  <div class="mb-4 flex items-start gap-3">
+    <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
       <z-icon name="bell" class="size-5" />
     </span>
     <div>

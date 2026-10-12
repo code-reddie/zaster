@@ -16,6 +16,12 @@ public sealed record User : Entity
     /// Home-Assistant-Dienste (ohne „notify.“), über die der Nutzer Benachrichtigungen bekommt, z. B. <c>mobile_app_pixel_8</c>.
     /// </summary>
     public List<string> NotificationDevices { get; set; } = [];
+
+    /// <summary>
+    /// Eigene Reihenfolge der Konten (Ids), gilt nur für diesen Nutzer. Konten, die hier fehlen
+    /// (neu angelegt oder neu geteilt), stehen dahinter, untereinander nach Name.
+    /// </summary>
+    public List<int> AccountOrder { get; set; } = [];
 }
 
 /// <param name="CanDownloadBackup">Ob der Nutzer die Datenbank sichern darf (nur wer Zaster eingerichtet hat).</param>

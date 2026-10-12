@@ -8,6 +8,7 @@ import { Button } from '../../core/ui/button';
 import { Icon } from '../../core/ui/icon';
 import { Spinner } from '../../core/ui/spinner';
 import { ToastService } from '../../core/ui/toast';
+import { IbanPipe } from '../../shared/format';
 import { AccountStore } from '../accounts/account.store';
 import { BackupSchedule, BackupService } from './backup.service';
 import {
@@ -18,11 +19,12 @@ import {
 } from './notifications.service';
 
 @Component({
-  imports: [DatePipe, FormsModule, PageHeader, Button, Icon, Spinner],
+  imports: [DatePipe, FormsModule, PageHeader, Button, Icon, Spinner, IbanPipe],
   templateUrl: './settings.page.html',
 })
 export class SettingsPage {
   protected readonly auth = inject(AuthService);
+  protected readonly accounts = inject(AccountStore);
   private readonly service = inject(NotificationsService);
   private readonly toast = inject(ToastService);
   private readonly backup = inject(BackupService);
@@ -58,7 +60,7 @@ export class SettingsPage {
 
   constructor() {
     // Die Einstellungen gelten für den Nutzer, nicht für ein Konto.
-    inject(AccountStore).selectedId.set(null);
+    this.accounts.selectedId.set(null);
     this.load();
     this.backup.canDownload().then(
       (can) => {
@@ -69,6 +71,15 @@ export class SettingsPage {
       },
       () => this.canBackup.set(false),
     );
+  }
+
+  protected async moveAccount(id: number, direction: -1 | 1) {
+    try {
+      await this.accounts.move(id, direction);
+    } catch (e) {
+      this.toast.error(errorMessage(e, 'Die Reihenfolge konnte nicht gespeichert werden.'));
+      await this.accounts.load();
+    }
   }
 
   protected async saveSchedule() {

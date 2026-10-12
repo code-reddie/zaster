@@ -71,7 +71,7 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 
 - `/api/auth/login`, `/api/auth/register` (ohne Anmeldung), `/api/auth/refresh` (neuer Token, das Frontend holt ihn, wenn der alte älter als einen Tag ist)
 - `/api/me`, `/api/me/notifications…`, `/api/backup` (Datenbank herunterladen), `/api/backup/schedule` (+ `run`)
-- `/api/accounts`, `/api/accounts/{accountId}`, `…/members` (Person per Anmeldename hinzufügen), `…/members/{userId}` (entfernen; die eigene Id heißt verlassen)
+- `/api/accounts` (in der eigenen Reihenfolge), `/api/accounts/order` (eigene Reihenfolge speichern), `/api/accounts/{accountId}`, `…/members` (Person per Anmeldename hinzufügen), `…/members/{userId}` (entfernen; die eigene Id heißt verlassen)
 - `/api/accounts/{accountId}/transactions` (Filter `from`, `to`, `search`, `categoryId` inkl. Unterkategorien, `withoutCategory`, `open`, `offset`, `limit`), `…/import`, `…/balance-check`, `…/review`, `…/{id}/category`, `…/{id}/splits`, `…/{id}/reviewed`, `…/{id}/bemerkung`
 - `/api/accounts/{accountId}/categories` (+ `order`), `/api/accounts/{accountId}/rules` (+ `order`, `apply`)
 - `/api/accounts/{accountId}/fints/sync`, `…/fints/times`, `…/fints/pin`
@@ -102,6 +102,7 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 
 ### Konten
 - IBAN ist Pflicht beim Anlegen und wird geprüft (Länge, Aufbau, Prüfziffer Modulo 97), siehe `Accounts/Iban.cs`. Sie lässt sich danach nicht ändern, nur Name und FinTS-Kennung.
+- Reihenfolge: Jeder Nutzer hat seine eigene (`User.AccountOrder`, JSON-Liste von Konto-Ids), gesetzt unter Einstellungen → „Konten“ per `PUT /api/accounts/order` mit allen eigenen Konten. `GET /api/accounts` sortiert danach (`AccountsController.Sort`); Konten, die fehlen (neu angelegt oder neu geteilt), kommen ans Ende, untereinander nach Name. Ids von Konten, die man verlassen hat, stören nicht.
 - Ein Konto löschen löscht es für alle Mitglieder, mit Buchungen, Kategorien und Regeln.
 - Teilen: Jedes Mitglied fügt einen registrierten Nutzer über den genauen Anmeldenamen hinzu (sofort Mitglied) und kann jedes Mitglied entfernen, auch sich selbst. Das letzte Mitglied kann nicht gehen (409), sonst bliebe ein Konto, das niemand sieht. `AccountDto.Members` enthält Id und Name; das Frontend erkennt sich selbst am Namen (Anmeldenamen sind eindeutig).
 
