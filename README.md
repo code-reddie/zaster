@@ -13,8 +13,9 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 ### Schon verfügbar
 
 - Oberfläche für PC, iPad und iPhone: am PC und auf dem iPad quer eine Seitenleiste, auf dem Handy Kontowahl oben, Navigation unten und Dialoge als Sheet von unten. Hell oder dunkel nach Systemeinstellung.
-- Mehrere Nutzer mit eigener Anmeldung (Registrierung, Login per JWT); jeder sieht nur seine eigenen Konten. Wer Zaster mindestens einmal pro Woche öffnet, bleibt angemeldet.
+- Mehrere Nutzer mit eigener Anmeldung (Registrierung, Login per JWT); jeder sieht nur seine eigenen und mit ihm geteilten Konten. Wer Zaster mindestens einmal pro Woche öffnet, bleibt angemeldet.
 - Bankkonten anlegen (IBAN ist Pflicht, wird geprüft und darf in Zaster nur einmal vorkommen), umbenennen und löschen.
+- Konten teilen (z. B. Gemeinschaftskonto): Unter „Konto & Abruf“ → „Mitglieder“ fügt jedes Mitglied eine schon registrierte Person über ihren Anmeldenamen hinzu; sie sieht das Konto sofort. Alle Mitglieder sind gleichberechtigt (Buchungen, Kategorien, Regeln, Abruf, Teilen, Löschen) und bekommen die Benachrichtigungen des Kontos. Jedes Mitglied kann andere entfernen oder das Konto verlassen; das letzte Mitglied kann es nur löschen. Geteilte Konten haben in der Kontoliste ein Personen-Symbol.
 - Buchungen pro Monat oder für alle Zeiträume, nach Tagen gruppiert, Kategorien als farbige Badges (bei aufgeteilten Buchungen eins pro Teil), mit Suche, Kategoriefilter und Summen für Einnahmen, Ausgaben und Saldo. Ein Tipp auf eine Buchung zeigt alle Details.
 - Buchungen von Hand anlegen und löschen.
 - CSV-Import von Kontoumsätzen, mit Vorschau vor dem Übernehmen. Zaster erkennt den Aufbau selbst: den Umsatzexport der ING (mit Kopfbereich, Spalten `Buchung;Wertstellungsdatum;…;Saldo;Währung;Betrag;Währung`) und eine eigene Umsatzliste ohne Kopfbereich (`Buchung;Valuta;Auftraggeber/Empfänger;Buchungstext;Verwendungszweck;Betrag;Saldo`, Beträge auch mit „€“, mehrzeilige Felder in Anführungszeichen). So lassen sich auch alte Buchungen nachtragen, die die ING nicht mehr exportiert.
@@ -31,7 +32,6 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 
 ### Geplant
 
-- Geteilte Konten (z. B. Gemeinschaftskonto), alle Mitglieder gleichberechtigt. Das Datenmodell kann es schon, es fehlt der Weg, ein Konto zu teilen.
 - Sankey-Diagramme für Ein- und Ausgaben, pro Konto.
 
 ## Starten mit Docker Compose

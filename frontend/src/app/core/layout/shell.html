@@ -15,7 +15,10 @@
         routerLinkActive="bg-surface-2 font-semibold"
         class="flex h-9 items-center gap-2.5 rounded-lg px-3 text-sm hover:bg-surface-2"
       >
-        <z-icon name="wallet" class="size-4 text-muted" />
+        <z-icon
+          [name]="account.members.length > 1 ? 'users' : 'wallet'"
+          class="size-4 text-muted"
+        />
         <span class="min-w-0 flex-1 truncate">{{ account.name }}</span>
       </a>
     }

@@ -86,6 +86,74 @@ public sealed class AccountsController(AppDbContext context) : ApiControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Teilt das Konto mit einem schon registrierten Nutzer. Er ist sofort Mitglied, mit denselben Rechten wie alle anderen.
+    /// </summary>
+    [HttpPost("{accountId:int}/members")]
+    [AccountMember]
+    public async Task<ActionResult<AccountDto>> AddMember(int accountId, AddMember request, CancellationToken cancellationToken)
+    {
+        var name = request.Name?.Trim() ?? string.Empty;
+        if (name.Length == 0)
+        {
+            return BadRequestProblem("Bitte gib den Namen ein, mit dem sich die Person bei Zaster anmeldet.");
+        }
+
+        var user = await context.Users.FirstOrDefaultAsync(u => u.Name == name, cancellationToken);
+        if (user is null)
+        {
+            return BadRequestProblem($"„{name}“ gibt es in Zaster nicht. Die Person muss sich erst registrieren; achte auf Groß- und Kleinschreibung.");
+        }
+
+        var account = await context.Accounts
+            .Include(a => a.Users)
+            .SingleAsync(a => a.Id == accountId, cancellationToken);
+        if (account.Users.Any(u => u.Id == user.Id))
+        {
+            return ConflictProblem($"{user.Name} ist schon Mitglied.");
+        }
+
+        account.Users.Add(user);
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException e) when (IsUniqueViolation(e))
+        {
+            // Jemand anderes hat dieselbe Person gerade gleichzeitig hinzugefügt.
+            return ConflictProblem($"{user.Name} ist schon Mitglied.");
+        }
+
+        return await GetAccount(accountId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Entfernt ein Mitglied; mit der eigenen Id verlässt man das Konto. Das letzte Mitglied kann nicht gehen,
+    /// sonst bliebe ein Konto übrig, das niemand mehr sieht; es kann das Konto aber löschen.
+    /// </summary>
+    [HttpDelete("{accountId:int}/members/{userId:int}")]
+    [AccountMember]
+    public async Task<IActionResult> RemoveMember(int accountId, int userId, CancellationToken cancellationToken)
+    {
+        var account = await context.Accounts
+            .Include(a => a.Users)
+            .SingleAsync(a => a.Id == accountId, cancellationToken);
+        var member = account.Users.FirstOrDefault(u => u.Id == userId);
+        if (member is null)
+        {
+            return NotFoundProblem("Diese Person ist kein Mitglied des Kontos.");
+        }
+
+        if (account.Users.Count == 1)
+        {
+            return ConflictProblem("Du bist das einzige Mitglied. Lösche das Konto, wenn du es nicht mehr brauchst.");
+        }
+
+        account.Users.Remove(member);
+        await context.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
     private static IQueryable<AccountDto> ToDtos(IQueryable<Account> accounts) =>
         accounts
             .OrderBy(a => a.Name)
@@ -98,6 +166,6 @@ public sealed class AccountsController(AppDbContext context) : ApiControllerBase
                 a.SyncTimes,
                 a.LastSyncedAt,
                 a.LastSyncError,
-                a.Users.OrderBy(u => u.Name).Select(u => u.Name).ToList(),
+                a.Users.OrderBy(u => u.Name).Select(u => new AccountMemberDto(u.Id, u.Name)).ToList(),
                 a.Transactions.Count(t => !t.Splits.Any() && !t.Reviewed)));
 }

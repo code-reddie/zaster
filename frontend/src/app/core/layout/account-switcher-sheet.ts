@@ -19,7 +19,7 @@ import { Icon } from '../ui/icon';
             (click)="go('/konten/' + account.id)"
           >
             <span class="grid size-10 place-items-center rounded-xl bg-accent-soft text-accent">
-              <z-icon name="wallet" class="size-5" />
+              <z-icon [name]="account.members.length > 1 ? 'users' : 'wallet'" class="size-5" />
             </span>
             <span class="min-w-0 flex-1">
               <span class="block truncate font-medium">{{ account.name }}</span>
