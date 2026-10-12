@@ -120,8 +120,13 @@
               class="min-w-0 flex-1 px-4 py-3 text-left text-sm"
               (click)="editRule(item.rule)"
             >
-              <span class="font-medium">„{{ item.rule.pattern }}“</span>
-              <span class="text-muted"> {{ fieldLabel(item.rule) }}</span>
+              @for (condition of item.rule.conditions; track $index; let firstCondition = $first) {
+                @if (!firstCondition) {
+                  <span class="text-muted"> und </span>
+                }
+                <span class="font-medium">„{{ condition.pattern }}“</span>
+                <span class="text-muted"> {{ fieldLabel(condition) }}</span>
+              }
               @if (directionLabel(item.rule); as label) {
                 <span class="text-muted">, {{ label }}</span>
               }

@@ -38,18 +38,22 @@ export const RULE_DIRECTIONS: { value: RuleDirection; label: string }[] = [
   { value: 'Eingang', label: 'Einnahmen' },
 ];
 
+/** Eine Bedingung: der Text kommt im Feld vor. Eine Regel passt, wenn alle Bedingungen passen. */
+export interface RuleCondition {
+  field: RuleField;
+  pattern: string;
+}
+
 export interface Rule {
   id: number;
-  pattern: string;
-  field: RuleField;
+  conditions: RuleCondition[];
   direction: RuleDirection;
   categoryId: number;
   sortOrder: number;
 }
 
 export interface SaveRule {
-  pattern: string;
-  field: RuleField;
+  conditions: RuleCondition[];
   direction: RuleDirection;
   categoryId: number;
 }

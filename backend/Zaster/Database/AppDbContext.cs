@@ -22,6 +22,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<Rule> Rules => Set<Rule>();
 
+    public DbSet<RuleCondition> RuleConditions => Set<RuleCondition>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -89,9 +91,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .HasForeignKey(r => r.CategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            rule.Property(r => r.Field).HasConversion<string>();
+            rule.HasMany(r => r.Conditions)
+                .WithOne()
+                .HasForeignKey(c => c.RuleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             rule.Property(r => r.Direction).HasConversion<string>();
         });
+
+        modelBuilder.Entity<RuleCondition>().Property(c => c.Field).HasConversion<string>();
 
         // Die eine Zeile mit den Einstellungen der automatischen Sicherung.
         modelBuilder.Entity<BackupSettings>().HasData(new BackupSettings { Id = BackupSettings.SingletonId });

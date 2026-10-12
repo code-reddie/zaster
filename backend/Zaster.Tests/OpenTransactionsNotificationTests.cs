@@ -33,7 +33,7 @@ public sealed class OpenTransactionsNotificationTests : IDisposable
         var category = new Category { AccountId = _account.Id, Name = "Lebensmittel" };
         _context.Categories.Add(category);
         _context.SaveChanges();
-        _context.Rules.Add(new Rule { AccountId = _account.Id, Pattern = "Kaufland", Field = RuleField.Auftraggeber, CategoryId = category.Id });
+        _context.Rules.Add(new Rule { AccountId = _account.Id, Conditions = [new RuleCondition { Field = RuleField.Auftraggeber, Pattern = "Kaufland" }], CategoryId = category.Id });
         _context.SaveChanges();
 
         _importer = new TransactionImporter(_context, TimeProvider.System, _queue);

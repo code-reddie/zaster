@@ -141,14 +141,6 @@ namespace Zaster.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Field")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Pattern")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("SortOrder")
                         .HasColumnType("INTEGER");
 
@@ -159,6 +151,30 @@ namespace Zaster.Migrations
                     b.HasIndex("CategoryId");
 
                     b.ToTable("Rules");
+                });
+
+            modelBuilder.Entity("Zaster.Categories.RuleCondition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Field")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Pattern")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RuleId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RuleId");
+
+                    b.ToTable("RuleConditions");
                 });
 
             modelBuilder.Entity("Zaster.Transactions.Transaction", b =>
@@ -317,6 +333,15 @@ namespace Zaster.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("Zaster.Categories.RuleCondition", b =>
+                {
+                    b.HasOne("Zaster.Categories.Rule", null)
+                        .WithMany("Conditions")
+                        .HasForeignKey("RuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Zaster.Transactions.Transaction", b =>
                 {
                     b.HasOne("Zaster.Accounts.Account", "Account")
@@ -361,6 +386,11 @@ namespace Zaster.Migrations
                     b.Navigation("Children");
 
                     b.Navigation("Splits");
+                });
+
+            modelBuilder.Entity("Zaster.Categories.Rule", b =>
+                {
+                    b.Navigation("Conditions");
                 });
 
             modelBuilder.Entity("Zaster.Transactions.Transaction", b =>

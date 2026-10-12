@@ -9,7 +9,7 @@ import { Spinner } from '../../core/ui/spinner';
 import { ToastService } from '../../core/ui/toast';
 import { AccountStore } from '../accounts/account.store';
 import { CategoryDot } from './category-dot';
-import { CategoryNode, Rule, RULE_FIELDS } from './category.models';
+import { CategoryNode, Rule, RuleCondition, RULE_FIELDS } from './category.models';
 import { CategorySheet, CategorySheetData } from './category-sheet';
 import { CategoryStore } from './category.store';
 import { RuleSheet, RuleSheetData } from './rule-sheet';
@@ -28,10 +28,10 @@ export class CategoriesPage {
     this.store.rules().map((rule) => ({ rule, category: this.store.byId().get(rule.categoryId) })),
   );
 
-  protected fieldLabel(rule: Rule) {
-    return rule.field === 'Alle'
+  protected fieldLabel(condition: RuleCondition) {
+    return condition.field === 'Alle'
       ? 'irgendwo'
-      : `im ${RULE_FIELDS.find((f) => f.value === rule.field)!.label}`;
+      : `im ${RULE_FIELDS.find((f) => f.value === condition.field)!.label}`;
   }
 
   /** Kurzer Zusatz in der Liste, nur wenn die Regel auf eine Richtung beschränkt ist. */

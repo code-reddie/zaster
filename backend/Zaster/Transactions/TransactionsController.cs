@@ -128,7 +128,7 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
             CreatedAt = timeProvider.GetUtcNow().UtcDateTime,
         };
 
-        var rules = await context.Rules.Where(r => r.AccountId == accountId).ToListAsync(cancellationToken);
+        var rules = await context.Rules.Include(r => r.Conditions).Where(r => r.AccountId == accountId).ToListAsync(cancellationToken);
         RuleEngine.Apply([transaction], rules);
 
         context.Transactions.Add(transaction);

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 using Zaster.Accounts;
 using Zaster.Database;
@@ -27,7 +29,7 @@ public enum RuleDirection
 }
 
 /// <summary>
-/// Ordnet Buchungen eines Kontos automatisch einer Kategorie zu, wenn ein Text vorkommt.
+/// Ordnet Buchungen eines Kontos automatisch einer Kategorie zu, wenn alle Bedingungen passen.
 /// </summary>
 public sealed record Rule : Entity
 {
@@ -35,9 +37,10 @@ public sealed record Rule : Entity
 
     public Account? Account { get; init; }
 
-    public required string Pattern { get; set; }
-
-    public RuleField Field { get; set; }
+    /// <summary>
+    /// Mindestens eine Bedingung; alle müssen passen (UND). Reihenfolge nach <see cref="Entity.Id"/>.
+    /// </summary>
+    public List<RuleCondition> Conditions { get; init; } = [];
 
     public RuleDirection Direction { get; set; }
 
@@ -50,7 +53,10 @@ public sealed record Rule : Entity
     /// </summary>
     public int SortOrder { get; set; }
 
-    public bool Matches(Transaction transaction) => MatchesDirection(transaction.Betrag) && MatchesText(transaction);
+    public bool Matches(Transaction transaction) =>
+        MatchesDirection(transaction.Betrag)
+        && Conditions.Count > 0
+        && Conditions.All(c => c.Matches(transaction));
 
     private bool MatchesDirection(decimal betrag) => Direction switch
     {
@@ -58,8 +64,20 @@ public sealed record Rule : Entity
         RuleDirection.Ausgang => betrag < 0,
         _ => true
     };
+}
 
-    private bool MatchesText(Transaction transaction) => Field switch
+/// <summary>
+/// Eine Bedingung einer Regel: <see cref="Pattern"/> kommt im Feld vor (Teilstring, ohne Groß-/Kleinschreibung).
+/// </summary>
+public sealed record RuleCondition : Entity
+{
+    public int RuleId { get; init; }
+
+    public RuleField Field { get; set; }
+
+    public required string Pattern { get; set; }
+
+    public bool Matches(Transaction transaction) => Field switch
     {
         RuleField.Auftraggeber => Contains(transaction.Auftraggeber),
         RuleField.Buchungstext => Contains(transaction.Buchungstext),
