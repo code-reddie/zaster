@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { AuthService } from '../../core/auth/auth.service';
 import { PageHeader } from '../../core/layout/page-header';
 import { errorMessage } from '../../core/errors';
 import { Button } from '../../core/ui/button';
@@ -20,7 +21,8 @@ import { ruleFromTransaction, TransactionSheet, TransactionSheetResult } from '.
 import { TransactionsService } from './transactions.service';
 
 const PAGE_SIZE = 50;
-const RECENT_COUNT = 4;
+const RECENT_COUNT = 5;
+const RECENT_KEY = 'zaster_recent_categories';
 
 /**
  * „Ohne Kategorie“: alle offenen Buchungen (ohne Kategorie, nicht geprüft) abarbeiten.
@@ -36,13 +38,14 @@ export class OpenPage {
   private readonly service = inject(TransactionsService);
   private readonly dialog = inject(DialogService);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
 
   protected readonly items = signal<Transaction[]>([]);
   protected readonly total = signal(0);
   protected readonly loading = signal(true);
   protected readonly busy = signal<number | null>(null);
   protected readonly error = signal<string | null>(null);
-  /** Zuletzt gewählte Kategorien als Schnellwahl. */
+  /** Zuletzt gewählte Kategorien als Schnellwahl, pro Nutzer und Konto im Local Storage. */
   private readonly recentIds = signal<number[]>([]);
 
   protected readonly recent = computed(() =>
@@ -56,7 +59,7 @@ export class OpenPage {
       const accountId = this.accounts.selectedId();
       if (accountId !== null) {
         untracked(() => {
-          this.recentIds.set([]);
+          this.recentIds.set(this.readRecent(accountId));
           this.load(accountId);
         });
       }
@@ -82,8 +85,12 @@ export class OpenPage {
       this.service.setCategory(transaction.accountId, transaction.id, categoryId),
     );
     this.recentIds.update((ids) =>
-      [categoryId, ...ids.filter((id) => id !== categoryId)].slice(0, RECENT_COUNT),
+      [
+        categoryId,
+        ...ids.filter((id) => id !== categoryId && this.categories.byId().has(id)),
+      ].slice(0, RECENT_COUNT),
     );
+    this.writeRecent(transaction.accountId, this.recentIds());
   }
 
   protected async split(transaction: Transaction) {
@@ -200,6 +207,30 @@ export class OpenPage {
       this.error.set(errorMessage(e, 'Die Buchungen konnten nicht geladen werden.'));
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  private recentKey(accountId: number) {
+    return `${RECENT_KEY}:${this.auth.userName() ?? ''}:${accountId}`;
+  }
+
+  /** Gelöschte Kategorien fallen in `recent` heraus, weil sie nicht mehr im Store stehen. */
+  private readRecent(accountId: number): number[] {
+    try {
+      const ids: unknown = JSON.parse(localStorage.getItem(this.recentKey(accountId)) ?? '[]');
+      return Array.isArray(ids)
+        ? ids.filter((id): id is number => Number.isInteger(id)).slice(0, RECENT_COUNT)
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private writeRecent(accountId: number, ids: number[]) {
+    try {
+      localStorage.setItem(this.recentKey(accountId), JSON.stringify(ids));
+    } catch {
+      // Ohne Speicher gilt die Schnellwahl eben nur bis zum Seitenwechsel.
     }
   }
 }
