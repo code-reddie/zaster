@@ -51,6 +51,15 @@ export class CategoriesPage {
       : `im ${RULE_FIELDS.find((f) => f.value === rule.field)!.label}`;
   }
 
+  /** Kurzer Zusatz in der Liste, nur wenn die Regel auf eine Richtung beschränkt ist. */
+  protected directionLabel(rule: Rule) {
+    return rule.direction === 'Eingang'
+      ? 'nur Einnahmen'
+      : rule.direction === 'Ausgang'
+        ? 'nur Ausgaben'
+        : null;
+  }
+
   protected editCategory(category?: CategoryNode, parentId: number | null = null) {
     this.dialog.open<boolean, CategorySheetData>(CategorySheet, { category, parentId });
   }

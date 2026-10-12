@@ -14,12 +14,12 @@ public sealed record SaveCategory(string Name, string? Color, int? ParentId);
 /// </summary>
 public sealed record ReorderCategories(int? ParentId, IReadOnlyList<int> Ids);
 
-public sealed record RuleDto(int Id, string Pattern, RuleField Field, int CategoryId, int SortOrder)
+public sealed record RuleDto(int Id, string Pattern, RuleField Field, RuleDirection Direction, int CategoryId, int SortOrder)
 {
-    public static RuleDto From(Rule r) => new(r.Id, r.Pattern, r.Field, r.CategoryId, r.SortOrder);
+    public static RuleDto From(Rule r) => new(r.Id, r.Pattern, r.Field, r.Direction, r.CategoryId, r.SortOrder);
 }
 
-public sealed record SaveRule(string Pattern, RuleField Field, int CategoryId);
+public sealed record SaveRule(string Pattern, RuleField Field, int CategoryId, RuleDirection Direction = RuleDirection.Beide);
 
 public sealed record ReorderRules(IReadOnlyList<int> Ids);
 

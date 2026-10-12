@@ -22,7 +22,7 @@ public sealed class RulesController(AppDbContext context) : ApiControllerBase
             .Where(r => r.AccountId == accountId)
             .OrderBy(r => r.SortOrder)
             .ThenBy(r => r.Id)
-            .Select(r => new RuleDto(r.Id, r.Pattern, r.Field, r.CategoryId, r.SortOrder))
+            .Select(r => new RuleDto(r.Id, r.Pattern, r.Field, r.Direction, r.CategoryId, r.SortOrder))
             .ToListAsync(cancellationToken);
 
     /// <summary>
@@ -46,6 +46,7 @@ public sealed class RulesController(AppDbContext context) : ApiControllerBase
             AccountId = accountId,
             Pattern = request.Pattern.Trim(),
             Field = request.Field,
+            Direction = request.Direction,
             CategoryId = request.CategoryId,
             SortOrder = sortOrder + 1,
         };
@@ -71,6 +72,7 @@ public sealed class RulesController(AppDbContext context) : ApiControllerBase
 
         rule.Pattern = request.Pattern.Trim();
         rule.Field = request.Field;
+        rule.Direction = request.Direction;
         rule.CategoryId = request.CategoryId;
         await context.SaveChangesAsync(cancellationToken);
 

@@ -8,13 +8,14 @@ import { Icon } from '../../core/ui/icon';
 import { ToastService } from '../../core/ui/toast';
 import { CategoryDot } from './category-dot';
 import { CategoryPicker, CategoryPickerData } from './category-picker';
-import { Rule, RULE_FIELDS, RuleField } from './category.models';
+import { Rule, RULE_DIRECTIONS, RULE_FIELDS, RuleDirection, RuleField } from './category.models';
 import { CategoryStore } from './category.store';
 
 export interface RuleSheetData {
   rule?: Rule;
   pattern?: string;
   field?: RuleField;
+  direction?: RuleDirection;
   categoryId?: number | null;
 }
 
@@ -41,6 +42,26 @@ export interface RuleSheetData {
               <option [value]="option.value">{{ option.label }}</option>
             }
           </select>
+        </div>
+        <div>
+          <span class="z-label" id="direction">bei</span>
+          <div
+            class="grid grid-cols-3 gap-1 rounded-xl bg-surface-2 p-1"
+            role="radiogroup"
+            aria-labelledby="direction"
+          >
+            @for (option of directions; track option.value) {
+              <button
+                type="button"
+                role="radio"
+                [attr.aria-checked]="direction() === option.value"
+                [class]="segment(direction() === option.value)"
+                (click)="direction.set(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            }
+          </div>
         </div>
         <div>
           <span class="z-label">dann Kategorie</span>
@@ -87,6 +108,10 @@ export class RuleSheet {
   protected readonly fields = RULE_FIELDS;
   protected readonly pattern = signal(this.data.rule?.pattern ?? this.data.pattern ?? '');
   protected readonly field = signal<RuleField>(this.data.rule?.field ?? this.data.field ?? 'Alle');
+  protected readonly directions = RULE_DIRECTIONS;
+  protected readonly direction = signal<RuleDirection>(
+    this.data.rule?.direction ?? this.data.direction ?? 'Beide',
+  );
   protected readonly categoryId = signal<number | null>(
     this.data.rule?.categoryId ?? this.data.categoryId ?? null,
   );
@@ -98,6 +123,13 @@ export class RuleSheet {
     const id = this.categoryId();
     return id === null ? null : (this.store.byId().get(id) ?? null);
   });
+
+  protected segment(active: boolean) {
+    return (
+      'h-9 rounded-lg text-sm font-medium transition ' +
+      (active ? 'bg-surface shadow-card' : 'text-muted hover:text-fg')
+    );
+  }
 
   protected async pickCategory() {
     const id = await this.dialog.result<number | null, CategoryPickerData>(CategoryPicker, {
@@ -123,7 +155,12 @@ export class RuleSheet {
     this.saving.set(true);
     this.error.set(null);
     try {
-      const dto = { pattern: this.pattern().trim(), field: this.field(), categoryId };
+      const dto = {
+        pattern: this.pattern().trim(),
+        field: this.field(),
+        direction: this.direction(),
+        categoryId,
+      };
       if (this.data.rule) {
         await this.store.updateRule(this.data.rule.id, dto);
       } else {

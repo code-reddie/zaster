@@ -39,6 +39,7 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 - ✅ Buchungen werden anhand von Regeln automatisch kategorisiert (Teilstring in Auftraggeber, Buchungstext, Verwendungszweck oder allen).
 - ✅ Jedes Konto hat seine eigenen Regeln. Die Reihenfolge ist einstellbar, die erste passende Regel gewinnt.
 - ✅ Regeln nachträglich auf alle alten Buchungen ohne Kategorie anwenden.
+- ✅ Pro Regel festlegen, ob sie für eingehende, ausgehende oder beide Arten von Buchungen gilt (Christoph, 12.10.2026). Standard und Stand bestehender Regeln: beide. „Regel daraus machen“ wählt die Richtung der Buchung vor; in der Regel-Liste steht „nur Einnahmen“ bzw. „nur Ausgaben“. Buchungen mit Betrag 0 passen nur zu Regeln für beide Richtungen.
 - ✅ Neue Buchungen (manuell, CSV, FinTS) bekommen automatisch die passenden Regeln.
 
 ## Push-Benachrichtigungen

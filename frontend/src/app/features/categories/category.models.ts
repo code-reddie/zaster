@@ -31,10 +31,19 @@ export const RULE_FIELDS: { value: RuleField; label: string }[] = [
   { value: 'Verwendungszweck', label: 'Verwendungszweck' },
 ];
 
+export type RuleDirection = 'Beide' | 'Eingang' | 'Ausgang';
+
+export const RULE_DIRECTIONS: { value: RuleDirection; label: string }[] = [
+  { value: 'Beide', label: 'Beide' },
+  { value: 'Ausgang', label: 'Ausgaben' },
+  { value: 'Eingang', label: 'Einnahmen' },
+];
+
 export interface Rule {
   id: number;
   pattern: string;
   field: RuleField;
+  direction: RuleDirection;
   categoryId: number;
   sortOrder: number;
 }
@@ -42,6 +51,7 @@ export interface Rule {
 export interface SaveRule {
   pattern: string;
   field: RuleField;
+  direction: RuleDirection;
   categoryId: number;
 }
 
