@@ -103,7 +103,7 @@
     </p>
 
     <!-- Dieselben Zahlen als Liste -->
-    <div class="grid gap-4 md:grid-cols-2" [class.opacity-60]="loading()">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2" [class.opacity-60]="loading()">
       @for (
         side of [
           { title: 'Einnahmen', rows: incomeRows(), total: t.einnahmen },
