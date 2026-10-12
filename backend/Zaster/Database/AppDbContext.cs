@@ -90,6 +90,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .OnDelete(DeleteBehavior.Cascade);
 
             rule.Property(r => r.Field).HasConversion<string>();
+            rule.Property(r => r.Direction).HasConversion<string>();
         });
 
         // Die eine Zeile mit den Einstellungen der automatischen Sicherung.

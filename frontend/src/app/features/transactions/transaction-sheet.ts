@@ -25,6 +25,7 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
   return {
     pattern: t.auftraggeber || t.buchungstext,
     field: t.auftraggeber ? 'Auftraggeber' : 'Buchungstext',
+    direction: t.betrag > 0 ? 'Eingang' : t.betrag < 0 ? 'Ausgang' : 'Beide',
     categoryId: singleCategoryId(t),
   };
 }

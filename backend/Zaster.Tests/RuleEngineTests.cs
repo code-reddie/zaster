@@ -7,7 +7,7 @@ namespace Zaster.Tests;
 
 public sealed class RuleEngineTests
 {
-    private static Transaction Buchung(string auftraggeber, string verwendungszweck = "", int? categoryId = null)
+    private static Transaction Buchung(string auftraggeber, string verwendungszweck = "", int? categoryId = null, decimal betrag = -1m)
     {
         var transaction = new Transaction
         {
@@ -16,7 +16,7 @@ public sealed class RuleEngineTests
             Auftraggeber = auftraggeber,
             Buchungstext = "Lastschrift",
             Verwendungszweck = verwendungszweck,
-            Betrag = -1m,
+            Betrag = betrag,
         };
         transaction.Categorize(categoryId);
         return transaction;
@@ -71,5 +71,37 @@ public sealed class RuleEngineTests
 
         Assert.Equal(0, RuleEngine.Apply([transaction], rules));
         Assert.Equal([1, 2], transaction.Splits.Select(s => s.CategoryId));
+    }
+
+    [Theory]
+    [InlineData(RuleDirection.Beide, -1, true)]
+    [InlineData(RuleDirection.Beide, 1, true)]
+    [InlineData(RuleDirection.Ausgang, -1, true)]
+    [InlineData(RuleDirection.Ausgang, 1, false)]
+    [InlineData(RuleDirection.Eingang, 1, true)]
+    [InlineData(RuleDirection.Eingang, -1, false)]
+    [InlineData(RuleDirection.Eingang, 0, false)]
+    [InlineData(RuleDirection.Ausgang, 0, false)]
+    public void Richtung_wird_beachtet(RuleDirection direction, int betrag, bool matches)
+    {
+        var transaction = Buchung("Rewe", betrag: betrag);
+        var rules = new[] { new Rule { Id = 1, Pattern = "rewe", Field = RuleField.Alle, Direction = direction, CategoryId = 10 } };
+
+        Assert.Equal(matches ? 1 : 0, RuleEngine.Apply([transaction], rules));
+    }
+
+    [Fact]
+    public void Regel_der_falschen_Richtung_wird_uebersprungen()
+    {
+        var erstattung = Buchung("Amazon", betrag: 12.99m);
+        var rules = new[]
+        {
+            new Rule { Id = 1, Pattern = "amazon", Field = RuleField.Auftraggeber, Direction = RuleDirection.Ausgang, CategoryId = 10, SortOrder = 0 },
+            new Rule { Id = 2, Pattern = "amazon", Field = RuleField.Auftraggeber, Direction = RuleDirection.Eingang, CategoryId = 20, SortOrder = 1 },
+        };
+
+        RuleEngine.Apply([erstattung], rules);
+
+        Assert.Equal(20, CategoryOf(erstattung));
     }
 }

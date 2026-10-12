@@ -16,6 +16,17 @@ public enum RuleField
 }
 
 /// <summary>
+/// Für welche Buchungen eine Regel gilt: Eingänge (Betrag größer 0), Ausgänge (kleiner 0) oder beide.
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter<RuleDirection>))]
+public enum RuleDirection
+{
+    Beide,
+    Eingang,
+    Ausgang
+}
+
+/// <summary>
 /// Ordnet Buchungen eines Kontos automatisch einer Kategorie zu, wenn ein Text vorkommt.
 /// </summary>
 public sealed record Rule : Entity
@@ -28,6 +39,8 @@ public sealed record Rule : Entity
 
     public RuleField Field { get; set; }
 
+    public RuleDirection Direction { get; set; }
+
     public int CategoryId { get; set; }
 
     public Category? Category { get; init; }
@@ -37,7 +50,16 @@ public sealed record Rule : Entity
     /// </summary>
     public int SortOrder { get; set; }
 
-    public bool Matches(Transaction transaction) => Field switch
+    public bool Matches(Transaction transaction) => MatchesDirection(transaction.Betrag) && MatchesText(transaction);
+
+    private bool MatchesDirection(decimal betrag) => Direction switch
+    {
+        RuleDirection.Eingang => betrag > 0,
+        RuleDirection.Ausgang => betrag < 0,
+        _ => true
+    };
+
+    private bool MatchesText(Transaction transaction) => Field switch
     {
         RuleField.Auftraggeber => Contains(transaction.Auftraggeber),
         RuleField.Buchungstext => Contains(transaction.Buchungstext),

@@ -121,7 +121,11 @@
               (click)="editRule(item.rule)"
             >
               <span class="font-medium">„{{ item.rule.pattern }}“</span>
-              <span class="text-muted"> {{ fieldLabel(item.rule) }} →</span>
+              <span class="text-muted"> {{ fieldLabel(item.rule) }}</span>
+              @if (directionLabel(item.rule); as label) {
+                <span class="text-muted">, {{ label }}</span>
+              }
+              <span class="text-muted"> →</span>
               <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
                 <z-category-dot [color]="item.category?.effectiveColor" class="ml-1" />
                 {{ item.category?.path ?? '?' }}
