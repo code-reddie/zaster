@@ -25,20 +25,36 @@ public sealed class RuleEngineTests
     private static int? CategoryOf(Transaction t) => t.Splits.SingleOrDefault()?.CategoryId;
 
     [Fact]
-    public void Erste_passende_Regel_gewinnt_und_Gross_Kleinschreibung_egal()
+    public void Laengster_Suchtext_gewinnt_und_Gross_Kleinschreibung_egal()
     {
         var transaction = Buchung("REWE Markt GmbH");
         var rules = new[]
         {
-            new Rule { Id = 1, Pattern = "markt", Field = RuleField.Alle, CategoryId = 20, SortOrder = 1 },
-            new Rule { Id = 2, Pattern = "rewe", Field = RuleField.Auftraggeber, CategoryId = 10, SortOrder = 0 },
+            new Rule { Id = 1, Pattern = "rewe", Field = RuleField.Auftraggeber, CategoryId = 10 },
+            new Rule { Id = 2, Pattern = "rewe markt", Field = RuleField.Alle, CategoryId = 20 },
+            new Rule { Id = 3, Pattern = "markt", Field = RuleField.Alle, CategoryId = 30 },
         };
 
         var updated = RuleEngine.Apply([transaction], rules);
 
         Assert.Equal(1, updated);
-        Assert.Equal(10, CategoryOf(transaction));
+        Assert.Equal(20, CategoryOf(transaction));
         Assert.True(transaction.Reviewed);
+    }
+
+    [Fact]
+    public void Bei_gleich_langem_Suchtext_gewinnt_der_alphabetisch_erste()
+    {
+        var transaction = Buchung("Lidl und Aldi");
+        var rules = new[]
+        {
+            new Rule { Id = 1, Pattern = "lidl", Field = RuleField.Alle, CategoryId = 10 },
+            new Rule { Id = 2, Pattern = "Aldi", Field = RuleField.Alle, CategoryId = 20 },
+        };
+
+        RuleEngine.Apply([transaction], rules);
+
+        Assert.Equal(20, CategoryOf(transaction));
     }
 
     [Fact]

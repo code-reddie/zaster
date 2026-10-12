@@ -27,10 +27,5 @@ public sealed record Category : Entity
 
     public List<Category> Children { get; init; } = [];
 
-    /// <summary>
-    /// Reihenfolge unter Geschwistern, kleinere zuerst.
-    /// </summary>
-    public int SortOrder { get; set; }
-
     public List<TransactionSplit> Splits { get; init; } = [];
 }

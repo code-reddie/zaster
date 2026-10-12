@@ -116,9 +116,6 @@ namespace Zaster.Migrations
                     b.Property<int?>("ParentId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
-
                     b.HasKey("Id");
 
                     b.HasIndex("AccountId");
@@ -147,9 +144,6 @@ namespace Zaster.Migrations
                     b.Property<string>("Pattern")
                         .IsRequired()
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 

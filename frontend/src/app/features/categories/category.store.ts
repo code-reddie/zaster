@@ -63,28 +63,6 @@ export class CategoryStore {
     this.categories.update((c) => c.map((x) => (x.id === id ? category : x)));
   }
 
-  /** Verschiebt eine Kategorie unter ihren Geschwistern um eine Stelle nach oben oder unten. */
-  async moveCategory(id: number, direction: -1 | 1) {
-    const category = this.categories().find((c) => c.id === id);
-    if (!category) {
-      return;
-    }
-    const siblings = this.tree().filter((c) => c.parentId === category.parentId);
-    const index = siblings.findIndex((c) => c.id === id);
-    const target = index + direction;
-    if (target < 0 || target >= siblings.length) {
-      return;
-    }
-    const ids = siblings.map((c) => c.id);
-    [ids[index], ids[target]] = [ids[target], ids[index]];
-    this.categories.update((all) =>
-      all.map((c) => (ids.includes(c.id) ? { ...c, sortOrder: ids.indexOf(c.id) } : c)),
-    );
-    await firstValueFrom(
-      this.http.put(this.url('categories/order'), { parentId: category.parentId, ids }),
-    );
-  }
-
   /** Löscht die Kategorie samt Unterkategorien; deren Regeln löscht das Backend mit. */
   async deleteCategory(id: number) {
     await firstValueFrom(this.http.delete(this.url(`categories/${id}`)));
@@ -100,20 +78,6 @@ export class CategoryStore {
   async updateRule(id: number, dto: SaveRule) {
     const rule = await firstValueFrom(this.http.put<Rule>(this.url(`rules/${id}`), dto));
     this.rules.update((r) => r.map((x) => (x.id === id ? rule : x)));
-  }
-
-  async moveRule(id: number, direction: -1 | 1) {
-    const ids = this.rules().map((r) => r.id);
-    const index = ids.indexOf(id);
-    const target = index + direction;
-    if (index < 0 || target < 0 || target >= ids.length) {
-      return;
-    }
-    [ids[index], ids[target]] = [ids[target], ids[index]];
-    this.rules.update((rules) =>
-      ids.map((ruleId, i) => ({ ...rules.find((r) => r.id === ruleId)!, sortOrder: i })),
-    );
-    await firstValueFrom(this.http.put(this.url('rules/order'), { ids }));
   }
 
   async deleteRule(id: number) {
