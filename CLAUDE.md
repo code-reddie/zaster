@@ -71,7 +71,7 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 
 - `/api/auth/login`, `/api/auth/register` (ohne Anmeldung), `/api/auth/refresh` (neuer Token, das Frontend holt ihn, wenn der alte älter als einen Tag ist)
 - `/api/me`, `/api/me/notifications…`, `/api/backup` (Datenbank herunterladen), `/api/backup/schedule` (+ `run`)
-- `/api/accounts`, `/api/accounts/{accountId}`
+- `/api/accounts`, `/api/accounts/{accountId}`, `…/members` (Person per Anmeldename hinzufügen), `…/members/{userId}` (entfernen; die eigene Id heißt verlassen)
 - `/api/accounts/{accountId}/transactions` (Filter `from`, `to`, `search`, `categoryId` inkl. Unterkategorien, `withoutCategory`, `open`, `offset`, `limit`), `…/import`, `…/balance-check`, `…/review`, `…/{id}/category`, `…/{id}/splits`, `…/{id}/reviewed`
 - `/api/accounts/{accountId}/categories` (+ `order`), `/api/accounts/{accountId}/rules` (+ `order`, `apply`)
 - `/api/accounts/{accountId}/fints/sync`, `…/fints/times`, `…/fints/pin`
@@ -102,6 +102,7 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 ### Konten
 - IBAN ist Pflicht beim Anlegen und wird geprüft (Länge, Aufbau, Prüfziffer Modulo 97), siehe `Accounts/Iban.cs`. Sie lässt sich danach nicht ändern, nur Name und FinTS-Kennung.
 - Ein Konto löschen löscht es für alle Mitglieder, mit Buchungen, Kategorien und Regeln.
+- Teilen: Jedes Mitglied fügt einen registrierten Nutzer über den genauen Anmeldenamen hinzu (sofort Mitglied) und kann jedes Mitglied entfernen, auch sich selbst. Das letzte Mitglied kann nicht gehen (409), sonst bliebe ein Konto, das niemand sieht. `AccountDto.Members` enthält Id und Name; das Frontend erkennt sich selbst am Namen (Anmeldenamen sind eindeutig).
 
 ### Import und Duplikate
 - CSV (`POST /api/accounts/{accountId}/transactions/import`) und FinTS laufen beide über `Transactions/TransactionImporter.cs`; jede Buchung merkt sich ihre Herkunft (`Source`: `Manuell`, `Csv`, `FinTs`, `Unbekannt` für Buchungen von vor dem Refactoring).

@@ -12,9 +12,14 @@ public sealed record AccountDto(
     IReadOnlyList<string> SyncTimes,
     DateTimeOffset? LastSyncedAt,
     string? LastSyncError,
-    IReadOnlyList<string> Members,
+    IReadOnlyList<AccountMemberDto> Members,
     int OpenTransactions);
+
+public sealed record AccountMemberDto(int Id, string Name);
 
 public sealed record CreateAccount(string Name, string Iban);
 
 public sealed record UpdateAccount(string Name, string? FinTsUserId);
+
+/// <param name="Name">Anmeldename eines schon registrierten Nutzers.</param>
+public sealed record AddMember(string? Name);

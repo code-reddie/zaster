@@ -25,13 +25,6 @@
             [(ngModel)]="finTsUserId"
           />
         </div>
-        <div>
-          <span class="z-label">Mitglieder</span>
-          <p class="flex items-center gap-2 text-sm">
-            <z-icon name="users" class="size-4 text-muted" />
-            {{ account.members.join(', ') }}
-          </p>
-        </div>
         @if (error()) {
           <p class="z-error">{{ error() }}</p>
         }
@@ -42,6 +35,81 @@
         </div>
       </div>
     </form>
+
+    <!-- Mitglieder -->
+    <section class="z-card p-5 sm:p-6">
+      <h2 class="font-semibold">Mitglieder</h2>
+      <p class="mt-1 mb-4 text-sm text-muted">
+        Alle Mitglieder sehen die Buchungen und sind gleichberechtigt: Sie ordnen Kategorien zu,
+        ändern Regeln, teilen das Konto weiter und können es löschen.
+      </p>
+      <ul class="mb-4 flex flex-col divide-y divide-border rounded-xl border border-border">
+        @for (member of account.members; track member.id) {
+          <li class="flex min-h-12 items-center gap-3 py-1.5 pr-1.5 pl-3">
+            <z-icon name="user" class="size-4 text-muted" />
+            <span class="min-w-0 flex-1 truncate text-sm font-medium">
+              {{ member.name }}
+              @if (isMe(member)) {
+                <span class="font-normal text-muted">(du)</span>
+              }
+            </span>
+            @if (account.members.length > 1) {
+              @if (isMe(member)) {
+                <button
+                  zButton
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  [disabled]="memberBusy()"
+                  (click)="leave()"
+                >
+                  <z-icon name="logout" class="size-4" /> Verlassen
+                </button>
+              } @else {
+                <button
+                  zButton
+                  variant="ghost"
+                  size="icon-sm"
+                  type="button"
+                  [attr.aria-label]="member.name + ' entfernen'"
+                  [disabled]="memberBusy()"
+                  (click)="removeMember(member)"
+                >
+                  <z-icon name="x" class="size-4" />
+                </button>
+              }
+            }
+          </li>
+        }
+      </ul>
+      <form class="flex gap-2" (ngSubmit)="addMember()">
+        <input
+          name="memberName"
+          class="z-input min-w-0 flex-1"
+          autocomplete="off"
+          autocapitalize="none"
+          aria-label="Name der Person"
+          placeholder="Anmeldename"
+          [(ngModel)]="memberName"
+        />
+        <button
+          zButton
+          variant="secondary"
+          type="submit"
+          [disabled]="!memberName().trim()"
+          [loading]="addingMember()"
+        >
+          <z-icon name="plus" class="size-4" /> Teilen
+        </button>
+      </form>
+      @if (memberError()) {
+        <p class="z-error mt-2">{{ memberError() }}</p>
+      } @else {
+        <p class="z-hint">
+          Die Person muss sich vorher bei Zaster registriert haben. Sie sieht das Konto sofort.
+        </p>
+      }
+    </section>
 
     <!-- Kontostand -->
     <section class="z-card p-5 sm:p-6">

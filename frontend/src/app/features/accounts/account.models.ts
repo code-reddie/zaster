@@ -8,9 +8,15 @@ export interface Account {
   syncTimes: string[];
   lastSyncedAt: string | null;
   lastSyncError: string | null;
-  members: string[];
+  /** Alle gleichberechtigt, nach Name sortiert. */
+  members: AccountMember[];
   /** Buchungen ohne Kategorie, die noch nicht geprüft sind. */
   openTransactions: number;
+}
+
+export interface AccountMember {
+  id: number;
+  name: string;
 }
 
 export interface CreateAccount {

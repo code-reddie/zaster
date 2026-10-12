@@ -49,6 +49,24 @@ export class AccountStore {
     this.accounts.update((a) => a.filter((account) => account.id !== id));
   }
 
+  /** Teilt das Konto mit einem registrierten Nutzer (Anmeldename). */
+  async addMember(id: number, name: string) {
+    this.replace(
+      await firstValueFrom(this.http.post<Account>(`/api/accounts/${id}/members`, { name })),
+    );
+  }
+
+  async removeMember(id: number, userId: number) {
+    await firstValueFrom(this.http.delete(`/api/accounts/${id}/members/${userId}`));
+    await this.refresh(id);
+  }
+
+  /** Verlässt ein geteiltes Konto; danach ist es aus der eigenen Liste verschwunden. */
+  async leave(id: number, userId: number) {
+    await firstValueFrom(this.http.delete(`/api/accounts/${id}/members/${userId}`));
+    this.accounts.update((a) => a.filter((account) => account.id !== id));
+  }
+
   private replace(account: Account) {
     this.accounts.update((a) => a.map((x) => (x.id === account.id ? account : x)));
   }

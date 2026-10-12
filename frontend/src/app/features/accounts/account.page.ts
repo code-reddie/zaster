@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { AuthService } from '../../core/auth/auth.service';
 import { PageHeader } from '../../core/layout/page-header';
 import { errorMessage } from '../../core/errors';
 import { Button } from '../../core/ui/button';
@@ -15,6 +16,7 @@ import { FinTsSyncSheet } from '../fints/fints-sync-sheet';
 import { CsvImportSheet } from '../import/csv-import-sheet';
 import { BalanceCheck } from '../transactions/transaction.models';
 import { TransactionsService } from '../transactions/transactions.service';
+import { AccountMember } from './account.models';
 import { AccountStore } from './account.store';
 
 @Component({
@@ -28,6 +30,7 @@ export class AccountPage {
   private readonly dialog = inject(DialogService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
 
   protected readonly name = signal('');
   protected readonly finTsUserId = signal('');
@@ -37,6 +40,10 @@ export class AccountPage {
   protected readonly savingTimes = signal(false);
   protected readonly balance = signal<BalanceCheck | null>(null);
   protected readonly balanceFailed = signal(false);
+  protected readonly memberName = signal('');
+  protected readonly addingMember = signal(false);
+  protected readonly memberBusy = signal(false);
+  protected readonly memberError = signal<string | null>(null);
   protected readonly shownGaps = computed(() => this.balance()?.luecken.slice(0, 10) ?? []);
 
   constructor() {
@@ -45,6 +52,8 @@ export class AccountPage {
       const account = this.store.selected();
       this.name.set(account?.name ?? '');
       this.finTsUserId.set(account?.finTsUserId ?? '');
+      this.memberName.set('');
+      this.memberError.set(null);
     });
     effect(() => {
       const accountId = this.store.selected()?.id;
@@ -137,6 +146,82 @@ export class AccountPage {
       return false;
     } finally {
       this.savingTimes.set(false);
+    }
+  }
+
+  /** Anmeldenamen sind eindeutig, deshalb reicht der Name, um sich selbst zu erkennen. */
+  protected isMe(member: AccountMember) {
+    return member.name === this.auth.userName();
+  }
+
+  protected async addMember() {
+    const account = this.store.selected();
+    const name = this.memberName().trim();
+    if (!account || !name) {
+      return;
+    }
+    this.addingMember.set(true);
+    this.memberError.set(null);
+    try {
+      await this.store.addMember(account.id, name);
+      this.memberName.set('');
+      this.toast.success(`Mit ${name} geteilt.`);
+    } catch (e) {
+      this.memberError.set(errorMessage(e, 'Das Konto konnte nicht geteilt werden.'));
+    } finally {
+      this.addingMember.set(false);
+    }
+  }
+
+  protected async removeMember(member: AccountMember) {
+    const account = this.store.selected();
+    if (!account) {
+      return;
+    }
+    const confirmed = await this.dialog.confirm({
+      title: `${member.name} entfernen?`,
+      text: `${member.name} sieht „${account.name}“ dann nicht mehr. Buchungen, Kategorien und Regeln bleiben.`,
+      confirm: 'Entfernen',
+      danger: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    this.memberBusy.set(true);
+    try {
+      await this.store.removeMember(account.id, member.id);
+      this.toast.success(`${member.name} entfernt.`);
+    } catch (e) {
+      this.toast.error(errorMessage(e, 'Das Mitglied konnte nicht entfernt werden.'));
+    } finally {
+      this.memberBusy.set(false);
+    }
+  }
+
+  protected async leave() {
+    const account = this.store.selected();
+    const me = account?.members.find((m) => this.isMe(m));
+    if (!account || !me) {
+      return;
+    }
+    const confirmed = await this.dialog.confirm({
+      title: `„${account.name}“ verlassen?`,
+      text: 'Du siehst das Konto dann nicht mehr. Für die anderen Mitglieder bleibt alles, wie es ist; sie können dich wieder hinzufügen.',
+      confirm: 'Verlassen',
+      danger: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    this.memberBusy.set(true);
+    try {
+      await this.store.leave(account.id, me.id);
+      this.toast.success(`„${account.name}“ verlassen.`);
+      this.router.navigateByUrl('/');
+    } catch (e) {
+      this.toast.error(errorMessage(e, 'Das Konto konnte nicht verlassen werden.'));
+    } finally {
+      this.memberBusy.set(false);
     }
   }
 
