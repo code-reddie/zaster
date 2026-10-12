@@ -34,112 +34,117 @@
     />
   </div>
 } @else {
-  <div class="flex flex-col gap-3">
+  <div class="flex flex-col">
     @for (transaction of items(); track transaction.id) {
-      <article class="z-card p-4" [class.opacity-50]="busy() === transaction.id">
-        <button type="button" class="block w-full text-left" (click)="details(transaction)">
-          <z-transaction-row
-            [transaction]="transaction"
-            [showPurpose]="false"
-            [showBemerkung]="false"
-          />
-          <p class="mt-2 text-sm text-muted">
-            {{ day(transaction.buchung) }}
-            @if (transaction.verwendungszweck) {
-              · <span class="break-words">{{ transaction.verwendungszweck }}</span>
-            }
-          </p>
-        </button>
-        <button
-          type="button"
-          class="-mx-1.5 mt-2 flex max-w-full items-start gap-1.5 rounded-lg px-1.5 py-1 text-left text-sm hover:bg-surface-2"
-          [class.text-muted]="!transaction.bemerkung"
-          [title]="transaction.bemerkung ? 'Bemerkung ändern' : 'Bemerkung eintragen'"
-          [disabled]="busy() !== null"
-          (click)="note(transaction)"
+      <div class="pb-3" [class.z-leave]="leaving() === transaction.id">
+        <article
+          class="z-card p-4"
+          [class.opacity-50]="busy() === transaction.id && leaving() !== transaction.id"
         >
-          <z-icon name="note" class="mt-0.5 size-4 text-accent" />
-          <span class="min-w-0 break-words">{{
-            transaction.bemerkung || 'Bemerkung eintragen'
-          }}</span>
-        </button>
-        <div class="mt-2 flex flex-wrap items-center gap-2">
-          @if (recent().length) {
-            <span class="text-sm text-muted">Schnell zuordnen:</span>
-          }
-          @for (category of recent(); track category.id) {
-            <button
-              type="button"
-              class="inline-flex h-8 items-center gap-1.5 rounded-full border border-dashed border-border px-3 text-sm hover:border-solid hover:bg-surface-2"
-              [title]="'Kategorie „' + category.path + '“ zuweisen'"
-              [disabled]="busy() !== null"
-              (click)="assign(transaction, category.id)"
-            >
-              <z-icon name="plus" class="size-3.5 text-muted" />
-              <z-category-dot [color]="category.effectiveColor" />
-              {{ category.name }}
-            </button>
-          }
-          <div class="ml-auto flex flex-wrap items-center justify-end gap-0.5 sm:gap-1">
-            <button
-              zButton
-              variant="ghost"
-              size="sm"
-              type="button"
-              class="!px-1.5 sm:!px-3"
-              title="Regel daraus machen"
-              aria-label="Regel daraus machen"
-              [disabled]="busy() !== null"
-              (click)="createRule(transaction)"
-            >
-              <z-icon name="zap" class="size-4" /><span class="hidden sm:inline">Regel</span>
-            </button>
-            @if (transaction.betrag !== 0) {
+          <button type="button" class="block w-full text-left" (click)="details(transaction)">
+            <z-transaction-row
+              [transaction]="transaction"
+              [showPurpose]="false"
+              [showBemerkung]="false"
+            />
+            <p class="mt-2 text-sm text-muted">
+              {{ day(transaction.buchung) }}
+              @if (transaction.verwendungszweck) {
+                · <span class="break-words">{{ transaction.verwendungszweck }}</span>
+              }
+            </p>
+          </button>
+          <button
+            type="button"
+            class="-mx-1.5 mt-2 flex max-w-full items-start gap-1.5 rounded-lg px-1.5 py-1 text-left text-sm hover:bg-surface-2"
+            [class.text-muted]="!transaction.bemerkung"
+            [title]="transaction.bemerkung ? 'Bemerkung ändern' : 'Bemerkung eintragen'"
+            [disabled]="busy() !== null"
+            (click)="note(transaction)"
+          >
+            <z-icon name="note" class="mt-0.5 size-4 text-accent" />
+            <span class="min-w-0 break-words">{{
+              transaction.bemerkung || 'Bemerkung eintragen'
+            }}</span>
+          </button>
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            @if (recent().length) {
+              <span class="text-sm text-muted">Schnell zuordnen:</span>
+            }
+            @for (category of recent(); track category.id) {
+              <button
+                type="button"
+                class="inline-flex h-8 items-center gap-1.5 rounded-full border border-dashed border-border px-3 text-sm hover:border-solid hover:bg-surface-2"
+                [title]="'Kategorie „' + category.path + '“ zuweisen'"
+                [disabled]="busy() !== null"
+                (click)="assign(transaction, category.id)"
+              >
+                <z-icon name="plus" class="size-3.5 text-muted" />
+                <z-category-dot [color]="category.effectiveColor" />
+                {{ category.name }}
+              </button>
+            }
+            <div class="ml-auto flex flex-wrap items-center justify-end gap-0.5 sm:gap-1">
               <button
                 zButton
                 variant="ghost"
                 size="sm"
                 type="button"
                 class="!px-1.5 sm:!px-3"
-                title="Auf mehrere Kategorien aufteilen"
-                aria-label="Aufteilen"
+                title="Regel daraus machen"
+                aria-label="Regel daraus machen"
                 [disabled]="busy() !== null"
-                (click)="split(transaction)"
+                (click)="createRule(transaction)"
               >
-                <z-icon name="split" class="size-4" /><span class="hidden sm:inline"
-                  >Aufteilen</span
-                >
+                <z-icon name="zap" class="size-4" /><span class="hidden sm:inline">Regel</span>
               </button>
-            }
-            <button
-              zButton
-              variant="ghost"
-              size="sm"
-              type="button"
-              class="!px-2 sm:!px-3"
-              [disabled]="busy() !== null"
-              (click)="markReviewed(transaction)"
-            >
-              Nicht kategorisieren
-            </button>
-            <button
-              zButton
-              size="sm"
-              type="button"
-              class="!px-2 sm:!px-3"
-              [disabled]="busy() !== null"
-              (click)="pick(transaction)"
-            >
-              <z-icon name="tag" class="size-4" /> Kategorie
-            </button>
+              @if (transaction.betrag !== 0) {
+                <button
+                  zButton
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  class="!px-1.5 sm:!px-3"
+                  title="Auf mehrere Kategorien aufteilen"
+                  aria-label="Aufteilen"
+                  [disabled]="busy() !== null"
+                  (click)="split(transaction)"
+                >
+                  <z-icon name="split" class="size-4" /><span class="hidden sm:inline"
+                    >Aufteilen</span
+                  >
+                </button>
+              }
+              <button
+                zButton
+                variant="ghost"
+                size="sm"
+                type="button"
+                class="!px-2 sm:!px-3"
+                [disabled]="busy() !== null"
+                (click)="markReviewed(transaction)"
+              >
+                Nicht kategorisieren
+              </button>
+              <button
+                zButton
+                size="sm"
+                type="button"
+                class="!px-2 sm:!px-3"
+                [disabled]="busy() !== null"
+                (click)="pick(transaction)"
+              >
+                <z-icon name="tag" class="size-4" /> Kategorie
+              </button>
+            </div>
           </div>
-        </div>
-      </article>
+        </article>
+      </div>
     }
   </div>
 
   @if (items().length < total()) {
-    <div class="mt-6 flex justify-center">
+    <div class="mt-3 flex justify-center">
       <button zButton variant="secondary" type="button" (click)="loadMore()">Weitere laden</button>
     </div>
   }
