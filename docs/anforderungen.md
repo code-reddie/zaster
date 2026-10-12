@@ -23,7 +23,7 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 ## Kontoauszüge
 
 - ✅ Buchungen über FinTS abrufen (ING), pro Konto, mit gespeicherter PIN und automatischem Abruf zu einstellbaren Uhrzeiten.
-- ✅ Buchungen per CSV importieren (ING-Format), mit Duplikat-Abgleich gegen FinTS-Buchungen.
+- ✅ Buchungen per CSV importieren, mit Duplikat-Abgleich gegen FinTS-Buchungen. Zwei Aufbauten, Zaster erkennt sie selbst über die Kopfzeile: der Umsatzexport der ING und Christophs eigene Liste mit allen alten Buchungen (`Buchung;Valuta;Auftraggeber/Empfänger;Buchungstext;Verwendungszweck;Betrag;Saldo`) (Christoph, 12.10.2026).
 - ✅ Kontostand nach jeder Buchung speichern (CSV-Spalte „Saldo“, bei FinTS aus Anfangs- und Endsaldo des Kontoauszugs berechnet) und damit prüfen, ob Buchungen fehlen (Christoph, 11.10.2026). Anzeige unter „Konto & Abruf“.
 - ✅ Buchungen von Hand anlegen.
 

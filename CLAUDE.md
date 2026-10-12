@@ -1,6 +1,6 @@
 # Zaster
 
-Web-App, mit der man die eigenen Finanzen kategorisiert und visualisiert. Buchungen kommen per FinTS (ING), per CSV-Import (ING-Format) oder werden von Hand angelegt.
+Web-App, mit der man die eigenen Finanzen kategorisiert und visualisiert. Buchungen kommen per FinTS (ING), per CSV-Import (ING-Export oder eigene Umsatzliste) oder werden von Hand angelegt.
 
 Die fachlichen Anforderungen, ihr Umsetzungsstand und offene Fragen stehen in [docs/anforderungen.md](docs/anforderungen.md). Vor jeder neuen Funktion dort nachlesen und die Datei mitpflegen.
 
@@ -106,6 +106,7 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 ### Import und Duplikate
 - CSV (`POST /api/accounts/{accountId}/transactions/import`) und FinTS laufen beide über `Transactions/TransactionImporter.cs`; jede Buchung merkt sich ihre Herkunft (`Source`: `Manuell`, `Csv`, `FinTs`, `Unbekannt` für Buchungen von vor dem Refactoring).
 - Duplikat-Schlüssel (`Transactions/TransactionMatcher.cs`): Buchungstag + Betrag + die ersten 16 Buchstaben/Ziffern des Auftraggebers, normalisiert (Großbuchstaben, ohne Akzente, Umlaute einheitlich). Grund: FinTS/MT940 kürzt Namen auf 27 Zeichen, die CSV enthält den vollen Namen; Valuta und Verwendungszweck sind je Quelle unterschiedlich formatiert.
+- Die CSV liest das Frontend (`features/import/csv-parser.ts`) und schickt die Buchungen als JSON. Spalten werden über die Kopfzeile `Buchung;…` gefunden, damit passen der ING-Export (Kopfbereich, `Wertstellungsdatum`, `Saldo` vor `Betrag`, Windows-1252 oder UTF-8) und Christophs eigene Liste (`Valuta`, `Betrag;Saldo`, Beträge teils mit „€“ und geschütztem Leerzeichen, Verwendungszweck teils über mehrere Zeilen in Anführungszeichen). Deshalb wird die ganze Datei mit Anführungszeichen zerlegt, nicht Zeile für Zeile.
 - Gleiche Schlüssel werden gezählt, damit zwei identische Buchungen am selben Tag nicht als Duplikat verloren gehen.
 - Nach dem Import werden die Regeln des Kontos auf neue Buchungen angewendet.
 - Kontostand (`Transaction.Saldo`, nullable): Stand nach der Buchung laut Bank. Die CSV hat ihn pro Zeile (Spalte „Saldo“). MT940 liefert ihn **nicht** pro Buchung, nur Anfangs- (`:60F:`) und Endsaldo (`:62F:`) je Kontoauszug; `FinTsService.ToTransactions` rechnet ihn in der Reihenfolge des Auszugs hoch und lässt ihn leer, wenn die Summe nicht im Endsaldo aufgeht. Bei einem Duplikat trägt der Import einen fehlenden Kontostand nach. Buchungen von Hand haben keinen.

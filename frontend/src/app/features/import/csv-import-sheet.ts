@@ -8,9 +8,12 @@ import { AmountPipe } from '../../shared/format';
 import { AccountStore } from '../accounts/account.store';
 import { ImportResult, ImportTransaction } from '../transactions/transaction.models';
 import { TransactionsService } from '../transactions/transactions.service';
-import { decodeCsv, parseIngCsv } from './ing-csv-parser';
+import { decodeCsv, parseCsv } from './csv-parser';
 
-/** CSV-Export der ING ins gewählte Konto übernehmen. Ergebnis true, wenn übernommen. */
+/**
+ * CSV-Export der ING oder eine eigene Umsatzliste ins gewählte Konto übernehmen (Aufbau siehe `parseCsv`).
+ * Ergebnis true, wenn übernommen.
+ */
 @Component({
   imports: [DialogFrame, DialogFooter, Button, Icon, AmountPipe],
   template: `
@@ -41,7 +44,9 @@ import { decodeCsv, parseIngCsv } from './ing-csv-parser';
             <span class="mt-1 text-sm text-muted">Andere Datei wählen</span>
           } @else {
             <span class="font-medium">CSV-Datei wählen</span>
-            <span class="mt-1 text-sm text-muted">Umsatzexport aus dem ING-Banking (.csv)</span>
+            <span class="mt-1 text-sm text-muted"
+              >Umsatzexport der ING oder eigene Umsatzliste (.csv)</span
+            >
           }
           <input type="file" accept=".csv,text/csv" class="sr-only" (change)="select($event)" />
         </label>
@@ -152,11 +157,11 @@ export class CsvImportSheet {
     }
     this.fileName.set(file.name);
     this.error.set(null);
-    const transactions = parseIngCsv(decodeCsv(await file.arrayBuffer()));
+    const transactions = parseCsv(decodeCsv(await file.arrayBuffer()));
     this.transactions.set(transactions);
     if (transactions.length === 0) {
       this.error.set(
-        'In der Datei wurden keine Buchungen gefunden. Erwartet wird der CSV-Export der ING mit der Kopfzeile „Buchung;…“.',
+        'In der Datei wurden keine Buchungen gefunden. Erwartet wird eine CSV mit Semikolon und der Kopfzeile „Buchung;…“, etwa der Umsatzexport der ING.',
       );
     }
   }
