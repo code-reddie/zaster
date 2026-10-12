@@ -1,13 +1,14 @@
 import { Component, computed, inject, input } from '@angular/core';
+import { Icon } from '../../core/ui/icon';
 import { AmountPipe } from '../../shared/format';
 import { CategoryBadge } from '../categories/category-badge';
 import { CategoryStore } from '../categories/category.store';
 import { Transaction } from './transaction.models';
 
-/** Eine Buchung in Listen: Kürzel, Auftraggeber, Kategorien als Badges und Betrag. */
+/** Eine Buchung in Listen: Kürzel, Auftraggeber, Bemerkung, Kategorien als Badges und Betrag. */
 @Component({
   selector: 'z-transaction-row',
-  imports: [AmountPipe, CategoryBadge],
+  imports: [AmountPipe, CategoryBadge, Icon],
   host: { class: 'flex min-w-0 items-center gap-3' },
   template: `
     <span
@@ -19,6 +20,14 @@ import { Transaction } from './transaction.models';
       <span class="block truncate font-medium">{{
         transaction().auftraggeber || transaction().buchungstext
       }}</span>
+      @if (showBemerkung() && transaction().bemerkung) {
+        <span class="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm">
+          <z-icon name="note" class="size-3.5 text-accent" />
+          <span class="min-w-0 truncate" [title]="transaction().bemerkung">{{
+            transaction().bemerkung
+          }}</span>
+        </span>
+      }
       <span class="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-muted">
         @for (part of parts(); track part.category.id) {
           <z-category-badge
@@ -50,6 +59,7 @@ export class TransactionRow {
 
   readonly transaction = input.required<Transaction>();
   readonly showPurpose = input(true);
+  readonly showBemerkung = input(true);
 
   /** Teilbeträge mit Kategorie, größter Teil zuerst. */
   protected readonly parts = computed(() =>

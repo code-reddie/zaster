@@ -42,6 +42,19 @@ public sealed record Transaction : Entity
 
     public required decimal Betrag { get; init; }
 
+    /// <summary>Höchstlänge von <see cref="Bemerkung"/>.</summary>
+    public const int MaxBemerkung = 500;
+
+    /// <summary>
+    /// Eigene Notiz zur Buchung, z. B. worum es ging, wenn der Verwendungszweck es nicht verrät.
+    /// Null = keine. Kommt nie von der Bank; Import und Abruf lassen sie unverändert.
+    /// </summary>
+    public string? Bemerkung { get; set; }
+
+    /// <summary>Kürzt Leerraum am Rand; leer wird zu null.</summary>
+    public static string? NormalizeBemerkung(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     /// <summary>
     /// Kontostand nach dieser Buchung laut Bank: aus der Spalte „Saldo“ der ING-CSV oder beim FinTS-Abruf
     /// aus dem Anfangssaldo des Kontoauszugs berechnet. Null bei Buchungen von Hand und bei älteren Abrufen.

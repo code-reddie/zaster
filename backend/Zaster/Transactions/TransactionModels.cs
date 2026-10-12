@@ -14,6 +14,7 @@ public sealed record TransactionDto(
     string Verwendungszweck,
     decimal Betrag,
     decimal? Saldo,
+    string? Bemerkung,
     IReadOnlyList<TransactionSplitDto> Splits,
     bool Reviewed,
     TransactionSource Source)
@@ -28,6 +29,7 @@ public sealed record TransactionDto(
         t.Verwendungszweck,
         t.Betrag,
         t.Saldo,
+        t.Bemerkung,
         t.Splits.OrderBy(s => s.Betrag < 0 ? s.Betrag : -s.Betrag).ThenBy(s => s.Id).Select(s => new TransactionSplitDto(s.CategoryId, s.Betrag)).ToList(),
         t.Reviewed,
         t.Source);
@@ -54,7 +56,8 @@ public sealed record CreateTransaction(
     string Auftraggeber,
     string? Buchungstext,
     string? Verwendungszweck,
-    decimal Betrag);
+    decimal Betrag,
+    string? Bemerkung = null);
 
 /// <summary>
 /// Ohne Valuta gilt der Buchungstag, wie bei Buchungen von Hand. <paramref name="Saldo"/> ist der
@@ -102,6 +105,9 @@ public sealed record SetCategory(int? CategoryId);
 public sealed record SetSplits(IReadOnlyList<TransactionSplitDto> Splits);
 
 public sealed record SetReviewed(bool Reviewed);
+
+/// <summary>Eigene Bemerkung zur Buchung; leer oder null entfernt sie.</summary>
+public sealed record SetBemerkung(string? Bemerkung);
 
 /// <summary>
 /// Hakt die angegebenen Buchungen ab, ohne Ids alle offenen des Kontos.

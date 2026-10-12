@@ -8,6 +8,7 @@ import { ToastService } from '../../core/ui/toast';
 import { isoDate } from '../../shared/format';
 import { AccountStore } from '../accounts/account.store';
 import { TransactionsService } from './transactions.service';
+import { MAX_BEMERKUNG } from './transaction.models';
 
 /** Buchung von Hand anlegen, z. B. Bargeld. Ergebnis true, wenn angelegt. */
 @Component({
@@ -60,6 +61,12 @@ import { TransactionsService } from './transactions.service';
           <label class="z-label" for="purpose">Verwendungszweck</label>
           <input id="purpose" name="purpose" class="z-input" [(ngModel)]="purpose" />
         </div>
+        <div>
+          <label class="z-label" for="note"
+            >Bemerkung <span class="text-muted">(optional)</span></label
+          >
+          <input id="note" name="note" class="z-input" [maxlength]="maxNote" [(ngModel)]="note" />
+        </div>
         @if (error()) {
           <p class="z-error">{{ error() }}</p>
         }
@@ -84,6 +91,8 @@ export class CreateTransactionSheet {
   protected readonly date = signal(isoDate(new Date()));
   protected readonly party = signal('');
   protected readonly purpose = signal('');
+  protected readonly note = signal('');
+  protected readonly maxNote = MAX_BEMERKUNG;
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
 
@@ -122,6 +131,7 @@ export class CreateTransactionSheet {
         buchungstext: this.expense() ? 'Ausgabe' : 'Einnahme',
         verwendungszweck: this.purpose().trim() || null,
         betrag: this.expense() ? -Math.abs(value) : Math.abs(value),
+        bemerkung: this.note().trim() || null,
       });
       this.toast.success('Buchung angelegt.');
       this.ref.close(true);

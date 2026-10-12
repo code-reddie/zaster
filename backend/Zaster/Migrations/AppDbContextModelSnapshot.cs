@@ -174,6 +174,9 @@ namespace Zaster.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Bemerkung")
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal>("Betrag")
                         .HasColumnType("TEXT");
 

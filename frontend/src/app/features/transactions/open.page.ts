@@ -15,6 +15,7 @@ import { CategoryPicker, CategoryPickerData } from '../categories/category-picke
 import { CategoryStore } from '../categories/category.store';
 import { RuleSheet, RuleSheetData } from '../categories/rule-sheet';
 import { Transaction } from './transaction.models';
+import { BemerkungSheet } from './bemerkung-sheet';
 import { SplitSheet } from './split-sheet';
 import { TransactionRow } from './transaction-row';
 import { ruleFromTransaction, TransactionSheet, TransactionSheetResult } from './transaction-sheet';
@@ -97,6 +98,14 @@ export class OpenPage {
     const updated = await this.dialog.result<Transaction, Transaction>(SplitSheet, transaction);
     if (updated) {
       await this.run(transaction, async () => updated);
+    }
+  }
+
+  /** Bemerkung eintragen; die Buchung bleibt offen und in der Liste. */
+  protected async note(transaction: Transaction) {
+    const updated = await this.dialog.result<Transaction, Transaction>(BemerkungSheet, transaction);
+    if (updated) {
+      this.items.update((items) => items.map((t) => (t.id === updated.id ? updated : t)));
     }
   }
 

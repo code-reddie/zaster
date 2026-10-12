@@ -10,6 +10,7 @@ import { CategoryDot } from '../categories/category-dot';
 import { CategoryPicker, CategoryPickerData } from '../categories/category-picker';
 import { CategoryStore } from '../categories/category.store';
 import { RuleSheet, RuleSheetData } from '../categories/rule-sheet';
+import { BemerkungInput } from './bemerkung-input';
 import { SplitSheet } from './split-sheet';
 import { singleCategoryId, SOURCE_LABELS, Transaction } from './transaction.models';
 import { TransactionsService } from './transactions.service';
@@ -30,9 +31,12 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
   };
 }
 
-/** Details einer Buchung: Kategorie setzen oder aufteilen, abhaken, Regel daraus machen, löschen. */
+/**
+ * Details einer Buchung: Kategorie setzen oder aufteilen, abhaken, Bemerkung eintragen, Regel daraus
+ * machen, löschen.
+ */
 @Component({
-  imports: [DialogFrame, DialogFooter, Button, Icon, AmountPipe, CategoryDot],
+  imports: [DialogFrame, DialogFooter, Button, Icon, AmountPipe, CategoryDot, BemerkungInput],
   template: `
     <z-dialog title="Buchung" [subtitle]="day()">
       <div class="mb-5 text-center">
@@ -115,6 +119,20 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
         </label>
       }
 
+      <div class="mt-4">
+        <z-bemerkung-input inputId="sheet-bemerkung" [(value)]="note" />
+        @if (noteChanged()) {
+          <div class="mt-2 flex justify-end gap-2">
+            <button zButton variant="ghost" size="sm" type="button" (click)="resetNote()">
+              Verwerfen
+            </button>
+            <button zButton size="sm" type="button" [loading]="savingNote()" (click)="saveNote()">
+              Bemerkung speichern
+            </button>
+          </div>
+        }
+      </div>
+
       <dl class="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-sm">
         <dt class="text-muted">Buchungstext</dt>
         <dd>{{ transaction().buchungstext || '–' }}</dd>
@@ -157,6 +175,11 @@ export class TransactionSheet {
 
   protected readonly transaction = signal(inject<Transaction>(DIALOG_DATA));
   protected readonly error = signal<string | null>(null);
+  protected readonly note = signal(this.transaction().bemerkung ?? '');
+  protected readonly savingNote = signal(false);
+  protected readonly noteChanged = computed(
+    () => this.note().trim() !== (this.transaction().bemerkung ?? ''),
+  );
 
   protected readonly parts = computed(() =>
     this.transaction().splits.map((s) => ({
@@ -207,6 +230,25 @@ export class TransactionSheet {
         !this.transaction().reviewed,
       ),
     );
+  }
+
+  protected resetNote() {
+    this.note.set(this.transaction().bemerkung ?? '');
+  }
+
+  protected async saveNote() {
+    this.savingNote.set(true);
+    try {
+      await this.save(() =>
+        this.service.setBemerkung(
+          this.transaction().accountId,
+          this.transaction().id,
+          this.note().trim(),
+        ),
+      );
+    } finally {
+      this.savingNote.set(false);
+    }
   }
 
   protected async createRule() {

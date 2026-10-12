@@ -60,6 +60,13 @@ export class TransactionsService {
     );
   }
 
+  /** Setzt die eigene Bemerkung; leer entfernt sie. */
+  setBemerkung(accountId: number, id: number, bemerkung: string): Promise<Transaction> {
+    return firstValueFrom(
+      this.http.put<Transaction>(`${this.url(accountId)}/${id}/bemerkung`, { bemerkung }),
+    );
+  }
+
   /** Hakt die angegebenen Buchungen ab, ohne Ids alle offenen des Kontos. */
   async review(accountId: number, ids?: number[]): Promise<number> {
     const result = await firstValueFrom(
