@@ -80,6 +80,20 @@ export class CategoryStore {
     this.rules.update((r) => r.map((x) => (x.id === id ? rule : x)));
   }
 
+  async moveRule(id: number, direction: -1 | 1) {
+    const ids = this.rules().map((r) => r.id);
+    const index = ids.indexOf(id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= ids.length) {
+      return;
+    }
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    this.rules.update((rules) =>
+      ids.map((ruleId, i) => ({ ...rules.find((r) => r.id === ruleId)!, sortOrder: i })),
+    );
+    await firstValueFrom(this.http.put(this.url('rules/order'), { ids }));
+  }
+
   async deleteRule(id: number) {
     await firstValueFrom(this.http.delete(this.url(`rules/${id}`)));
     this.rules.update((r) => r.filter((x) => x.id !== id));

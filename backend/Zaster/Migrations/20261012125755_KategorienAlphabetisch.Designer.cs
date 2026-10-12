@@ -11,8 +11,8 @@ using Zaster.Database;
 namespace Zaster.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261012125245_AlphabetischSortieren")]
-    partial class AlphabetischSortieren
+    [Migration("20261012125755_KategorienAlphabetisch")]
+    partial class KategorienAlphabetisch
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -147,6 +147,9 @@ namespace Zaster.Migrations
                     b.Property<string>("Pattern")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 

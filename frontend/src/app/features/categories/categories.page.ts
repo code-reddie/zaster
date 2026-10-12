@@ -9,7 +9,7 @@ import { Spinner } from '../../core/ui/spinner';
 import { ToastService } from '../../core/ui/toast';
 import { AccountStore } from '../accounts/account.store';
 import { CategoryDot } from './category-dot';
-import { CategoryNode, compareText, Rule, RULE_FIELDS } from './category.models';
+import { CategoryNode, Rule, RULE_FIELDS } from './category.models';
 import { CategorySheet, CategorySheetData } from './category-sheet';
 import { CategoryStore } from './category.store';
 import { RuleSheet, RuleSheetData } from './rule-sheet';
@@ -24,16 +24,8 @@ export class CategoriesPage {
   private readonly dialog = inject(DialogService);
   private readonly toast = inject(ToastService);
 
-  /** Alphabetisch nach Suchtext, bei gleichem Suchtext nach Kategorie. */
   protected readonly rules = computed(() =>
-    this.store
-      .rules()
-      .map((rule) => ({ rule, category: this.store.byId().get(rule.categoryId) }))
-      .sort(
-        (a, b) =>
-          compareText(a.rule.pattern, b.rule.pattern) ||
-          compareText(a.category?.path ?? '', b.category?.path ?? ''),
-      ),
+    this.store.rules().map((rule) => ({ rule, category: this.store.byId().get(rule.categoryId) })),
   );
 
   protected fieldLabel(rule: Rule) {
@@ -48,6 +40,15 @@ export class CategoriesPage {
 
   protected editRule(rule?: Rule) {
     this.dialog.open<number, RuleSheetData>(RuleSheet, { rule });
+  }
+
+  protected async moveRule(rule: Rule, direction: -1 | 1) {
+    try {
+      await this.store.moveRule(rule.id, direction);
+    } catch (e) {
+      this.toast.error(errorMessage(e, 'Die Reihenfolge konnte nicht gespeichert werden.'));
+      await this.store.reload();
+    }
   }
 
   protected async applyRules() {

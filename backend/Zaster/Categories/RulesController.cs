@@ -13,13 +13,21 @@ namespace Zaster.Categories;
 [AccountMember]
 public sealed class RulesController(AppDbContext context) : ApiControllerBase
 {
+    /// <summary>
+    /// Regeln in der Reihenfolge, in der sie geprüft werden.
+    /// </summary>
     [HttpGet]
     public async Task<IReadOnlyList<RuleDto>> GetRules(int accountId, CancellationToken cancellationToken) =>
         await context.Rules
             .Where(r => r.AccountId == accountId)
-            .Select(r => new RuleDto(r.Id, r.Pattern, r.Field, r.CategoryId))
+            .OrderBy(r => r.SortOrder)
+            .ThenBy(r => r.Id)
+            .Select(r => new RuleDto(r.Id, r.Pattern, r.Field, r.CategoryId, r.SortOrder))
             .ToListAsync(cancellationToken);
 
+    /// <summary>
+    /// Legt eine Regel am Ende der Reihenfolge an.
+    /// </summary>
     [HttpPost]
     public async Task<ActionResult<RuleDto>> CreateRule(int accountId, SaveRule request, CancellationToken cancellationToken)
     {
@@ -28,12 +36,18 @@ public sealed class RulesController(AppDbContext context) : ApiControllerBase
             return BadRequestProblem(error);
         }
 
+        var sortOrder = await context.Rules
+            .Where(r => r.AccountId == accountId)
+            .Select(r => (int?)r.SortOrder)
+            .MaxAsync(cancellationToken) ?? -1;
+
         var rule = new Rule
         {
             AccountId = accountId,
             Pattern = request.Pattern.Trim(),
             Field = request.Field,
             CategoryId = request.CategoryId,
+            SortOrder = sortOrder + 1,
         };
         context.Rules.Add(rule);
         await context.SaveChangesAsync(cancellationToken);
@@ -61,6 +75,25 @@ public sealed class RulesController(AppDbContext context) : ApiControllerBase
         await context.SaveChangesAsync(cancellationToken);
 
         return RuleDto.From(rule);
+    }
+
+    [HttpPut("order")]
+    public async Task<IActionResult> Reorder(int accountId, ReorderRules request, CancellationToken cancellationToken)
+    {
+        var rules = await context.Rules.Where(r => r.AccountId == accountId).ToListAsync(cancellationToken);
+        if (!rules.Select(r => r.Id).Order().SequenceEqual(request.Ids.Order()))
+        {
+            return BadRequestProblem("Die Liste passt nicht zu den Regeln des Kontos.");
+        }
+
+        var positions = request.Ids.Select((ruleId, index) => (ruleId, index)).ToDictionary(p => p.ruleId, p => p.index);
+        foreach (var rule in rules)
+        {
+            rule.SortOrder = positions[rule.Id];
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+        return NoContent();
     }
 
     [HttpDelete("{id:int}")]

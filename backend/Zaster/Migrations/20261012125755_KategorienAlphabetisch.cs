@@ -5,15 +5,11 @@
 namespace Zaster.Migrations
 {
     /// <inheritdoc />
-    public partial class AlphabetischSortieren : Migration
+    public partial class KategorienAlphabetisch : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "SortOrder",
-                table: "Rules");
-
             migrationBuilder.DropColumn(
                 name: "SortOrder",
                 table: "Categories");
@@ -22,13 +18,6 @@ namespace Zaster.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(
-                name: "SortOrder",
-                table: "Rules",
-                type: "INTEGER",
-                nullable: false,
-                defaultValue: 0);
-
             migrationBuilder.AddColumn<int>(
                 name: "SortOrder",
                 table: "Categories",

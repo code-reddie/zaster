@@ -35,6 +35,7 @@ export interface Rule {
   pattern: string;
   field: RuleField;
   categoryId: number;
+  sortOrder: number;
 }
 
 export interface SaveRule {

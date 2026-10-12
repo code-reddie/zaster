@@ -32,6 +32,11 @@ public sealed record Rule : Entity
 
     public Category? Category { get; init; }
 
+    /// <summary>
+    /// Reihenfolge der Prüfung, kleinere zuerst. Die erste passende Regel gewinnt.
+    /// </summary>
+    public int SortOrder { get; set; }
+
     public bool Matches(Transaction transaction) => Field switch
     {
         RuleField.Auftraggeber => Contains(transaction.Auftraggeber),

@@ -37,7 +37,7 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 ## Regeln
 
 - ✅ Buchungen werden anhand von Regeln automatisch kategorisiert (Teilstring in Auftraggeber, Buchungstext, Verwendungszweck oder allen).
-- ✅ Jedes Konto hat seine eigenen Regeln. Sie stehen alphabetisch; passen mehrere, gewinnt der längste Suchtext.
+- ✅ Jedes Konto hat seine eigenen Regeln. Die Reihenfolge ist einstellbar, die erste passende Regel gewinnt.
 - ✅ Regeln nachträglich auf alle alten Buchungen ohne Kategorie anwenden.
 - ✅ Neue Buchungen (manuell, CSV, FinTS) bekommen automatisch die passenden Regeln.
 

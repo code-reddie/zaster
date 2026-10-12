@@ -71,7 +71,7 @@
     <div class="mb-2 flex items-center justify-between gap-3">
       <div>
         <h2 class="font-semibold">Regeln</h2>
-        <p class="text-sm text-muted">Passen mehrere, gewinnt der längste Suchtext.</p>
+        <p class="text-sm text-muted">Von oben nach unten geprüft, die erste passende gewinnt.</p>
       </div>
       <div class="flex gap-2">
         @if (store.rules().length) {
@@ -112,8 +112,8 @@
         </z-empty-state>
       </div>
     } @else {
-      <ul class="z-card divide-y divide-border overflow-hidden">
-        @for (item of rules(); track item.rule.id) {
+      <ol class="z-card divide-y divide-border overflow-hidden">
+        @for (item of rules(); track item.rule.id; let first = $first, last = $last) {
           <li class="group flex items-center gap-1 pr-2 hover:bg-surface-2">
             <button
               type="button"
@@ -127,9 +127,31 @@
                 {{ item.category?.path ?? '?' }}
               </span>
             </button>
+            <div
+              class="flex opacity-100 lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100"
+            >
+              <button
+                type="button"
+                class="grid size-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-fg disabled:invisible"
+                aria-label="Nach oben"
+                [disabled]="first"
+                (click)="moveRule(item.rule, -1)"
+              >
+                <z-icon name="arrow-up" class="size-4" />
+              </button>
+              <button
+                type="button"
+                class="grid size-8 place-items-center rounded-lg text-muted hover:bg-surface hover:text-fg disabled:invisible"
+                aria-label="Nach unten"
+                [disabled]="last"
+                (click)="moveRule(item.rule, 1)"
+              >
+                <z-icon name="arrow-down" class="size-4" />
+              </button>
+            </div>
           </li>
         }
-      </ul>
+      </ol>
     }
   </section>
 </div>
