@@ -46,6 +46,11 @@ export const routes: Routes = [
               import('./features/transactions/open.page').then((m) => m.OpenPage),
           },
           {
+            path: 'verteilung',
+            title: 'Verteilung · Zaster',
+            loadComponent: () => import('./features/flows/flows.page').then((m) => m.FlowsPage),
+          },
+          {
             path: 'kategorien',
             title: 'Kategorien · Zaster',
             loadComponent: () =>

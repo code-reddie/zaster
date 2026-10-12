@@ -32,7 +32,7 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 - ✅ Kategorien anlegen und verwalten (Name, Farbe, Lage im Baum, Reihenfolge), Buchungen zuordnen.
 - ✅ Baumstruktur mit beliebig vielen Ebenen (z. B. Autos → Passat, Corsa; Lebensmittel → Süßkram, Brot). Löschen nimmt die Unterkategorien mit, ihre Buchungen sind danach wieder ohne Kategorie.
 - ✅ Jedes Konto hat seine eigenen Kategorien, damit geteilte Konten nicht im Chaos enden. Beim Umbau hat jedes Konto leer angefangen (Entscheidung 4).
-- ✅ Eine Buchung lässt sich auf mehrere Kategorien aufteilen (z. B. Einkauf im Kaufland: Lebensmittel und eine Bohrmaschine unter „Werkzeuge“). Die Teilbeträge ergeben zusammen immer den ganzen Buchungsbetrag (Entscheidung 7). Kategoriefilter und Summen der Buchungsliste rechnen mit den Teilbeträgen; Sankey muss das später auch tun.
+- ✅ Eine Buchung lässt sich auf mehrere Kategorien aufteilen (z. B. Einkauf im Kaufland: Lebensmittel und eine Bohrmaschine unter „Werkzeuge“). Die Teilbeträge ergeben zusammen immer den ganzen Buchungsbetrag (Entscheidung 7). Kategoriefilter, Summen der Buchungsliste und das Sankey-Diagramm rechnen mit den Teilbeträgen.
 
 ## Regeln
 
@@ -49,7 +49,7 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 
 ## Diagramme
 
-- ⬜ Verteilung der Ein- und Ausgaben als Sankey-Flussdiagramm, pro Konto.
+- ✅ Verteilung der Ein- und Ausgaben als Sankey-Flussdiagramm, pro Konto (Seite „Verteilung“, `/konten/<id>/verteilung`): Einnahmen links, Konto in der Mitte, Ausgaben rechts, Unterkategorien per Tipp aufklappbar; Zeitraum Monat, Jahr (Standard: laufendes Jahr), alles oder von–bis. Erstattungen werden innerhalb einer Kategorie verrechnet, Buchungen ohne Kategorie erscheinen als „Ohne Kategorie“, die Differenz als „Überschuss“ bzw. „Aus dem Kontostand“.
 
 ## Allgemein
 

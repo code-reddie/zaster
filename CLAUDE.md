@@ -65,7 +65,7 @@ Das ist eine Arbeitsanweisung für Claude, keine technische Prüfung: Nichts im 
 
 ## Aufbau des Backends
 
-Ordner nach Fachbereich: `Accounts/`, `Transactions/`, `Categories/` (Kategorien, Regeln, `RuleEngine`), `Users/`, `Auth/`, `FinTs/`, `Notifications/`, `Backup/`, dazu `Common/` und `Database/` (DbContext, `Entity`). Pro Bereich liegen Entity, DTOs (`*Models.cs`) und Controller zusammen.
+Ordner nach Fachbereich: `Accounts/`, `Transactions/`, `Categories/` (Kategorien, Regeln, `RuleEngine`), `Reports/` (Auswertungen, Sankey), `Users/`, `Auth/`, `FinTs/`, `Notifications/`, `Backup/`, dazu `Common/` und `Database/` (DbContext, `Entity`). Pro Bereich liegen Entity, DTOs (`*Models.cs`) und Controller zusammen.
 
 API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 
@@ -75,13 +75,14 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 - `/api/accounts/{accountId}/transactions` (Filter `from`, `to`, `search`, `categoryId` inkl. Unterkategorien, `withoutCategory`, `open`, `offset`, `limit`), `…/import`, `…/balance-check`, `…/review`, `…/{id}/category`, `…/{id}/splits`, `…/{id}/reviewed`
 - `/api/accounts/{accountId}/categories` (+ `order`), `/api/accounts/{accountId}/rules` (+ `order`, `apply`)
 - `/api/accounts/{accountId}/fints/sync`, `…/fints/times`, `…/fints/pin`
+- `/api/accounts/{accountId}/flows` (Filter `from`, `to`): Beträge je Kategorie für das Sankey-Diagramm
 
 ## Aufbau des Frontends
 
 - `core/`: Anmeldung (`auth/`: Token, Interceptor, Guards), Layout (`layout/`: `Shell` mit Seitenleiste bzw. Navigationsleiste unten, Kontowahl, `PageHeader`) und der Baukasten `ui/` (`zButton`, `z-icon`, `DialogService` mit `z-dialog`/`z-dialog-footer`, `ToastService`, Leerzustand, Spinner). `core/errors.ts` holt die deutsche Meldung (`detail`) aus ProblemDetails.
 - `shared/format.ts`: Betrag (`amount`), IBAN, Datumsangaben.
 - `features/<bereich>/`: Seiten (`*.page.ts`), Sheets/Dialoge (`*-sheet.ts`), Services und Stores. Stores sind einfache `@Injectable`-Klassen mit Signals: `AccountStore` (Konten, gewähltes Konto), `CategoryStore` (Kategorien und Regeln des gewählten Kontos; `Shell` lädt sie beim Kontowechsel).
-- Routen sind deutsch und hängen am Konto: `/konten/:accountId/buchungen`, `…/offen`, `…/kategorien`, `…/konto`, dazu `/konten/neu`, `/einstellungen`, `/anmelden`, `/registrieren`. `/` führt zum zuletzt genutzten Konto.
+- Routen sind deutsch und hängen am Konto: `/konten/:accountId/buchungen`, `…/offen`, `…/verteilung`, `…/kategorien`, `…/konto`, dazu `/konten/neu`, `/einstellungen`, `/anmelden`, `/registrieren`. `/` führt zum zuletzt genutzten Konto.
 - Farben nur über die Tokens aus `styles.css` (`bg-surface`, `text-muted`, `text-positive`, `bg-accent` …), nie feste Tailwind-Farben wie `bg-gray-100`: die Tokens schalten hell/dunkel nach Systemeinstellung um. Wiederkehrende Formularteile: `z-input`, `z-label`, `z-hint`, `z-card`, `z-checkbox`, Beträge mit Klasse `amount` (Ziffern gleich breit).
 - Breakpoints: unter 640 px öffnen Dialoge als Sheet von unten, ab 1024 px gibt es die Seitenleiste statt Kopf- und Navigationsleiste. Neue Seiten in allen drei Breiten prüfen (iPhone 390 px, iPad hoch 820 px, PC), am besten per Playwright mit Screenshot.
 - Formulare mit `FormsModule` und Signals (`[(ngModel)]` auf ein `signal`), keine Reactive Forms.
@@ -117,8 +118,13 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 - Kategorien und Regeln gehören dem Konto (`AccountId`), nicht dem Nutzer. Beim Umzug (Migration `Refactoring`, 11.10.2026) wurden die alten Nutzer-Kategorien, Regeln und Zuordnungen gelöscht.
 - Kategorien bilden einen Baum beliebiger Tiefe (`ParentId`, Reihenfolge unter Geschwistern `SortOrder`). Die API liefert eine flache Liste, den Baum baut das Frontend. Verschieben unter sich selbst oder eigene Unterkategorien lehnt das Backend ab; Namen sind pro Ebene eindeutig. Löschen nimmt Unterkategorien und deren Regeln mit, die Buchungen werden wieder offen.
 - Regeln (`Categories/RuleEngine.cs`): Teilstring-Vergleich ohne Groß-/Kleinschreibung auf Auftraggeber, Buchungstext, Verwendungszweck oder alle drei. Geprüft wird nach `SortOrder`, die erste passende Regel gewinnt. Regeln überschreiben nie eine schon gesetzte Kategorie oder Aufteilung. `POST …/rules/apply` wendet sie auf alle Buchungen des Kontos ohne Kategorie an.
-- Aufteilen: Eine Buchung hat 0..n Teilbeträge (`TransactionSplit`: Kategorie + Betrag mit dem Vorzeichen der Buchung, jede Kategorie höchstens einmal). Leer = ohne Kategorie, sonst ergeben die Teile zusammen genau `Betrag` (`Transaction.ValidateSplit`); halb kategorisierte Buchungen gibt es nicht. `Transaction.Categorize` legt einen Teil über den ganzen Betrag an, `Transaction.Split` ersetzt alle (Teile müssen per `Include` geladen sein). Auswertungen nach Kategorie (Filter, Summen, später Sankey) rechnen mit den Teilbeträgen, nicht mit `Betrag`. Wird eine Kategorie gelöscht, verlieren betroffene Buchungen alle Teile und sind wieder offen.
+- Aufteilen: Eine Buchung hat 0..n Teilbeträge (`TransactionSplit`: Kategorie + Betrag mit dem Vorzeichen der Buchung, jede Kategorie höchstens einmal). Leer = ohne Kategorie, sonst ergeben die Teile zusammen genau `Betrag` (`Transaction.ValidateSplit`); halb kategorisierte Buchungen gibt es nicht. `Transaction.Categorize` legt einen Teil über den ganzen Betrag an, `Transaction.Split` ersetzt alle (Teile müssen per `Include` geladen sein). Auswertungen nach Kategorie (Filter, Summen, Sankey) rechnen mit den Teilbeträgen, nicht mit `Betrag`. Wird eine Kategorie gelöscht, verlieren betroffene Buchungen alle Teile und sind wieder offen.
 - „Geprüft“ (`Transaction.Reviewed`): Kategorie setzen (von Hand oder per Regel) macht die Buchung geprüft, Kategorie entfernen macht sie wieder offen (`Transaction.Categorize`). „Offen“ heißt: ohne Kategorie und nicht geprüft; nur diese zählen für die Seite „Ohne Kategorie“, `AccountDto.OpenTransactions` und die Benachrichtigung. Nach der Migration sind alle alten Buchungen offen.
+
+### Verteilung (Sankey)
+- `Reports/Flows.cs` summiert je Kategorie die eigenen Teilbeträge (ohne Unterkategorien) und **verrechnet** sie: Eine Erstattung senkt die Ausgaben ihrer Kategorie. Buchungen ohne Kategorie werden nicht verrechnet, sondern getrennt als Einnahmen und Ausgaben geliefert.
+- Den Baum baut das Frontend (`features/flows/flow.models.ts`): Eine Kategorie steht auf der Seite, zu der ihr verrechneter Betrag passt, eine Elternkategorie also unter Umständen auf beiden Seiten. Eigene Buchungen einer Kategorie mit Unterkategorien erscheinen beim Aufklappen als „Ohne Unterkategorie“. Die Differenz gleicht „Überschuss“ (rechts) bzw. „Aus dem Kontostand“ (links) aus.
+- Das Diagramm ist selbst gezeichnetes SVG ohne Bibliothek (`sankey-layout.ts` rechnet, `sankey-chart.ts` zeichnet). Reicht die Breite für aufgeklappte Spalten nicht (iPhone), scrollt es waagerecht; die Liste darunter zeigt dieselben Zahlen.
 
 ### FinTS (ING)
 - Konfiguration in `FinTs/FinTsOptions.cs`, Abschnitt `FinTS` (Umgebungsvariablen `FinTS__...`): URL, BLZ und BIC der ING sind voreingestellt.

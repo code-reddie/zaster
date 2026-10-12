@@ -1,0 +1,158 @@
+<z-page-header title="Verteilung" [subtitle]="accounts.selected()?.name" subtitleDesktopOnly />
+
+<!-- Zeitraum -->
+<div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+  <div
+    class="grid grid-cols-4 rounded-xl border border-border bg-surface p-1 shadow-card"
+    role="group"
+    aria-label="Zeitraum"
+  >
+    @for (m of modes; track m.value) {
+      <button
+        type="button"
+        class="h-8 rounded-lg px-3 text-sm font-medium text-muted hover:text-fg"
+        [class.!bg-accent-soft]="mode() === m.value"
+        [class.!text-accent]="mode() === m.value"
+        [attr.aria-pressed]="mode() === m.value"
+        (click)="setMode(m.value)"
+      >
+        {{ m.label }}
+      </button>
+    }
+  </div>
+
+  @if (mode() === 'monat' || mode() === 'jahr') {
+    <div class="flex items-center rounded-xl border border-border bg-surface shadow-card">
+      <button
+        type="button"
+        class="grid size-10 place-items-center rounded-l-xl text-muted hover:bg-surface-2 hover:text-fg"
+        [attr.aria-label]="mode() === 'monat' ? 'Monat zurück' : 'Jahr zurück'"
+        (click)="shift(-1)"
+      >
+        <z-icon name="chevron-left" class="size-4" />
+      </button>
+      <span class="min-w-36 flex-1 px-2 text-center text-sm font-medium">{{ periodLabel() }}</span>
+      <button
+        type="button"
+        class="grid size-10 place-items-center rounded-r-xl text-muted hover:bg-surface-2 hover:text-fg"
+        [attr.aria-label]="mode() === 'monat' ? 'Monat vor' : 'Jahr vor'"
+        (click)="shift(1)"
+      >
+        <z-icon name="chevron-right" class="size-4" />
+      </button>
+    </div>
+  } @else if (mode() === 'zeitraum') {
+    <div class="flex items-center gap-2">
+      <input type="date" class="z-input min-w-0" aria-label="Von" [(ngModel)]="customFrom" />
+      <span class="text-sm text-muted">bis</span>
+      <input type="date" class="z-input min-w-0" aria-label="Bis" [(ngModel)]="customTo" />
+    </div>
+  }
+</div>
+
+@if (error()) {
+  <p class="z-error mb-4">{{ error() }}</p>
+}
+
+@if (tree(); as t) {
+  <!-- Summen -->
+  <div class="mb-4 grid grid-cols-3 gap-2 sm:gap-3" [class.opacity-60]="loading()">
+    <div class="z-card px-3 py-3 sm:px-4">
+      <p class="text-xs text-muted">Einnahmen</p>
+      <p class="amount mt-0.5 truncate text-sm font-semibold text-positive sm:text-lg">
+        {{ t.einnahmen | amount }}
+      </p>
+    </div>
+    <div class="z-card px-3 py-3 sm:px-4">
+      <p class="text-xs text-muted">Ausgaben</p>
+      <p class="amount mt-0.5 truncate text-sm font-semibold sm:text-lg">
+        {{ t.ausgaben | amount }}
+      </p>
+    </div>
+    <div class="z-card px-3 py-3 sm:px-4">
+      <p class="text-xs text-muted">Saldo</p>
+      <p
+        class="amount mt-0.5 truncate text-sm font-semibold sm:text-lg"
+        [class.text-positive]="t.einnahmen > t.ausgaben"
+      >
+        {{ t.einnahmen - t.ausgaben | amount: true }}
+      </p>
+    </div>
+  </div>
+
+  @if (flows()?.buchungen === 0) {
+    <div class="z-card">
+      <z-empty-state
+        icon="flow"
+        title="Keine Buchungen im Zeitraum"
+        text="Wähle einen anderen Zeitraum oder rufe neue Umsätze ab."
+      />
+    </div>
+  } @else {
+    <div class="z-card mb-2 px-2 py-3 sm:px-4" [class.opacity-60]="loading()">
+      <z-sankey-chart
+        [tree]="t"
+        [centerLabel]="accounts.selected()?.name ?? 'Konto'"
+        [expanded]="expanded()"
+        (toggle)="toggle($event)"
+      />
+    </div>
+    <p class="mb-6 px-1 text-xs text-muted">
+      Tippe auf eine Kategorie mit +, um die Unterkategorien zu sehen. Erstattungen werden mit den
+      Ausgaben derselben Kategorie verrechnet.
+    </p>
+
+    <!-- Dieselben Zahlen als Liste -->
+    <div class="grid gap-4 md:grid-cols-2" [class.opacity-60]="loading()">
+      @for (
+        side of [
+          { title: 'Einnahmen', rows: incomeRows(), total: t.einnahmen },
+          { title: 'Ausgaben', rows: expenseRows(), total: t.ausgaben },
+        ];
+        track side.title
+      ) {
+        <section>
+          <h2 class="mb-1.5 px-1 text-sm font-semibold">{{ side.title }}</h2>
+          <div class="z-card divide-y divide-border overflow-hidden">
+            @for (row of side.rows; track row.node.key) {
+              <button
+                type="button"
+                class="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm enabled:hover:bg-surface-2"
+                [style.padding-left.px]="16 + row.depth * 18"
+                [disabled]="!row.node.children.length"
+                [attr.aria-expanded]="row.node.children.length ? row.expanded : null"
+                (click)="toggle(row.node.key)"
+              >
+                <span
+                  class="size-2.5 shrink-0 rounded-full"
+                  [style.background]="color(row.node)"
+                ></span>
+                <span class="min-w-0 flex-1 truncate" [title]="row.node.title">
+                  {{ row.node.label }}
+                </span>
+                @if (row.node.children.length) {
+                  <z-icon
+                    [name]="row.expanded ? 'chevron-up' : 'chevron-down'"
+                    class="size-4 text-muted"
+                  />
+                }
+                <span class="amount w-10 shrink-0 text-right text-xs text-muted">
+                  @if (row.node.kind !== 'balance') {
+                    {{ percent(row.node.value, side.total) }} %
+                  }
+                </span>
+                <span class="amount w-24 shrink-0 text-right font-medium">
+                  {{ row.node.value | amount }}
+                </span>
+              </button>
+            } @empty {
+              <p class="px-4 py-3 text-sm text-muted">Keine im Zeitraum.</p>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  }
+} @else if (loading()) {
+  <div class="flex justify-center py-16 text-muted"><z-spinner class="size-6" /></div>
+}

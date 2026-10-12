@@ -29,10 +29,7 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 - Benachrichtigungen über Home Assistant: Bringt ein FinTS-Abruf (von Hand oder automatisch) oder ein CSV-Import Buchungen, die nach den Regeln noch ohne Kategorie sind, bekommen alle Mitglieder des Kontos eine Nachricht, z. B. „3 neue Buchungen ohne Kategorie (insgesamt 12 offen)“. Ein Tipp darauf öffnet die Seite „Ohne Kategorie“ des Kontos, bei Bedarf nach der Anmeldung. Von Hand angelegte Buchungen lösen keine Nachricht aus. Jeder Nutzer wählt unter „Einstellungen“ seine Geräte mit der Home-Assistant-App aus und kann eine Testnachricht schicken.
 - Sicherung: Unter „Einstellungen“ lädt „Datenbank herunterladen“ die komplette Datenbank als Datei herunter (`zaster-<datum>.db`). Die Taste sieht nur, wer Zaster eingerichtet hat (der zuerst registrierte Nutzer), weil die Datei die Daten aller Nutzer enthält. Wiederherstellen: siehe unten.
 - Automatische Sicherung, z. B. auf das NAS der FritzBox: Zaster legt jeden Tag zur eingestellten Uhrzeit (Standard 03:00) eine Kopie der Datenbank als `zaster.db` in einem Ordner ab und überschreibt sie jedes Mal. Schlägt sie fehl, schickt Zaster über Home Assistant eine Nachricht an die Geräte dessen, der Zaster eingerichtet hat. Uhrzeit, letzte Sicherung, Fehler und „Jetzt sichern“ stehen unter „Einstellungen“ → „Sicherung“ (nur für den, der Zaster eingerichtet hat). Den Ordner bindet man auf dem Server ein und reicht ihn per `docker compose` an Zaster weiter, siehe [Sicherung auf die FritzBox](#sicherung-auf-die-fritzbox).
-
-### Geplant
-
-- Sankey-Diagramme für Ein- und Ausgaben, pro Konto.
+- Seite „Verteilung“ pro Konto: Sankey-Diagramm, woher das Geld kam (Einnahmen nach Kategorie, links) und wohin es ging (Ausgaben nach Kategorie, rechts), mit dem Konto in der Mitte. Zeitraum wählbar (Monat, Jahr, alles oder von–bis, voreingestellt das laufende Jahr). Ein Tipp auf eine Kategorie mit Unterkategorien klappt diese auf. Darunter dieselben Zahlen als Liste mit Anteil in Prozent. Aufgeteilte Buchungen zählen mit ihren Teilbeträgen, Erstattungen werden mit den Ausgaben derselben Kategorie verrechnet, Buchungen ohne Kategorie stehen als „Ohne Kategorie“ auf beiden Seiten. Die Differenz zeigt „Überschuss“ bzw. „Aus dem Kontostand“.
 
 ## Starten mit Docker Compose
 
