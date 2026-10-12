@@ -13,7 +13,7 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 ### Schon verfügbar
 
 - Oberfläche für PC, iPad und iPhone: am PC und auf dem iPad quer eine Seitenleiste, auf dem Handy Kontowahl oben, Navigation unten und Dialoge als Sheet von unten. Hell oder dunkel nach Systemeinstellung.
-- Mehrere Nutzer mit eigener Anmeldung (Registrierung, Login per JWT); jeder sieht nur seine eigenen Konten.
+- Mehrere Nutzer mit eigener Anmeldung (Registrierung, Login per JWT); jeder sieht nur seine eigenen Konten. Wer Zaster mindestens einmal pro Woche öffnet, bleibt angemeldet.
 - Bankkonten anlegen (IBAN ist Pflicht, wird geprüft und darf in Zaster nur einmal vorkommen), umbenennen und löschen.
 - Buchungen pro Monat oder für alle Zeiträume, nach Tagen gruppiert, Kategorien als farbige Badges (bei aufgeteilten Buchungen eins pro Teil), mit Suche, Kategoriefilter und Summen für Einnahmen, Ausgaben und Saldo. Ein Tipp auf eine Buchung zeigt alle Details.
 - Buchungen von Hand anlegen und löschen.
@@ -152,7 +152,7 @@ Die mitgelieferte `appsettings.json` enthält nur `Logging` und `AllowedHosts`. 
 | `Issuer` | `JwtSettings__Issuer` | ja | – | Aussteller im Token, z. B. `zaster`. |
 | `Audience` | `JwtSettings__Audience` | ja | – | Zielgruppe im Token, z. B. `zaster`. |
 
-Login-Tokens gelten 7 Tage (fest im Code).
+Login-Tokens gelten 7 Tage (fest im Code). Ist der Token älter als einen Tag, holt sich die Oberfläche beim nächsten Aufruf still einen neuen (`POST /api/auth/refresh`); neu anmelden muss man sich also erst nach 7 Tagen ohne Nutzung.
 
 ### Datenordner und Datenbank
 

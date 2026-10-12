@@ -69,7 +69,7 @@ Ordner nach Fachbereich: `Accounts/`, `Transactions/`, `Categories/` (Kategorien
 
 API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 
-- `/api/auth/login`, `/api/auth/register` (ohne Anmeldung)
+- `/api/auth/login`, `/api/auth/register` (ohne Anmeldung), `/api/auth/refresh` (neuer Token, das Frontend holt ihn, wenn der alte älter als einen Tag ist)
 - `/api/me`, `/api/me/notifications…`, `/api/backup` (Datenbank herunterladen), `/api/backup/schedule` (+ `run`)
 - `/api/accounts`, `/api/accounts/{accountId}`
 - `/api/accounts/{accountId}/transactions` (Filter `from`, `to`, `search`, `categoryId` inkl. Unterkategorien, `withoutCategory`, `open`, `offset`, `limit`), `…/import`, `…/balance-check`, `…/review`, `…/{id}/category`, `…/{id}/splits`, `…/{id}/reviewed`
