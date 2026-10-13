@@ -161,6 +161,10 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
               Bemerkung speichern
             </button>
           </div>
+        } @else if (noteSavedHint()) {
+          <p class="mt-2 flex items-center justify-end gap-1.5 text-sm text-accent" role="status">
+            <z-icon name="check" class="size-4" /> Bemerkung gespeichert
+          </p>
         }
       </div>
 
@@ -285,6 +289,19 @@ export class TransactionSheet {
     return assetClassLabel(this.transaction().anlageklasse ?? '');
   });
 
+  /** Bemerkung gespeichert, der Dialog bleibt aber offen: beim Schließen die Liste aktualisieren. */
+  private noteSaved = false;
+  /** Rückmeldung unter dem Feld, bis die Bemerkung wieder geändert wird. */
+  protected readonly noteSavedHint = signal(false);
+
+  constructor() {
+    // Schließen per X, Hintergrund oder Escape liefert kein Ergebnis. Wurde inzwischen eine
+    // Bemerkung gespeichert, soll die Liste trotzdem die geänderte Buchung bekommen.
+    const close = this.ref.close.bind(this.ref);
+    this.ref.close = (result, options) =>
+      close(result ?? (this.noteSaved ? { updated: this.transaction() } : undefined), options);
+  }
+
   protected async pickCategory() {
     const categoryId = await this.dialog.result<number | null, CategoryPickerData>(CategoryPicker, {
       selected: singleCategoryId(this.transaction()),
@@ -327,16 +344,22 @@ export class TransactionSheet {
     this.note.set(this.transaction().bemerkung ?? '');
   }
 
+  /** Bemerkung speichern; die Buchung bleibt offen, damit man weiterarbeiten kann. */
   protected async saveNote() {
+    this.error.set(null);
     this.savingNote.set(true);
     try {
-      await this.save(() =>
-        this.service.setBemerkung(
-          this.transaction().accountId,
-          this.transaction().id,
-          this.note().trim(),
-        ),
+      const updated = await this.service.setBemerkung(
+        this.transaction().accountId,
+        this.transaction().id,
+        this.note().trim(),
       );
+      this.transaction.set(updated);
+      this.note.set(updated.bemerkung ?? '');
+      this.noteSaved = true;
+      this.noteSavedHint.set(true);
+    } catch (e) {
+      this.error.set(errorMessage(e, 'Die Bemerkung konnte nicht gespeichert werden.'));
     } finally {
       this.savingNote.set(false);
     }
