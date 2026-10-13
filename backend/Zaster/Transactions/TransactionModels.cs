@@ -29,7 +29,9 @@ public sealed record TransactionDto(
     string? Fremdwaehrung,
     decimal? Devisenkurs,
     string? GegenIban,
-    string? Rohdaten)
+    string? Art,
+    string? Anlageklasse,
+    string? Mcc)
 {
     public static TransactionDto From(Transaction t) => new(
         t.Id,
@@ -57,7 +59,9 @@ public sealed record TransactionDto(
         t.Fremdwaehrung,
         t.Devisenkurs,
         t.GegenIban,
-        t.Rohdaten);
+        t.Art,
+        t.Anlageklasse,
+        t.Mcc);
 }
 
 /// <summary>Teilbetrag einer Kategorie, mit dem Vorzeichen der Buchung.</summary>
@@ -108,7 +112,9 @@ public sealed record ImportTransaction(
     string? Fremdwaehrung = null,
     decimal? Devisenkurs = null,
     string? GegenIban = null,
-    string? Rohdaten = null);
+    string? Art = null,
+    string? Anlageklasse = null,
+    string? Mcc = null);
 
 public sealed record ImportTransactions(IReadOnlyList<ImportTransaction> Transactions);
 

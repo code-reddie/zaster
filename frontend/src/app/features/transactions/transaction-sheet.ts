@@ -22,6 +22,14 @@ const decimalFormat = new Intl.NumberFormat('de-DE', {
   maximumFractionDigits: 10,
 });
 
+const ASSET_CLASSES: Record<string, string> = {
+  STOCK: 'Aktie',
+  FUND: 'Fonds / ETF',
+  CRYPTO: 'Krypto',
+  BOND: 'Anleihe',
+  DERIVATIVE: 'Derivat',
+};
+
 export type TransactionSheetResult =
   | { updated: Transaction }
   | { deleted: number }
@@ -171,6 +179,10 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
           <dt class="text-muted">Uhrzeit</dt>
           <dd>{{ time() }}</dd>
         }
+        @if (transaction().anlageklasse) {
+          <dt class="text-muted">Anlageklasse</dt>
+          <dd>{{ assetClass() }}</dd>
+        }
         @if (transaction().isin) {
           <dt class="text-muted">ISIN</dt>
           <dd>{{ transaction().isin }}</dd>
@@ -199,6 +211,10 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
           <dt class="text-muted">IBAN</dt>
           <dd class="amount break-all">{{ transaction().gegenIban | iban }}</dd>
         }
+        @if (transaction().mcc) {
+          <dt class="text-muted">Händlerkategorie (MCC)</dt>
+          <dd>{{ transaction().mcc }}</dd>
+        }
         @if (transaction().saldo !== null) {
           <dt class="text-muted">Kontostand danach</dt>
           <dd class="amount">{{ transaction().saldo | amount }}</dd>
@@ -206,20 +222,6 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
         <dt class="text-muted">Herkunft</dt>
         <dd>{{ source() }}</dd>
       </dl>
-
-      @if (raw().length) {
-        <details class="mt-4 text-sm">
-          <summary class="cursor-pointer text-muted hover:text-fg">Zeile aus der Datei</summary>
-          <dl
-            class="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 rounded-xl bg-surface-2 px-3 py-2.5"
-          >
-            @for (entry of raw(); track entry[0]) {
-              <dt class="font-mono text-xs text-muted">{{ entry[0] }}</dt>
-              <dd class="break-all font-mono text-xs">{{ entry[1] }}</dd>
-            }
-          </dl>
-        </details>
-      }
 
       @if (error()) {
         <p class="z-error mt-4">{{ error() }}</p>
@@ -281,17 +283,9 @@ export class TransactionSheet {
       ? amount
       : `${amount} (Kurs ${shareFormat.format(t.devisenkurs)})`;
   });
-  /** Alle Spalten der Zeile aus der Datei, z. B. beim Transaktionsexport von Trade Republic. */
-  protected readonly raw = computed((): [string, string][] => {
-    const rohdaten = this.transaction().rohdaten;
-    if (!rohdaten) {
-      return [];
-    }
-    try {
-      return Object.entries(JSON.parse(rohdaten) as Record<string, string>);
-    } catch {
-      return [['', rohdaten]];
-    }
+  protected readonly assetClass = computed(() => {
+    const value = this.transaction().anlageklasse ?? '';
+    return ASSET_CLASSES[value] ?? value;
   });
 
   protected async pickCategory() {

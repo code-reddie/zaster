@@ -11,6 +11,18 @@ namespace Zaster.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<string>(
+                name: "Anlageklasse",
+                table: "Transactions",
+                type: "TEXT",
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "Art",
+                table: "Transactions",
+                type: "TEXT",
+                nullable: true);
+
             migrationBuilder.AddColumn<decimal>(
                 name: "Devisenkurs",
                 table: "Transactions",
@@ -60,7 +72,7 @@ namespace Zaster.Migrations
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
-                name: "Rohdaten",
+                name: "Mcc",
                 table: "Transactions",
                 type: "TEXT",
                 nullable: true);
@@ -88,6 +100,14 @@ namespace Zaster.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
+                name: "Anlageklasse",
+                table: "Transactions");
+
+            migrationBuilder.DropColumn(
+                name: "Art",
+                table: "Transactions");
+
+            migrationBuilder.DropColumn(
                 name: "Devisenkurs",
                 table: "Transactions");
 
@@ -120,7 +140,7 @@ namespace Zaster.Migrations
                 table: "Transactions");
 
             migrationBuilder.DropColumn(
-                name: "Rohdaten",
+                name: "Mcc",
                 table: "Transactions");
 
             migrationBuilder.DropColumn(

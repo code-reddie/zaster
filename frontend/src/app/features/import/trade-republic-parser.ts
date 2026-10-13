@@ -45,7 +45,8 @@ export class ImportFileError extends Error {}
  *   Steuer werden zusätzlich einzeln übernommen.
  * - Kapitalmaßnahmen ohne Geldbewegung (Split usw.) kommen mit 0 € mit, damit nichts fehlt.
  * - Der Kontostand wird ab 0 € hochgerechnet, weil der Export bei der Kontoeröffnung beginnt.
- * - Jede Zeile geht zusätzlich unverändert als `rohdaten` mit.
+ * - Jede Spalte landet in einem Feld der Buchung; nur `account_type` (immer `DEFAULT`) und `category`
+ *   (folgt aus `type`) werden nicht gespeichert.
  */
 export function parseTradeRepublic(records: string[][]): ImportTransaction[] {
   const header = records[0].map((h) => h.trim());
@@ -83,13 +84,6 @@ export function parseTradeRepublic(records: string[][]): ImportTransaction[] {
     const betrag = cents((number(row, 'amount') ?? 0) + (gebuehr ?? 0) + (steuer ?? 0));
     saldo = cents(saldo + betrag);
 
-    const rohdaten: Record<string, string> = {};
-    for (const name of header) {
-      if (row[name]) {
-        rohdaten[name] = row[name];
-      }
-    }
-
     return {
       buchung: row['date'],
       valuta: row['date'],
@@ -109,7 +103,9 @@ export function parseTradeRepublic(records: string[][]): ImportTransaction[] {
       fremdwaehrung: row['original_currency'] || null,
       devisenkurs: number(row, 'fx_rate'),
       gegenIban: row['counterparty_iban'] || null,
-      rohdaten: JSON.stringify(rohdaten),
+      art: row['type'] || null,
+      anlageklasse: row['asset_class'] || null,
+      mcc: row['mcc_code'] || null,
     };
   });
 }
@@ -128,6 +124,10 @@ function purpose(row: Record<string, string>): string {
       parts.push(`${shareFormat.format(Math.abs(shares))} Stück`);
     }
     parts.push(`ISIN ${row['symbol']}`);
+  }
+  // Name und Gegenseite sind bei Überweisungen gleich; falls nicht, geht der Name hier mit.
+  if (row['counterparty_name'] && row['name'] && row['name'] !== row['counterparty_name']) {
+    parts.push(row['name']);
   }
   if (row['payment_reference']) {
     parts.push(row['payment_reference']);

@@ -64,7 +64,9 @@ public sealed class TransactionImporter(AppDbContext context, TimeProvider timeP
                 Fremdwaehrung = Normalize(t.Fremdwaehrung),
                 Devisenkurs = t.Devisenkurs,
                 GegenIban = Normalize(t.GegenIban),
-                Rohdaten = Normalize(t.Rohdaten),
+                Art = Normalize(t.Art),
+                Anlageklasse = Normalize(t.Anlageklasse),
+                Mcc = Normalize(t.Mcc),
                 // Ohne Geldbewegung (z. B. ein Aktiensplit) gibt es nichts einzuordnen.
                 Reviewed = t.Betrag == 0,
                 Source = source,
@@ -95,14 +97,10 @@ public sealed class TransactionImporter(AppDbContext context, TimeProvider timeP
     {
         foreach (var t in incoming)
         {
-            if (t.ExterneId?.Length > 100 || t.Isin?.Length > 20 || t.Fremdwaehrung?.Length > 10 || t.GegenIban?.Length > 40)
+            if (t.ExterneId?.Length > 100 || t.Isin?.Length > 20 || t.Fremdwaehrung?.Length > 10 || t.GegenIban?.Length > 40
+                || t.Art?.Length > 50 || t.Anlageklasse?.Length > 50 || t.Mcc?.Length > 10)
             {
                 return $"Die Buchung vom {t.Buchung:dd.MM.yyyy} über {t.Betrag} € enthält ein zu langes Feld.";
-            }
-
-            if (t.Rohdaten?.Length > Transaction.MaxRohdaten)
-            {
-                return $"Die Zeile der Buchung vom {t.Buchung:dd.MM.yyyy} ist länger als {Transaction.MaxRohdaten} Zeichen.";
             }
         }
 

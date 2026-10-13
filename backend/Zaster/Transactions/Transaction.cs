@@ -100,13 +100,16 @@ public sealed record Transaction : Entity
     public string? GegenIban { get; init; }
 
     /// <summary>
-    /// Die Zeile, wie sie in der Datei stand (JSON-Objekt Spalte → Wert, leere Spalten weggelassen). Damit geht
-    /// nichts verloren, auch wenn Zaster eine Spalte (noch) nicht eigens auswertet.
+    /// Art der Buchung, wie die Bank sie nennt (Trade Republic: Spalte <c>type</c>, etwa <c>BUY</c> oder
+    /// <c>DIVIDEND</c>). <see cref="Buchungstext"/> enthält dieselbe Angabe auf Deutsch.
     /// </summary>
-    public string? Rohdaten { get; init; }
+    public string? Art { get; init; }
 
-    /// <summary>Höchstlänge von <see cref="Rohdaten"/>.</summary>
-    public const int MaxRohdaten = 8000;
+    /// <summary>Anlageklasse des Wertpapiers wie von der Bank geliefert (Trade Republic: <c>STOCK</c>, <c>FUND</c>, <c>CRYPTO</c> …).</summary>
+    public string? Anlageklasse { get; init; }
+
+    /// <summary>Händlerkategorie (MCC) bei Kartenzahlungen.</summary>
+    public string? Mcc { get; init; }
 
     /// <summary>
     /// Kategorien der Buchung mit Teilbetrag. Leer = ohne Kategorie, sonst ergeben die Teilbeträge

@@ -84,8 +84,12 @@ export interface TransactionDetails {
   fremdwaehrung: string | null;
   devisenkurs: number | null;
   gegenIban: string | null;
-  /** Die Zeile aus der Datei als JSON-Objekt (Spalte → Wert). */
-  rohdaten: string | null;
+  /** Art laut Bank, z. B. `BUY` (Trade Republic: Spalte `type`); `buchungstext` ist die deutsche Fassung. */
+  art: string | null;
+  /** Anlageklasse laut Bank, z. B. `STOCK`, `FUND`, `CRYPTO`. */
+  anlageklasse: string | null;
+  /** Händlerkategorie bei Kartenzahlungen. */
+  mcc: string | null;
 }
 
 export interface ImportTransaction extends Partial<TransactionDetails> {

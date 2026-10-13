@@ -100,7 +100,9 @@ public sealed class ExterneIdImportTests : IDisposable
             Fremdwaehrung = "USD",
             Devisenkurs = 1.08m,
             GegenIban = "DE02120300000000202051",
-            Rohdaten = """{"type":"BUY"}""",
+            Art = "BUY",
+            Anlageklasse = "STOCK",
+            Mcc = "5411",
         });
 
         var t = await _context.Transactions.SingleAsync();
@@ -115,7 +117,9 @@ public sealed class ExterneIdImportTests : IDisposable
         Assert.Equal("USD", t.Fremdwaehrung);
         Assert.Equal(1.08m, t.Devisenkurs);
         Assert.Equal("DE02120300000000202051", t.GegenIban);
-        Assert.Equal("""{"type":"BUY"}""", t.Rohdaten);
+        Assert.Equal("BUY", t.Art);
+        Assert.Equal("STOCK", t.Anlageklasse);
+        Assert.Equal("5411", t.Mcc);
     }
 
     [Fact]
@@ -147,8 +151,8 @@ public sealed class ExterneIdImportTests : IDisposable
     }
 
     [Fact]
-    public void Validate_lehnt_zu_lange_Rohdaten_ab()
+    public void Validate_lehnt_zu_lange_Felder_ab()
     {
-        Assert.NotNull(TransactionImporter.Validate([Kauf("a") with { Rohdaten = new string('x', Transaction.MaxRohdaten + 1) }]));
+        Assert.NotNull(TransactionImporter.Validate([Kauf("a") with { Art = new string('x', 51) }]));
     }
 }

@@ -11,7 +11,7 @@ using Zaster.Database;
 namespace Zaster.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261013090840_TradeRepublicFelder")]
+    [Migration("20261013092825_TradeRepublicFelder")]
     partial class TradeRepublicFelder
     {
         /// <inheritdoc />
@@ -189,6 +189,12 @@ namespace Zaster.Migrations
                     b.Property<int>("AccountId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Anlageklasse")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Art")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Auftraggeber")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -233,11 +239,11 @@ namespace Zaster.Migrations
                     b.Property<decimal?>("Kurs")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Mcc")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("Reviewed")
                         .HasColumnType("INTEGER");
-
-                    b.Property<string>("Rohdaten")
-                        .HasColumnType("TEXT");
 
                     b.Property<decimal?>("Saldo")
                         .HasColumnType("TEXT");
