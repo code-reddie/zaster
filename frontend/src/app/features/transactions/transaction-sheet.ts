@@ -12,7 +12,12 @@ import { CategoryStore } from '../categories/category.store';
 import { RuleSheet, RuleSheetData } from '../categories/rule-sheet';
 import { BemerkungInput } from './bemerkung-input';
 import { SplitSheet } from './split-sheet';
-import { singleCategoryId, SOURCE_LABELS, Transaction } from './transaction.models';
+import {
+  assetClassLabel,
+  singleCategoryId,
+  SOURCE_LABELS,
+  Transaction,
+} from './transaction.models';
 import { TransactionsService } from './transactions.service';
 
 const timeFormat = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -21,14 +26,6 @@ const decimalFormat = new Intl.NumberFormat('de-DE', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 10,
 });
-
-const ASSET_CLASSES: Record<string, string> = {
-  STOCK: 'Aktie',
-  FUND: 'Fonds / ETF',
-  CRYPTO: 'Krypto',
-  BOND: 'Anleihe',
-  DERIVATIVE: 'Derivat',
-};
 
 export type TransactionSheetResult =
   | { updated: Transaction }
@@ -51,6 +48,7 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
       Auftraggeber: t.auftraggeber,
       Buchungstext: t.buchungstext,
       Verwendungszweck: t.verwendungszweck,
+      Anlageklasse: t.anlageklasse ?? '',
     },
   };
 }
@@ -284,8 +282,7 @@ export class TransactionSheet {
       : `${amount} (Kurs ${shareFormat.format(t.devisenkurs)})`;
   });
   protected readonly assetClass = computed(() => {
-    const value = this.transaction().anlageklasse ?? '';
-    return ASSET_CLASSES[value] ?? value;
+    return assetClassLabel(this.transaction().anlageklasse ?? '');
   });
 
   protected async pickCategory() {

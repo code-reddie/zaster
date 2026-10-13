@@ -6,6 +6,8 @@ import { Button } from '../../core/ui/button';
 import { DialogFooter, DialogFrame, DialogService } from '../../core/ui/dialog';
 import { Icon } from '../../core/ui/icon';
 import { ToastService } from '../../core/ui/toast';
+import { AccountStore } from '../accounts/account.store';
+import { ASSET_CLASSES, assetClassLabel } from '../transactions/transaction.models';
 import { CategoryDot } from './category-dot';
 import { CategoryPicker, CategoryPickerData } from './category-picker';
 import {
@@ -30,6 +32,7 @@ export interface RuleSheetData {
   source?: RuleSource;
 }
 
+/** Texte der Buchung je Feld; Anlageklasse leer, wenn die Buchung keine hat. */
 export type RuleSource = Record<Exclude<RuleField, 'Alle'>, string>;
 
 interface ConditionRow extends RuleCondition {
@@ -58,14 +61,28 @@ interface ConditionRow extends RuleCondition {
             }
             <div class="flex flex-col gap-2 rounded-xl bg-surface-2 p-2">
               <div class="flex items-center gap-2">
-                <input
-                  class="z-input min-w-0 flex-1"
-                  [name]="'pattern-' + condition.key"
-                  [attr.aria-label]="'Text der Bedingung ' + (i + 1)"
-                  placeholder="Text, z. B. Miete"
-                  [ngModel]="condition.pattern"
-                  (ngModelChange)="update(i, { pattern: $event })"
-                />
+                @if (condition.field === 'Anlageklasse') {
+                  <select
+                    class="z-input min-w-0 flex-1"
+                    [name]="'pattern-' + condition.key"
+                    [attr.aria-label]="'Anlageklasse der Bedingung ' + (i + 1)"
+                    [ngModel]="condition.pattern"
+                    (ngModelChange)="update(i, { pattern: $event })"
+                  >
+                    @for (option of assetClassOptions(condition.pattern); track option.value) {
+                      <option [value]="option.value">{{ option.label }}</option>
+                    }
+                  </select>
+                } @else {
+                  <input
+                    class="z-input min-w-0 flex-1"
+                    [name]="'pattern-' + condition.key"
+                    [attr.aria-label]="'Text der Bedingung ' + (i + 1)"
+                    placeholder="Text, z. B. Miete"
+                    [ngModel]="condition.pattern"
+                    (ngModelChange)="update(i, { pattern: $event })"
+                  />
+                }
                 @if (conditions().length > 1) {
                   <button
                     zButton
@@ -81,7 +98,9 @@ interface ConditionRow extends RuleCondition {
                 }
               </div>
               <div class="flex items-center gap-2">
-                <span class="shrink-0 pl-1 text-sm text-muted">in</span>
+                <span class="shrink-0 pl-1 text-sm text-muted">{{
+                  condition.field === 'Anlageklasse' ? 'als' : 'in'
+                }}</span>
                 <select
                   class="z-input min-w-0 flex-1"
                   [name]="'field-' + condition.key"
@@ -89,7 +108,7 @@ interface ConditionRow extends RuleCondition {
                   [ngModel]="condition.field"
                   (ngModelChange)="update(i, { field: $event })"
                 >
-                  @for (option of fields; track option.value) {
+                  @for (option of fields(); track option.value) {
                     <option [value]="option.value">{{ option.label }}</option>
                   }
                 </select>
@@ -97,9 +116,13 @@ interface ConditionRow extends RuleCondition {
             </div>
           }
           <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            <p class="z-hint !mt-0">
-              Groß- und Kleinschreibung spielt keine Rolle, ein Teil des Wortes reicht.
-            </p>
+            @if (hasTextCondition()) {
+              <p class="z-hint !mt-0">
+                Groß- und Kleinschreibung spielt keine Rolle, ein Teil des Wortes reicht.
+              </p>
+            } @else {
+              <span></span>
+            }
             @if (conditions().length < maxConditions) {
               <button zButton variant="ghost" size="sm" type="button" (click)="add()">
                 <z-icon name="plus" class="size-4" /> Bedingung hinzufügen
@@ -166,10 +189,26 @@ export class RuleSheet {
   protected readonly ref = inject<DialogRef<number>>(DialogRef);
   protected readonly data = inject<RuleSheetData>(DIALOG_DATA);
   private readonly store = inject(CategoryStore);
+  private readonly accounts = inject(AccountStore);
   private readonly dialog = inject(DialogService);
   private readonly toast = inject(ToastService);
 
-  protected readonly fields = RULE_FIELDS;
+  /** Anlageklassen, die im Konto vorkommen; bei anderen Konten als Trade Republic leer. */
+  private readonly accountAssetClasses = computed(
+    () => this.accounts.selected()?.anlageklassen ?? [],
+  );
+  /**
+   * „Anlageklasse“ gibt es nur, wenn das Konto Buchungen mit Anlageklasse hat (Trade Republic) oder
+   * die Regel sie schon verwendet.
+   */
+  protected readonly fields = computed(() =>
+    RULE_FIELDS.filter(
+      (f) =>
+        f.value !== 'Anlageklasse' ||
+        this.accountAssetClasses().length > 0 ||
+        this.conditions().some((c) => c.field === 'Anlageklasse'),
+    ),
+  );
   /** Höchstzahl wie im Backend. */
   protected readonly maxConditions = 10;
   private nextKey = 0;
@@ -177,6 +216,10 @@ export class RuleSheet {
     (this.data.rule?.conditions ?? this.data.conditions ?? [{ field: 'Alle', pattern: '' }]).map(
       (c) => this.row(c),
     ),
+  );
+  /** Der Hinweis zu Teilwörtern gilt nur für Text, nicht für die Anlageklasse. */
+  protected readonly hasTextCondition = computed(() =>
+    this.conditions().some((c) => c.field !== 'Anlageklasse'),
   );
   protected readonly directions = RULE_DIRECTIONS;
   protected readonly direction = signal<RuleDirection>(
@@ -211,6 +254,24 @@ export class RuleSheet {
     return source && field !== 'Alle' ? source[field].trim() : null;
   }
 
+  /** Auswahl für eine Anlageklasse: die bekannten und die im Konto vorkommenden, dazu der aktuelle Wert. */
+  protected assetClassOptions(current: string) {
+    const values = new Set([...Object.keys(ASSET_CLASSES), ...this.accountAssetClasses(), current]);
+    values.delete('');
+    return [...values]
+      .map((value) => ({ value, label: assetClassLabel(value) }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'de'));
+  }
+
+  /** Vorauswahl beim Wechsel auf „Anlageklasse“: die der Buchung, sonst die erste im Konto. */
+  private defaultAssetClass(): string {
+    return (
+      this.sourceText('Anlageklasse') ||
+      this.accountAssetClasses()[0] ||
+      Object.keys(ASSET_CLASSES)[0]
+    );
+  }
+
   protected update(index: number, change: Partial<RuleCondition>) {
     this.conditions.update((rows) =>
       rows.map((r, i) => {
@@ -218,6 +279,15 @@ export class RuleSheet {
           return r;
         }
         const next = { ...r, ...change };
+        // Anlageklasse ist eine Auswahl, kein Text: beim Wechsel hin oder weg passt der alte Wert nie.
+        if (change.field && change.field !== r.field) {
+          if (change.field === 'Anlageklasse') {
+            return { ...next, pattern: this.defaultAssetClass() };
+          }
+          if (r.field === 'Anlageklasse') {
+            return { ...next, pattern: this.sourceText(change.field) ?? '' };
+          }
+        }
         // Feld gewechselt und Text noch wie aus der Buchung übernommen: Text des neuen Felds nehmen.
         // Selbst getippter Text bleibt stehen.
         if (

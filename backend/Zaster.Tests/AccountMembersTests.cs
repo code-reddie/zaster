@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Zaster.Accounts;
 using Zaster.Database;
+using Zaster.Transactions;
 using Zaster.Users;
 
 namespace Zaster.Tests;
@@ -116,6 +117,32 @@ public sealed class AccountMembersTests : IDisposable
         var result = await ControllerFor(_anna).RemoveMember(_account.Id, _clara.Id, CancellationToken.None);
 
         Assert.Equal(StatusCodes.Status404NotFound, Assert.IsType<ObjectResult>(result).StatusCode);
+    }
+
+    [Fact]
+    public async Task Konto_nennt_vorkommende_Anlageklassen()
+    {
+        Assert.Empty((await ControllerFor(_anna).GetAccount(_account.Id, CancellationToken.None)).Anlageklassen);
+
+        foreach (var klasse in new[] { "STOCK", null, "FUND", "STOCK" })
+        {
+            _context.Transactions.Add(new Transaction
+            {
+                AccountId = _account.Id,
+                Buchung = new DateOnly(2026, 5, 4),
+                Valuta = new DateOnly(2026, 5, 4),
+                Auftraggeber = "Muster AG",
+                Buchungstext = "Kauf",
+                Verwendungszweck = "",
+                Betrag = -10m,
+                Anlageklasse = klasse,
+            });
+        }
+        await _context.SaveChangesAsync();
+
+        var account = await ControllerFor(_anna).GetAccount(_account.Id, CancellationToken.None);
+
+        Assert.Equal(["FUND", "STOCK"], account.Anlageklassen);
     }
 
     private AccountsController ControllerFor(User user)

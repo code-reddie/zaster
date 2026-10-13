@@ -14,7 +14,13 @@ public enum RuleField
     Alle,
     Auftraggeber,
     Buchungstext,
-    Verwendungszweck
+    Verwendungszweck,
+
+    /// <summary>
+    /// Anlageklasse des Wertpapiers (Trade Republic: <c>STOCK</c>, <c>FUND</c>, <c>CRYPTO</c> …).
+    /// Muss genau passen, nicht als Teilstring; gehört nicht zu <see cref="Alle"/>.
+    /// </summary>
+    Anlageklasse
 }
 
 /// <summary>
@@ -68,6 +74,7 @@ public sealed record Rule : Entity
 
 /// <summary>
 /// Eine Bedingung einer Regel: <see cref="Pattern"/> kommt im Feld vor (Teilstring, ohne Groß-/Kleinschreibung).
+/// Bei <see cref="RuleField.Anlageklasse"/> muss der Wert gleich sein; Buchungen ohne Anlageklasse passen nie.
 /// </summary>
 public sealed record RuleCondition : Entity
 {
@@ -82,6 +89,7 @@ public sealed record RuleCondition : Entity
         RuleField.Auftraggeber => Contains(transaction.Auftraggeber),
         RuleField.Buchungstext => Contains(transaction.Buchungstext),
         RuleField.Verwendungszweck => Contains(transaction.Verwendungszweck),
+        RuleField.Anlageklasse => string.Equals(transaction.Anlageklasse, Pattern, StringComparison.OrdinalIgnoreCase),
         _ => Contains(transaction.Auftraggeber)
             || Contains(transaction.Buchungstext)
             || Contains(transaction.Verwendungszweck)

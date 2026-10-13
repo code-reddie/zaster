@@ -92,6 +92,20 @@ export interface TransactionDetails {
   mcc: string | null;
 }
 
+/** Deutsche Namen der Anlageklassen, die Trade Republic liefert. */
+export const ASSET_CLASSES: Record<string, string> = {
+  STOCK: 'Aktie',
+  FUND: 'Fonds / ETF',
+  CRYPTO: 'Krypto',
+  BOND: 'Anleihe',
+  DERIVATIVE: 'Derivat',
+};
+
+/** Anzeigename einer Anlageklasse; unbekannte Werte so, wie die Bank sie liefert. */
+export function assetClassLabel(value: string): string {
+  return ASSET_CLASSES[value] ?? value;
+}
+
 export interface ImportTransaction extends Partial<TransactionDetails> {
   buchung: string;
   valuta: string;
