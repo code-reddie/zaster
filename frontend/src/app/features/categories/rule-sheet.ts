@@ -14,6 +14,7 @@ import {
   RULE_DIRECTIONS,
   RULE_FIELDS,
   RuleDirection,
+  RuleField,
 } from './category.models';
 import { CategoryStore } from './category.store';
 
@@ -22,7 +23,14 @@ export interface RuleSheetData {
   conditions?: RuleCondition[];
   direction?: RuleDirection;
   categoryId?: number | null;
+  /**
+   * Texte der Buchung, aus der die Regel entsteht. Neue Bedingungen werden damit vorausgefüllt,
+   * je nach gewähltem Feld.
+   */
+  source?: RuleSource;
 }
+
+export type RuleSource = Record<Exclude<RuleField, 'Alle'>, string>;
 
 interface ConditionRow extends RuleCondition {
   /** Nur fürs Rendern, damit Eingabefelder beim Entfernen nicht springen. */
@@ -197,14 +205,38 @@ export class RuleSheet {
     return { ...condition, key: this.nextKey++ };
   }
 
+  /** Wert des Felds in der Buchung, aus der die Regel entsteht; null ohne Buchung oder bei „Alle“. */
+  private sourceText(field: RuleField): string | null {
+    const source = this.data.source;
+    return source && field !== 'Alle' ? source[field].trim() : null;
+  }
+
   protected update(index: number, change: Partial<RuleCondition>) {
-    this.conditions.update((rows) => rows.map((r, i) => (i === index ? { ...r, ...change } : r)));
+    this.conditions.update((rows) =>
+      rows.map((r, i) => {
+        if (i !== index) {
+          return r;
+        }
+        const next = { ...r, ...change };
+        // Feld gewechselt und Text noch wie aus der Buchung übernommen: Text des neuen Felds nehmen.
+        // Selbst getippter Text bleibt stehen.
+        if (
+          change.field &&
+          change.field !== r.field &&
+          r.pattern.trim() === this.sourceText(r.field)
+        ) {
+          next.pattern = this.sourceText(change.field) ?? r.pattern;
+        }
+        return next;
+      }),
+    );
   }
 
   protected add() {
+    const field: RuleField = 'Verwendungszweck';
     this.conditions.update((rows) => [
       ...rows,
-      this.row({ field: 'Verwendungszweck', pattern: '' }),
+      this.row({ field, pattern: this.sourceText(field) ?? '' }),
     ]);
   }
 
