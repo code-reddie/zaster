@@ -4,7 +4,7 @@
   subtitleDesktopOnly
 />
 
-<div class="grid gap-8 xl:grid-cols-2 xl:gap-6">
+<div class="grid grid-cols-1 gap-8 xl:grid-cols-2 xl:gap-6">
   <!-- Kategorien -->
   <section>
     <div class="mb-2 flex items-center justify-between gap-3">
@@ -117,7 +117,7 @@
           <li class="group flex items-center gap-1 pr-2 hover:bg-surface-2">
             <button
               type="button"
-              class="min-w-0 flex-1 px-4 py-3 text-left text-sm"
+              class="min-w-0 flex-1 px-4 py-3 text-left text-sm [overflow-wrap:anywhere]"
               (click)="editRule(item.rule)"
             >
               @for (condition of item.rule.conditions; track $index; let firstCondition = $first) {
@@ -131,10 +131,14 @@
                 <span class="text-muted">, {{ label }}</span>
               }
               <span class="text-muted"> →</span>
-              <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
-                <z-category-dot [color]="item.category?.effectiveColor" class="ml-1" />
-                {{ item.category?.path ?? '?' }}
-              </span>
+              <!-- Punkt und erstes Wort bleiben zusammen, der Rest darf umbrechen -->
+              @let path = item.category?.path ?? '?';
+              @let cut = path.indexOf(' ') < 0 ? path.length : path.indexOf(' ');
+              <span class="whitespace-nowrap"
+                ><z-category-dot [color]="item.category?.effectiveColor" class="mr-1.5 ml-1" />{{
+                  path.slice(0, cut)
+                }}</span
+              >{{ path.slice(cut) }}
             </button>
             <div
               class="flex opacity-100 lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100"
