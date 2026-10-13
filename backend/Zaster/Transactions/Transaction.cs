@@ -63,6 +63,52 @@ public sealed record Transaction : Entity
     public decimal? Saldo { get; set; }
 
     /// <summary>
+    /// Kennung der Buchung bei der Bank, wenn die Quelle eine liefert (Trade Republic: <c>transaction_id</c>).
+    /// Der Import erkennt Duplikate dann daran statt am Schlüssel aus Datum, Betrag und Auftraggeber.
+    /// </summary>
+    public string? ExterneId { get; init; }
+
+    /// <summary>Genauer Zeitpunkt der Buchung (UTC), wenn die Quelle ihn liefert.</summary>
+    public DateTime? Zeitpunkt { get; init; }
+
+    /// <summary>
+    /// Gebühr, die schon in <see cref="Betrag"/> steckt (negativ = bezahlt). Betrag ohne Gebühr und Steuer:
+    /// <c>Betrag − Gebuehr − Steuer</c>.
+    /// </summary>
+    public decimal? Gebuehr { get; init; }
+
+    /// <summary>Steuer, die schon in <see cref="Betrag"/> steckt (negativ = abgeführt, positiv = erstattet).</summary>
+    public decimal? Steuer { get; init; }
+
+    /// <summary>ISIN des Wertpapiers bei Käufen, Verkäufen, Dividenden und Kapitalmaßnahmen.</summary>
+    public string? Isin { get; init; }
+
+    /// <summary>Stückzahl (negativ = abgegeben, etwa beim Verkauf).</summary>
+    public decimal? Stueck { get; init; }
+
+    /// <summary>Kurs je Stück in Euro.</summary>
+    public decimal? Kurs { get; init; }
+
+    /// <summary>Betrag in der ursprünglichen Währung, z. B. bei Dividenden in US-Dollar.</summary>
+    public decimal? Fremdbetrag { get; init; }
+
+    public string? Fremdwaehrung { get; init; }
+
+    public decimal? Devisenkurs { get; init; }
+
+    /// <summary>IBAN der Gegenseite, wenn die Quelle sie liefert.</summary>
+    public string? GegenIban { get; init; }
+
+    /// <summary>
+    /// Die Zeile, wie sie in der Datei stand (JSON-Objekt Spalte → Wert, leere Spalten weggelassen). Damit geht
+    /// nichts verloren, auch wenn Zaster eine Spalte (noch) nicht eigens auswertet.
+    /// </summary>
+    public string? Rohdaten { get; init; }
+
+    /// <summary>Höchstlänge von <see cref="Rohdaten"/>.</summary>
+    public const int MaxRohdaten = 8000;
+
+    /// <summary>
     /// Kategorien der Buchung mit Teilbetrag. Leer = ohne Kategorie, sonst ergeben die Teilbeträge
     /// zusammen genau <see cref="Betrag"/>. Der Normalfall ist ein Teil über den ganzen Betrag.
     /// </summary>

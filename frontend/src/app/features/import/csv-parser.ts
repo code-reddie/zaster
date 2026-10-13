@@ -1,7 +1,12 @@
 import { ImportTransaction } from '../transactions/transaction.models';
+import { parseTradeRepublic, TRADE_REPUBLIC_HEADER } from './trade-republic-parser';
 
 /**
- * Liest Kontoumsätze aus einer CSV mit Semikolon, deutschem Datum und Zahlenformat. Zwei Aufbauten
+ * Liest Kontoumsätze aus einer CSV. Der Transaktionsexport von Trade Republic (Komma, Kopfzeile
+ * `"datetime","date",…`) geht an `parseTradeRepublic`, wirft dort `ImportFileError` bei Zeilen, die
+ * Zaster nicht verlustfrei übernehmen kann.
+ *
+ * Sonst: Semikolon, deutsches Datum und Zahlenformat. Zwei Aufbauten
  * kommen vor, beide mit einer Kopfzeile „Buchung;…“, über die die Spalten gefunden werden:
  *
  * - der Umsatz-Export der ING: Kopfbereich mit IBAN usw., dann
@@ -11,7 +16,13 @@ import { ImportTransaction } from '../transactions/transaction.models';
  *   Beträge teils mit „€“, Verwendungszwecke teils in Anführungszeichen über mehrere Zeilen.
  */
 export function parseCsv(content: string): ImportTransaction[] {
-  const records = splitRecords(content.replace(/^﻿/, ''));
+  content = content.replace(/^﻿/, '');
+  const commaRecords = splitRecords(content, ',');
+  if (TRADE_REPUBLIC_HEADER.every((name, i) => commaRecords[0]?.[i]?.trim() === name)) {
+    return parseTradeRepublic(commaRecords);
+  }
+
+  const records = splitRecords(content, ';');
   const headerIndex = records.findIndex((r) => r[0]?.trim() === 'Buchung');
   if (headerIndex === -1) {
     return [];
@@ -61,10 +72,10 @@ export function decodeCsv(bytes: ArrayBuffer): string {
 }
 
 /**
- * Zerlegt die Datei in Zeilen und Spalten. Semikolons und Zeilenumbrüche innerhalb von
+ * Zerlegt die Datei in Zeilen und Spalten. Trennzeichen und Zeilenumbrüche innerhalb von
  * Anführungszeichen gehören zum Feld, "" steht für ein Anführungszeichen. Leere Zeilen fallen weg.
  */
-function splitRecords(content: string): string[][] {
+function splitRecords(content: string, delimiter: string): string[][] {
   const records: string[][] = [];
   let record: string[] = [];
   let current = '';
@@ -87,7 +98,7 @@ function splitRecords(content: string): string[][] {
       } else {
         quoted = !quoted;
       }
-    } else if (char === ';' && !quoted) {
+    } else if (char === delimiter && !quoted) {
       record.push(current);
       current = '';
     } else if ((char === '\n' || char === '\r') && !quoted) {

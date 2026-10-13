@@ -206,8 +206,35 @@ namespace Zaster.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal?>("Devisenkurs")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ExterneId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("Fremdbetrag")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Fremdwaehrung")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("Gebuehr")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GegenIban")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Isin")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("Kurs")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("Reviewed")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Rohdaten")
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal?>("Saldo")
                         .HasColumnType("TEXT");
@@ -216,11 +243,20 @@ namespace Zaster.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal?>("Steuer")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("Stueck")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateOnly>("Valuta")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Verwendungszweck")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("Zeitpunkt")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

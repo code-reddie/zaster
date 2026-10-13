@@ -141,8 +141,15 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
     /// Übernimmt Buchungen aus einer CSV-Datei und überspringt solche, die schon im Konto liegen.
     /// </summary>
     [HttpPost("import")]
-    public async Task<ImportResult> Import(int accountId, ImportTransactions request, CancellationToken cancellationToken) =>
-        await importer.ImportAsync(accountId, request.Transactions, TransactionSource.Csv, cancellationToken);
+    public async Task<ActionResult<ImportResult>> Import(int accountId, ImportTransactions request, CancellationToken cancellationToken)
+    {
+        if (TransactionImporter.Validate(request.Transactions) is { } error)
+        {
+            return BadRequestProblem(error);
+        }
+
+        return await importer.ImportAsync(accountId, request.Transactions, TransactionSource.Csv, cancellationToken);
+    }
 
     /// <summary>
     /// Prüft anhand der Kontostände der Bank, ob Buchungen fehlen, und liefert den letzten bekannten Kontostand.

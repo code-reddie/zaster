@@ -17,7 +17,19 @@ public sealed record TransactionDto(
     string? Bemerkung,
     IReadOnlyList<TransactionSplitDto> Splits,
     bool Reviewed,
-    TransactionSource Source)
+    TransactionSource Source,
+    string? ExterneId,
+    DateTime? Zeitpunkt,
+    decimal? Gebuehr,
+    decimal? Steuer,
+    string? Isin,
+    decimal? Stueck,
+    decimal? Kurs,
+    decimal? Fremdbetrag,
+    string? Fremdwaehrung,
+    decimal? Devisenkurs,
+    string? GegenIban,
+    string? Rohdaten)
 {
     public static TransactionDto From(Transaction t) => new(
         t.Id,
@@ -32,7 +44,20 @@ public sealed record TransactionDto(
         t.Bemerkung,
         t.Splits.OrderBy(s => s.Betrag < 0 ? s.Betrag : -s.Betrag).ThenBy(s => s.Id).Select(s => new TransactionSplitDto(s.CategoryId, s.Betrag)).ToList(),
         t.Reviewed,
-        t.Source);
+        t.Source,
+        t.ExterneId,
+        // SQLite liefert den Zeitpunkt ohne Zeitzone zurück; gespeichert ist UTC.
+        t.Zeitpunkt is { } zeitpunkt ? DateTime.SpecifyKind(zeitpunkt, DateTimeKind.Utc) : null,
+        t.Gebuehr,
+        t.Steuer,
+        t.Isin,
+        t.Stueck,
+        t.Kurs,
+        t.Fremdbetrag,
+        t.Fremdwaehrung,
+        t.Devisenkurs,
+        t.GegenIban,
+        t.Rohdaten);
 }
 
 /// <summary>Teilbetrag einer Kategorie, mit dem Vorzeichen der Buchung.</summary>
@@ -61,7 +86,8 @@ public sealed record CreateTransaction(
 
 /// <summary>
 /// Ohne Valuta gilt der Buchungstag, wie bei Buchungen von Hand. <paramref name="Saldo"/> ist der
-/// Kontostand nach der Buchung, soweit die Quelle ihn kennt.
+/// Kontostand nach der Buchung, soweit die Quelle ihn kennt. Die übrigen Felder liefern nur manche
+/// Quellen (z. B. der Transaktionsexport von Trade Republic), Bedeutung wie bei <see cref="Transaction"/>.
 /// </summary>
 public sealed record ImportTransaction(
     DateOnly Buchung,
@@ -70,7 +96,19 @@ public sealed record ImportTransaction(
     string Buchungstext,
     string? Verwendungszweck,
     decimal Betrag,
-    decimal? Saldo = null);
+    decimal? Saldo = null,
+    string? ExterneId = null,
+    DateTime? Zeitpunkt = null,
+    decimal? Gebuehr = null,
+    decimal? Steuer = null,
+    string? Isin = null,
+    decimal? Stueck = null,
+    decimal? Kurs = null,
+    decimal? Fremdbetrag = null,
+    string? Fremdwaehrung = null,
+    decimal? Devisenkurs = null,
+    string? GegenIban = null,
+    string? Rohdaten = null);
 
 public sealed record ImportTransactions(IReadOnlyList<ImportTransaction> Transactions);
 

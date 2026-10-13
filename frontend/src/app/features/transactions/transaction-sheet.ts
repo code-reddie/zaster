@@ -5,7 +5,7 @@ import { Button } from '../../core/ui/button';
 import { DialogFooter, DialogFrame, DialogService } from '../../core/ui/dialog';
 import { Icon } from '../../core/ui/icon';
 import { ToastService } from '../../core/ui/toast';
-import { AmountPipe, dayLabel } from '../../shared/format';
+import { AmountPipe, dayLabel, IbanPipe } from '../../shared/format';
 import { CategoryDot } from '../categories/category-dot';
 import { CategoryPicker, CategoryPickerData } from '../categories/category-picker';
 import { CategoryStore } from '../categories/category.store';
@@ -14,6 +14,13 @@ import { BemerkungInput } from './bemerkung-input';
 import { SplitSheet } from './split-sheet';
 import { singleCategoryId, SOURCE_LABELS, Transaction } from './transaction.models';
 import { TransactionsService } from './transactions.service';
+
+const timeFormat = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
+const shareFormat = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 10 });
+const decimalFormat = new Intl.NumberFormat('de-DE', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 10,
+});
 
 export type TransactionSheetResult =
   | { updated: Transaction }
@@ -45,7 +52,16 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
  * machen, löschen.
  */
 @Component({
-  imports: [DialogFrame, DialogFooter, Button, Icon, AmountPipe, CategoryDot, BemerkungInput],
+  imports: [
+    DialogFrame,
+    DialogFooter,
+    Button,
+    Icon,
+    AmountPipe,
+    IbanPipe,
+    CategoryDot,
+    BemerkungInput,
+  ],
   template: `
     <z-dialog title="Buchung" [subtitle]="day()">
       <div class="mb-5 text-center">
@@ -151,6 +167,38 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
         <dd>{{ transaction().buchung.split('-').reverse().join('.') }}</dd>
         <dt class="text-muted">Valuta</dt>
         <dd>{{ transaction().valuta.split('-').reverse().join('.') }}</dd>
+        @if (time()) {
+          <dt class="text-muted">Uhrzeit</dt>
+          <dd>{{ time() }}</dd>
+        }
+        @if (transaction().isin) {
+          <dt class="text-muted">ISIN</dt>
+          <dd>{{ transaction().isin }}</dd>
+        }
+        @if (transaction().stueck !== null) {
+          <dt class="text-muted">Stück</dt>
+          <dd class="amount">{{ shares() }}</dd>
+        }
+        @if (transaction().kurs !== null) {
+          <dt class="text-muted">Kurs</dt>
+          <dd class="amount">{{ transaction().kurs | amount }}</dd>
+        }
+        @if (transaction().gebuehr) {
+          <dt class="text-muted">Gebühr</dt>
+          <dd class="amount">{{ transaction().gebuehr | amount }}</dd>
+        }
+        @if (transaction().steuer) {
+          <dt class="text-muted">Steuer</dt>
+          <dd class="amount">{{ transaction().steuer | amount }}</dd>
+        }
+        @if (foreign()) {
+          <dt class="text-muted">Fremdwährung</dt>
+          <dd class="amount">{{ foreign() }}</dd>
+        }
+        @if (transaction().gegenIban) {
+          <dt class="text-muted">IBAN</dt>
+          <dd class="amount break-all">{{ transaction().gegenIban | iban }}</dd>
+        }
         @if (transaction().saldo !== null) {
           <dt class="text-muted">Kontostand danach</dt>
           <dd class="amount">{{ transaction().saldo | amount }}</dd>
@@ -158,6 +206,20 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
         <dt class="text-muted">Herkunft</dt>
         <dd>{{ source() }}</dd>
       </dl>
+
+      @if (raw().length) {
+        <details class="mt-4 text-sm">
+          <summary class="cursor-pointer text-muted hover:text-fg">Zeile aus der Datei</summary>
+          <dl
+            class="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 rounded-xl bg-surface-2 px-3 py-2.5"
+          >
+            @for (entry of raw(); track entry[0]) {
+              <dt class="font-mono text-xs text-muted">{{ entry[0] }}</dt>
+              <dd class="break-all font-mono text-xs">{{ entry[1] }}</dd>
+            }
+          </dl>
+        </details>
+      }
 
       @if (error()) {
         <p class="z-error mt-4">{{ error() }}</p>
@@ -202,6 +264,35 @@ export class TransactionSheet {
   );
   protected readonly day = computed(() => dayLabel(this.transaction().buchung));
   protected readonly source = computed(() => SOURCE_LABELS[this.transaction().source]);
+  protected readonly time = computed(() => {
+    const zeitpunkt = this.transaction().zeitpunkt;
+    return zeitpunkt ? timeFormat.format(new Date(zeitpunkt)) : null;
+  });
+  protected readonly shares = computed(() =>
+    shareFormat.format(Math.abs(this.transaction().stueck ?? 0)),
+  );
+  protected readonly foreign = computed(() => {
+    const t = this.transaction();
+    if (t.fremdbetrag === null || !t.fremdwaehrung) {
+      return null;
+    }
+    const amount = `${decimalFormat.format(t.fremdbetrag)} ${t.fremdwaehrung}`;
+    return t.devisenkurs === null
+      ? amount
+      : `${amount} (Kurs ${shareFormat.format(t.devisenkurs)})`;
+  });
+  /** Alle Spalten der Zeile aus der Datei, z. B. beim Transaktionsexport von Trade Republic. */
+  protected readonly raw = computed((): [string, string][] => {
+    const rohdaten = this.transaction().rohdaten;
+    if (!rohdaten) {
+      return [];
+    }
+    try {
+      return Object.entries(JSON.parse(rohdaten) as Record<string, string>);
+    } catch {
+      return [['', rohdaten]];
+    }
+  });
 
   protected async pickCategory() {
     const categoryId = await this.dialog.result<number | null, CategoryPickerData>(CategoryPicker, {
