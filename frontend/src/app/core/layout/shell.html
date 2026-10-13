@@ -20,6 +20,14 @@
           class="size-4 text-muted"
         />
         <span class="min-w-0 flex-1 truncate">{{ account.name }}</span>
+        @if (account.openTransactions) {
+          <span
+            class="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent tabular-nums"
+            [title]="openLabel(account.openTransactions)"
+            [attr.aria-label]="openLabel(account.openTransactions)"
+            >{{ account.openTransactions }}</span
+          >
+        }
       </a>
     }
     <a
