@@ -28,11 +28,7 @@ public sealed class TransactionImporter(AppDbContext context, TimeProvider timeP
             .Where(t => t.AccountId == accountId)
             .ToListAsync(cancellationToken);
 
-        var matches = TransactionMatcher.Match(
-            existing,
-            t => TransactionMatcher.Key(t.Buchung, t.Betrag, t.Auftraggeber),
-            incoming,
-            t => TransactionMatcher.Key(t.Buchung, t.Betrag, t.Auftraggeber));
+        var matches = TransactionMatcher.MatchImport(existing, incoming);
 
         // Buchungen aus älteren Abrufen kennen ihren Kontostand noch nicht; ein neuer Abruf oder CSV-Import ergänzt ihn.
         foreach (var (item, match) in matches)
@@ -57,6 +53,22 @@ public sealed class TransactionImporter(AppDbContext context, TimeProvider timeP
                 Verwendungszweck = t.Verwendungszweck?.Trim() ?? string.Empty,
                 Betrag = t.Betrag,
                 Saldo = t.Saldo,
+                ExterneId = Normalize(t.ExterneId),
+                Zeitpunkt = t.Zeitpunkt?.ToUniversalTime(),
+                Gebuehr = t.Gebuehr,
+                Steuer = t.Steuer,
+                Isin = Normalize(t.Isin),
+                Stueck = t.Stueck,
+                Kurs = t.Kurs,
+                Fremdbetrag = t.Fremdbetrag,
+                Fremdwaehrung = Normalize(t.Fremdwaehrung),
+                Devisenkurs = t.Devisenkurs,
+                GegenIban = Normalize(t.GegenIban),
+                Art = Normalize(t.Art),
+                Anlageklasse = Normalize(t.Anlageklasse),
+                Mcc = Normalize(t.Mcc),
+                // Ohne Geldbewegung (z. B. ein Aktiensplit) gibt es nichts einzuordnen.
+                Reviewed = t.Betrag == 0,
                 Source = source,
                 CreatedAt = now,
             })
@@ -76,4 +88,28 @@ public sealed class TransactionImporter(AppDbContext context, TimeProvider timeP
 
         return new ImportResult(transactions.Count, incoming.Count - transactions.Count);
     }
+
+    /// <summary>
+    /// Prüft die Längen der Zusatzfelder, damit keine beliebig großen Texte in der Datenbank landen.
+    /// </summary>
+    /// <returns>Deutsche Fehlermeldung oder null.</returns>
+    public static string? Validate(IReadOnlyList<ImportTransaction> incoming)
+    {
+        foreach (var t in incoming)
+        {
+            if (t.ExterneId?.Length > 100 || t.Isin?.Length > 20 || t.Fremdwaehrung?.Length > 10 || t.GegenIban?.Length > 40
+                || t.Art?.Length > 50 || t.Anlageklasse?.Length > 50 || t.Mcc?.Length > 10)
+            {
+                return $"Die Buchung vom {t.Buchung:dd.MM.yyyy} über {t.Betrag} € enthält ein zu langes Feld.";
+            }
+        }
+
+        var ids = incoming.Select(t => Normalize(t.ExterneId)).OfType<string>().ToList();
+        return ids.Count == ids.Distinct().Count()
+            ? null
+            : "Die Datei enthält dieselbe Transaktions-ID mehrmals.";
+    }
+
+    private static string? Normalize(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

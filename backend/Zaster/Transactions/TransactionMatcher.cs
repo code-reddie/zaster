@@ -66,6 +66,37 @@ internal static class TransactionMatcher
     }
 
     /// <summary>
+    /// Ordnet Buchungen eines Imports den vorhandenen zu. Bringt eine Buchung eine <c>ExterneId</c> mit, die
+    /// es im Konto schon gibt, ist sie dieselbe. Sonst entscheidet der Schlüssel aus Datum, Betrag und
+    /// Auftraggeber, aber nur gegen vorhandene Buchungen ohne eigene Kennung: Zwei Buchungen mit
+    /// verschiedenen Kennungen sind nie dieselbe, auch wenn sie gleich aussehen.
+    /// </summary>
+    public static List<(ImportTransaction Item, Transaction? Existing)> MatchImport(
+        IReadOnlyList<Transaction> existing,
+        IReadOnlyList<ImportTransaction> incoming)
+    {
+        var byId = existing
+            .Where(t => t.ExterneId is not null)
+            .GroupBy(t => t.ExterneId!)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var withoutId = existing.Where(t => t.ExterneId is null);
+        var keyed = incoming.Where(t => !IsKnownId(t)).ToList();
+        var keyMatches = Match(
+                withoutId,
+                t => Key(t.Buchung, t.Betrag, t.Auftraggeber),
+                keyed,
+                t => Key(t.Buchung, t.Betrag, t.Auftraggeber))
+            .ToDictionary(m => m.Item, m => m.Existing, ReferenceEqualityComparer.Instance);
+
+        return incoming
+            .Select(t => (t, IsKnownId(t) ? byId[t.ExterneId!.Trim()] : (Transaction?)keyMatches[t]))
+            .ToList();
+
+        bool IsKnownId(ImportTransaction t) => t.ExterneId is { } id && byId.ContainsKey(id.Trim());
+    }
+
+    /// <summary>
     /// Großbuchstaben und Ziffern ohne Akzente. Umlaute werden einheitlich behandelt, egal ob
     /// die Bank „Müller“, „Mueller“ oder „Muller“ schickt.
     /// </summary>

@@ -9,9 +9,11 @@ import { AccountStore } from '../accounts/account.store';
 import { ImportResult, ImportTransaction } from '../transactions/transaction.models';
 import { TransactionsService } from '../transactions/transactions.service';
 import { decodeCsv, parseCsv } from './csv-parser';
+import { ImportFileError } from './trade-republic-parser';
 
 /**
- * CSV-Export der ING oder eine eigene Umsatzliste ins gewählte Konto übernehmen (Aufbau siehe `parseCsv`).
+ * CSV-Export der ING, Transaktionsexport von Trade Republic oder eine eigene Umsatzliste ins gewählte
+ * Konto übernehmen (Aufbau siehe `parseCsv`).
  * Ergebnis true, wenn übernommen.
  */
 @Component({
@@ -45,7 +47,8 @@ import { decodeCsv, parseCsv } from './csv-parser';
           } @else {
             <span class="font-medium">CSV-Datei wählen</span>
             <span class="mt-1 text-sm text-muted"
-              >Umsatzexport der ING oder eigene Umsatzliste (.csv)</span
+              >Umsatzexport der ING, Transaktionsexport von Trade Republic oder eigene Umsatzliste
+              (.csv)</span
             >
           }
           <input type="file" accept=".csv,text/csv" class="sr-only" (change)="select($event)" />
@@ -157,7 +160,14 @@ export class CsvImportSheet {
     }
     this.fileName.set(file.name);
     this.error.set(null);
-    const transactions = parseCsv(decodeCsv(await file.arrayBuffer()));
+    let transactions: ImportTransaction[];
+    try {
+      transactions = parseCsv(decodeCsv(await file.arrayBuffer()));
+    } catch (e) {
+      this.transactions.set([]);
+      this.error.set(e instanceof ImportFileError ? e.message : 'Die Datei ließ sich nicht lesen.');
+      return;
+    }
     this.transactions.set(transactions);
     if (transactions.length === 0) {
       this.error.set(

@@ -1,6 +1,6 @@
 export type TransactionSource = 'Unbekannt' | 'Manuell' | 'Csv' | 'FinTs';
 
-export interface Transaction {
+export interface Transaction extends TransactionDetails {
   id: number;
   accountId: number;
   /** Buchungstag als yyyy-MM-dd. */
@@ -65,7 +65,34 @@ export interface CreateTransaction {
   bemerkung: string | null;
 }
 
-export interface ImportTransaction {
+/** Zusatzangaben, die nur manche Quellen liefern (z. B. der Transaktionsexport von Trade Republic). */
+export interface TransactionDetails {
+  /** Kennung der Buchung bei der Bank; daran erkennt der Import Duplikate. */
+  externeId: string | null;
+  /** Genauer Zeitpunkt (ISO, UTC). */
+  zeitpunkt: string | null;
+  /** Gebühr, schon in `betrag` enthalten (negativ = bezahlt). */
+  gebuehr: number | null;
+  /** Steuer, schon in `betrag` enthalten (negativ = abgeführt, positiv = erstattet). */
+  steuer: number | null;
+  isin: string | null;
+  /** Stückzahl, negativ = abgegeben. */
+  stueck: number | null;
+  /** Kurs je Stück in Euro. */
+  kurs: number | null;
+  fremdbetrag: number | null;
+  fremdwaehrung: string | null;
+  devisenkurs: number | null;
+  gegenIban: string | null;
+  /** Art laut Bank, z. B. `BUY` (Trade Republic: Spalte `type`); `buchungstext` ist die deutsche Fassung. */
+  art: string | null;
+  /** Anlageklasse laut Bank, z. B. `STOCK`, `FUND`, `CRYPTO`. */
+  anlageklasse: string | null;
+  /** Händlerkategorie bei Kartenzahlungen. */
+  mcc: string | null;
+}
+
+export interface ImportTransaction extends Partial<TransactionDetails> {
   buchung: string;
   valuta: string;
   auftraggeber: string;
