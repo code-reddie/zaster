@@ -32,6 +32,11 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
     ],
     direction: t.betrag > 0 ? 'Eingang' : t.betrag < 0 ? 'Ausgang' : 'Beide',
     categoryId: singleCategoryId(t),
+    source: {
+      Auftraggeber: t.auftraggeber,
+      Buchungstext: t.buchungstext,
+      Verwendungszweck: t.verwendungszweck,
+    },
   };
 }
 
