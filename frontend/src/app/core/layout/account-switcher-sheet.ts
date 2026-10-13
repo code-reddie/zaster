@@ -3,6 +3,7 @@ import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AccountStore } from '../../features/accounts/account.store';
 import { IbanPipe } from '../../shared/format';
+import { openLabel } from './open-label';
 import { DialogFrame } from '../ui/dialog';
 import { Icon } from '../ui/icon';
 
@@ -25,6 +26,13 @@ import { Icon } from '../ui/icon';
               <span class="block truncate font-medium">{{ account.name }}</span>
               <span class="block truncate text-xs text-muted">{{ account.iban | iban }}</span>
             </span>
+            @if (account.openTransactions) {
+              <span
+                class="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent tabular-nums"
+                [attr.aria-label]="openLabel(account.openTransactions)"
+                >{{ account.openTransactions }}</span
+              >
+            }
             @if (account.id === store.selectedId()) {
               <z-icon name="check" class="size-5 text-accent" />
             }
@@ -50,6 +58,12 @@ export class AccountSwitcherSheet {
   protected readonly store = inject(AccountStore);
   private readonly ref = inject(DialogRef);
   private readonly router = inject(Router);
+  protected readonly openLabel = openLabel;
+
+  constructor() {
+    // Frisch laden, damit die Zahlen auch nach einem automatischen Abruf anderer Konten stimmen.
+    void this.store.load();
+  }
 
   protected go(url: string) {
     this.ref.close();
