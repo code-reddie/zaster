@@ -7,7 +7,8 @@ namespace Zaster.Tests;
 
 public sealed class RuleEngineTests
 {
-    private static Transaction Buchung(string auftraggeber, string verwendungszweck = "", int? categoryId = null, decimal betrag = -1m)
+    private static Transaction Buchung(
+        string auftraggeber, string verwendungszweck = "", int? categoryId = null, decimal betrag = -1m, string? anlageklasse = null)
     {
         var transaction = new Transaction
         {
@@ -17,6 +18,7 @@ public sealed class RuleEngineTests
             Buchungstext = "Lastschrift",
             Verwendungszweck = verwendungszweck,
             Betrag = betrag,
+            Anlageklasse = anlageklasse,
         };
         transaction.Categorize(categoryId);
         return transaction;
@@ -138,5 +140,44 @@ public sealed class RuleEngineTests
         var rules = new[] { new Rule { Id = 1, CategoryId = 10 } };
 
         Assert.Equal(0, RuleEngine.Apply([transaction], rules));
+    }
+
+    [Fact]
+    public void Anlageklasse_muss_genau_passen()
+    {
+        var aktie = Buchung("Muster AG", anlageklasse: "STOCK");
+        var etf = Buchung("Muster AG", anlageklasse: "FUND");
+        var ohne = Buchung("Muster AG");
+        var rules = new[] { new Rule { Id = 1, Conditions = [new RuleCondition { Field = RuleField.Anlageklasse, Pattern = "stock" }], CategoryId = 10 } };
+
+        Assert.Equal(1, RuleEngine.Apply([aktie, etf, ohne], rules));
+        Assert.Equal(10, CategoryOf(aktie));
+        Assert.Null(CategoryOf(etf));
+        Assert.Null(CategoryOf(ohne));
+    }
+
+    [Fact]
+    public void Anlageklasse_mit_weiterer_Bedingung_und_Alle_sieht_sie_nicht()
+    {
+        var kauf = Buchung("Muster AG", verwendungszweck: "Kauf", anlageklasse: "CRYPTO");
+        var dividende = Buchung("Muster AG", verwendungszweck: "Dividende", anlageklasse: "CRYPTO");
+        var rules = new[]
+        {
+            new Rule
+            {
+                Id = 1,
+                CategoryId = 10,
+                Conditions =
+                [
+                    new RuleCondition { Field = RuleField.Anlageklasse, Pattern = "CRYPTO" },
+                    new RuleCondition { Field = RuleField.Verwendungszweck, Pattern = "kauf" },
+                ],
+            },
+            new Rule { Id = 2, CategoryId = 20, SortOrder = 1, Conditions = [new RuleCondition { Field = RuleField.Alle, Pattern = "crypto" }] },
+        };
+
+        Assert.Equal(1, RuleEngine.Apply([kauf, dividende], rules));
+        Assert.Equal(10, CategoryOf(kauf));
+        Assert.Null(CategoryOf(dividende));
     }
 }

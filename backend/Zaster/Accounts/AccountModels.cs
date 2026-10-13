@@ -3,6 +3,10 @@ using System.Collections.Generic;
 
 namespace Zaster.Accounts;
 
+/// <param name="Anlageklassen">
+/// Anlageklassen, die in Buchungen des Kontos vorkommen (bisher nur Trade Republic), sortiert.
+/// Nicht leer heißt: Regeln können nach Anlageklasse unterscheiden.
+/// </param>
 public sealed record AccountDto(
     int Id,
     string Name,
@@ -13,7 +17,8 @@ public sealed record AccountDto(
     DateTimeOffset? LastSyncedAt,
     string? LastSyncError,
     IReadOnlyList<AccountMemberDto> Members,
-    int OpenTransactions);
+    int OpenTransactions,
+    IReadOnlyList<string> Anlageklassen);
 
 public sealed record AccountMemberDto(int Id, string Name);
 

@@ -21,13 +21,16 @@ export interface CategoryNode extends Category {
   childCount: number;
 }
 
-export type RuleField = 'Alle' | 'Auftraggeber' | 'Buchungstext' | 'Verwendungszweck';
+export type RuleField =
+  'Alle' | 'Auftraggeber' | 'Buchungstext' | 'Verwendungszweck' | 'Anlageklasse';
 
 export const RULE_FIELDS: { value: RuleField; label: string }[] = [
   { value: 'Alle', label: 'Auftraggeber, Buchungstext oder Verwendungszweck' },
   { value: 'Auftraggeber', label: 'Auftraggeber' },
   { value: 'Buchungstext', label: 'Buchungstext' },
   { value: 'Verwendungszweck', label: 'Verwendungszweck' },
+  // Nur bei Konten mit Anlageklassen (Trade Republic); der Wert muss genau passen.
+  { value: 'Anlageklasse', label: 'Anlageklasse' },
 ];
 
 export type RuleDirection = 'Beide' | 'Eingang' | 'Ausgang';

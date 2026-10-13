@@ -8,6 +8,7 @@ import { Icon } from '../../core/ui/icon';
 import { Spinner } from '../../core/ui/spinner';
 import { ToastService } from '../../core/ui/toast';
 import { AccountStore } from '../accounts/account.store';
+import { assetClassLabel } from '../transactions/transaction.models';
 import { CategoryDot } from './category-dot';
 import { CategoryNode, Rule, RuleCondition, RULE_FIELDS } from './category.models';
 import { CategorySheet, CategorySheetData } from './category-sheet';
@@ -29,9 +30,18 @@ export class CategoriesPage {
   );
 
   protected fieldLabel(condition: RuleCondition) {
+    if (condition.field === 'Anlageklasse') {
+      return 'als Anlageklasse';
+    }
     return condition.field === 'Alle'
       ? 'irgendwo'
       : `im ${RULE_FIELDS.find((f) => f.value === condition.field)!.label}`;
+  }
+
+  protected patternLabel(condition: RuleCondition) {
+    return condition.field === 'Anlageklasse'
+      ? assetClassLabel(condition.pattern)
+      : condition.pattern;
   }
 
   /** Kurzer Zusatz in der Liste, nur wenn die Regel auf eine Richtung beschränkt ist. */

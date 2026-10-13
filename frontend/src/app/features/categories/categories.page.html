@@ -124,7 +124,7 @@
                 @if (!firstCondition) {
                   <span class="text-muted"> und </span>
                 }
-                <span class="font-medium">„{{ condition.pattern }}“</span>
+                <span class="font-medium">„{{ patternLabel(condition) }}“</span>
                 <span class="text-muted"> {{ fieldLabel(condition) }}</span>
               }
               @if (directionLabel(item.rule); as label) {

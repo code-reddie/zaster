@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -18,8 +19,7 @@ public sealed class AccountsController(AppDbContext context) : ApiControllerBase
     [HttpGet]
     public async Task<IReadOnlyList<AccountDto>> GetAccounts(CancellationToken cancellationToken)
     {
-        var accounts = await ToDtos(context.Accounts.Where(a => a.Users.Any(u => u.Id == UserId)))
-            .ToListAsync(cancellationToken);
+        var accounts = await ToDtosAsync(context.Accounts.Where(a => a.Users.Any(u => u.Id == UserId)), cancellationToken);
         var order = await context.Users
             .Where(u => u.Id == UserId)
             .Select(u => u.AccountOrder)
@@ -61,7 +61,7 @@ public sealed class AccountsController(AppDbContext context) : ApiControllerBase
     [HttpGet("{accountId:int}")]
     [AccountMember]
     public async Task<AccountDto> GetAccount(int accountId, CancellationToken cancellationToken) =>
-        await ToDtos(context.Accounts.Where(a => a.Id == accountId)).SingleAsync(cancellationToken);
+        (await ToDtosAsync(context.Accounts.Where(a => a.Id == accountId), cancellationToken)).Single();
 
     private const string AccountExists = "Ein Konto mit dieser IBAN gibt es in Zaster schon.";
 
@@ -195,6 +195,24 @@ public sealed class AccountsController(AppDbContext context) : ApiControllerBase
         return NoContent();
     }
 
+    private async Task<List<AccountDto>> ToDtosAsync(IQueryable<Account> accounts, CancellationToken cancellationToken)
+    {
+        var dtos = await ToDtos(accounts).ToListAsync(cancellationToken);
+        var ids = dtos.Select(a => a.Id).ToList();
+
+        // Eigene Abfrage: Distinct innerhalb der Projektion braucht APPLY, das kann SQLite nicht.
+        var anlageklassen = (await context.Transactions
+            .Where(t => ids.Contains(t.AccountId) && t.Anlageklasse != null)
+            .Select(t => new { t.AccountId, Anlageklasse = t.Anlageklasse! })
+            .Distinct()
+            .ToListAsync(cancellationToken))
+            .ToLookup(t => t.AccountId, t => t.Anlageklasse);
+
+        return dtos
+            .Select(a => a with { Anlageklassen = anlageklassen[a.Id].Order(StringComparer.Ordinal).ToList() })
+            .ToList();
+    }
+
     private static IQueryable<AccountDto> ToDtos(IQueryable<Account> accounts) =>
         accounts
             .OrderBy(a => a.Name)
@@ -208,5 +226,6 @@ public sealed class AccountsController(AppDbContext context) : ApiControllerBase
                 a.LastSyncedAt,
                 a.LastSyncError,
                 a.Users.OrderBy(u => u.Name).Select(u => new AccountMemberDto(u.Id, u.Name)).ToList(),
-                a.Transactions.Count(t => !t.Splits.Any() && !t.Reviewed)));
+                a.Transactions.Count(t => !t.Splits.Any() && !t.Reviewed),
+                Array.Empty<string>()));
 }

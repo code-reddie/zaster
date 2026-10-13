@@ -12,6 +12,8 @@ export interface Account {
   members: AccountMember[];
   /** Buchungen ohne Kategorie, die noch nicht geprüft sind. */
   openTransactions: number;
+  /** Anlageklassen aus den Buchungen (bisher nur Trade Republic), z. B. `FUND`, `STOCK`. */
+  anlageklassen: string[];
 }
 
 export interface AccountMember {

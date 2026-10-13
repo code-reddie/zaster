@@ -91,7 +91,7 @@ public sealed class AccountOrderTests : IDisposable
     [Fact]
     public void Konten_ohne_Platz_behalten_ihre_Reihenfolge_dahinter()
     {
-        AccountDto Dto(int id) => new(id, $"Konto {id}", "", null, false, [], null, null, [], 0);
+        AccountDto Dto(int id) => new(id, $"Konto {id}", "", null, false, [], null, null, [], 0, []);
 
         var sorted = AccountsController.Sort([Dto(1), Dto(2), Dto(3), Dto(4)], [3, 99, 1]);
 
