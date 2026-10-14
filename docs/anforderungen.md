@@ -55,7 +55,7 @@ Christophs Anforderungen an Zaster (Stand 10.10.2026, Entscheidungen vom selben 
 
 ## Diagramme
 
-- ✅ Verteilung der Ein- und Ausgaben als Sankey-Flussdiagramm, pro Konto (Seite „Verteilung“, `/konten/<id>/verteilung`): Einnahmen links, Konto in der Mitte, Ausgaben rechts, Unterkategorien per Tipp aufklappbar; Zeitraum Monat, Jahr (Standard: laufendes Jahr), alles oder von–bis. Erstattungen werden innerhalb einer Kategorie verrechnet, Buchungen ohne Kategorie erscheinen als „Ohne Kategorie“, die Differenz als „Überschuss“ bzw. „Aus dem Kontostand“.
+- ✅ Verteilung der Ein- und Ausgaben als Sankey-Flussdiagramm, pro Konto (Seite „Verteilung“, `/konten/<id>/verteilung`): Einnahmen links, Konto in der Mitte, Ausgaben rechts, Unterkategorien am PC und iPad von Anfang an aufgeklappt, am iPhone zugeklappt, per Tipp auf- und zuklappbar; Zeitraum Monat, Jahr (Standard: laufendes Jahr), alles oder von–bis. Erstattungen werden innerhalb einer Kategorie verrechnet, Buchungen ohne Kategorie erscheinen als „Ohne Kategorie“, die Differenz als „Überschuss“ bzw. „Aus dem Kontostand“.
 
 ## Allgemein
 

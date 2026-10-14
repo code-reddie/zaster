@@ -119,7 +119,11 @@ export class SankeyChart {
 
   private readonly width = signal(0);
 
-  private readonly labelWidth = computed(() => (this.width() < 640 ? 96 : 160));
+  /** Am iPad (hochkant) etwas schmaler, damit zwei aufgeklappte Ebenen ohne Scrollen passen. */
+  private readonly labelWidth = computed(() => {
+    const width = this.width();
+    return width < 640 ? 96 : width < 1000 ? 120 : 160;
+  });
 
   protected readonly layout = computed(() => {
     const width = this.width();

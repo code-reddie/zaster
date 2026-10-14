@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { errorMessage } from '../../core/errors';
@@ -23,7 +23,8 @@ interface Row {
 
 /**
  * „Verteilung“: woher das Geld im gewählten Zeitraum kam und wohin es ging, als Sankey-Diagramm
- * und darunter als Liste. Kategorien mit Unterkategorien lassen sich in beiden aufklappen.
+ * und darunter als Liste. Kategorien mit Unterkategorien lassen sich in beiden auf- und zuklappen.
+ * Ab 640 px (iPad, PC) sind sie zu Beginn alle aufgeklappt, auf dem iPhone alle zugeklappt.
  */
 @Component({
   imports: [FormsModule, PageHeader, Icon, Spinner, EmptyState, AmountPipe, SankeyChart],
@@ -49,7 +50,19 @@ export class FlowsPage {
   protected readonly flows = signal<Flows | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
-  protected readonly expanded = signal<ReadonlySet<string>>(new Set());
+  /** Ab 640 px ist Platz für alle Unterkategorien, darunter (iPhone) sind sie anfangs zu. */
+  private readonly wide = signal(false);
+  /** Kategorien, die von Hand gegenüber dem Anfangszustand auf- oder zugeklappt wurden. */
+  private readonly toggled = signal<ReadonlySet<string>>(new Set());
+  protected readonly expanded = computed<ReadonlySet<string>>(() => {
+    const toggled = this.toggled();
+    if (!this.wide()) {
+      return toggled;
+    }
+    const tree = this.tree();
+    const keys = tree ? expandableKeys([...tree.income, ...tree.expense]) : [];
+    return new Set(keys.filter((key) => !toggled.has(key)));
+  });
   private requestId = 0;
 
   protected readonly range = computed(() => {
@@ -88,6 +101,12 @@ export class FlowsPage {
   protected readonly expenseRows = computed(() => this.rows(this.tree()?.expense ?? []));
 
   constructor() {
+    const media = window.matchMedia('(min-width: 640px)');
+    this.wide.set(media.matches);
+    const onChange = (e: MediaQueryListEvent) => this.wide.set(e.matches);
+    media.addEventListener('change', onChange);
+    inject(DestroyRef).onDestroy(() => media.removeEventListener('change', onChange));
+
     effect(() => {
       const accountId = this.accounts.selectedId();
       const range = this.range();
@@ -96,10 +115,12 @@ export class FlowsPage {
       }
     });
 
-    // Aufgeklappte Kategorien gelten nur für das Konto, in dem sie aufgeklappt wurden.
+    // Auf- und Zuklappen von Hand gilt nur für das Konto, in dem es geschah, und nur für die
+    // Breite, in der es geschah (wird das Fenster schmaler, gilt wieder der Anfangszustand).
     effect(() => {
       this.accounts.selectedId();
-      untracked(() => this.expanded.set(new Set()));
+      this.wide();
+      untracked(() => this.toggled.set(new Set()));
     });
   }
 
@@ -117,11 +138,11 @@ export class FlowsPage {
   }
 
   protected toggle(key: string) {
-    const next = new Set(this.expanded());
+    const next = new Set(this.toggled());
     if (!next.delete(key)) {
       next.add(key);
     }
-    this.expanded.set(next);
+    this.toggled.set(next);
   }
 
   protected percent(value: number, total: number) {
@@ -175,6 +196,13 @@ export class FlowsPage {
       }
     }
   }
+}
+
+/** Schlüssel aller Knoten mit Unterkategorien, in jeder Tiefe. */
+function expandableKeys(nodes: FlowNode[]): string[] {
+  return nodes.flatMap((node) =>
+    node.children.length ? [node.key, ...expandableKeys(node.children)] : [],
+  );
 }
 
 function firstOfMonth(date: Date) {

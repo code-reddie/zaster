@@ -129,6 +129,7 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 ### Verteilung (Sankey)
 - `Reports/Flows.cs` summiert je Kategorie die eigenen Teilbeträge (ohne Unterkategorien) und **verrechnet** sie: Eine Erstattung senkt die Ausgaben ihrer Kategorie. Buchungen ohne Kategorie werden nicht verrechnet, sondern getrennt als Einnahmen und Ausgaben geliefert.
 - Den Baum baut das Frontend (`features/flows/flow.models.ts`): Eine Kategorie steht auf der Seite, zu der ihr verrechneter Betrag passt, eine Elternkategorie also unter Umständen auf beiden Seiten. Eigene Buchungen einer Kategorie mit Unterkategorien erscheinen beim Aufklappen als „Ohne Unterkategorie“. Die Differenz gleicht „Überschuss“ (rechts) bzw. „Aus dem Kontostand“ (links) aus.
+- Auf- und zuklappen: Ab 640 px (iPad, PC) sind anfangs alle Kategorien mit Unterkategorien aufgeklappt, darunter (iPhone) alle zu (`FlowsPage.expanded`). Von Hand geklappte Kategorien merkt sich `toggled` als Abweichung davon, zurückgesetzt bei Kontowechsel und beim Wechsel über 640 px.
 - Das Diagramm ist selbst gezeichnetes SVG ohne Bibliothek (`sankey-layout.ts` rechnet, `sankey-chart.ts` zeichnet). Reicht die Breite für aufgeklappte Spalten nicht (iPhone), scrollt es waagerecht; die Liste darunter zeigt dieselben Zahlen.
 
 ### FinTS (ING)
