@@ -3,8 +3,14 @@ import { FlowNode, FlowSide, FlowTree } from './flow.models';
 export interface SankeyOptions {
   /** Verfügbare Breite; reicht sie nicht, wird das Diagramm breiter (waagerecht scrollen). */
   width: number;
-  /** Platz für Beschriftungen links bzw. rechts neben einer Spalte. */
+  /**
+   * Platz für Beschriftungen links bzw. rechts neben einer Spalte, höchstens. Bei vielen
+   * aufgeklappten Spalten wird er bis `minLabelWidth` schmaler, damit die Mitte nicht gequetscht wird.
+   */
   labelWidth: number;
+  minLabelWidth?: number;
+  /** Mindestabstand zwischen dem Konto und der ersten Spalte daneben (dort laufen nur Bänder). */
+  centerGap?: number;
   /** Höhe, auf die der Gesamtbetrag ungefähr kommt. */
   height: number;
   nodeWidth?: number;
@@ -41,13 +47,16 @@ export interface LaidOutLink {
 
 export interface SankeyLayout {
   width: number;
+  /** Tatsächlich genutzter Platz für Beschriftungen. */
+  labelWidth: number;
   height: number;
   nodeWidth: number;
   nodes: LaidOutNode[];
   links: LaidOutLink[];
 }
 
-const TOP = 28;
+/** Oben steht in einer eigenen Zeile der Name des Kontos. */
+const TOP = 40;
 const MIN_BAR = 1.5;
 
 /**
@@ -64,6 +73,7 @@ export function layoutSankey(
 ): SankeyLayout {
   const nodeWidth = options.nodeWidth ?? 10;
   const padding = options.padding ?? 8;
+  const centerGap = options.centerGap ?? 56;
   const minSlot = options.minSlot ?? 30;
   // Durch den Ausgleichsknoten sind beide Seiten gleich groß.
   const total = Math.max(sumValues(tree.income), sumValues(tree.expense), 0.01);
@@ -77,13 +87,29 @@ export function layoutSankey(
   // Waagerecht: Außen Platz für Beschriftungen, zwischen zwei Spalten einer Seite ebenfalls
   // (die Beschriftung der inneren Spalte steht außen neben ihr), neben dem Konto nur die Bänder.
   const gapCount = depthIn + depthOut;
+  const besideCenter = (i: number) => i === depthIn - 1 || i === depthIn;
+  const centerGaps = (depthIn ? 1 : 0) + (depthOut ? 1 : 0);
+  const innerGaps = gapCount - centerGaps;
+  // Reicht die Breite nicht, werden zuerst die Beschriftungen schmaler (Namen gekürzt), erst
+  // unter der Mindestbreite scrollt das Diagramm.
+  const fixed =
+    nodeWidth + centerGaps * centerGap + innerGaps * 32 + (depthIn ? 0 : 16) + (depthOut ? 0 : 16);
+  const labelSlots = centerGaps + innerGaps;
+  const labelWidth = labelSlots
+    ? Math.min(
+        options.labelWidth,
+        Math.max(
+          options.minLabelWidth ?? options.labelWidth,
+          Math.floor((options.width - fixed) / labelSlots),
+        ),
+      )
+    : options.labelWidth;
   const minGaps: number[] = [];
   for (let i = 0; i < gapCount; i++) {
-    const besideCenter = i === depthIn - 1 || i === depthIn;
-    minGaps.push(besideCenter ? 56 : options.labelWidth + 32);
+    minGaps.push(besideCenter(i) ? centerGap : labelWidth + 32);
   }
-  const marginLeft = depthIn ? options.labelWidth : 16;
-  const marginRight = depthOut ? options.labelWidth : 16;
+  const marginLeft = depthIn ? labelWidth : 16;
+  const marginRight = depthOut ? labelWidth : 16;
   const minWidth = marginLeft + marginRight + nodeWidth + minGaps.reduce((a, b) => a + b, 0);
   const width = Math.max(options.width, minWidth);
   const extra = gapCount ? (width - minWidth) / gapCount : 0;
@@ -179,7 +205,8 @@ export function layoutSankey(
     expandable: false,
     expanded: false,
   };
-  center.labelY = center.y - 12;
+  // In der eigenen Zeile ganz oben, damit der Name keine Beschriftung daneben verdeckt.
+  center.labelY = TOP - 16;
   nodes.push(center);
 
   // Bänder: Einnahmen fließen von außen zum Konto, Ausgaben vom Konto nach außen.
@@ -208,7 +235,7 @@ export function layoutSankey(
   connect(center, tree.expense, 'out');
 
   const height = Math.max(...nodes.map((n) => Math.max(n.y + n.h, n.labelY + minSlot / 2))) + 8;
-  return { width, height, nodeWidth, nodes, links };
+  return { width, labelWidth, height, nodeWidth, nodes, links };
 }
 
 /** Sichtbare Knoten je Spalte, von innen nach außen. */

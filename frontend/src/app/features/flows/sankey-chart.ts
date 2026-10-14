@@ -19,7 +19,7 @@ const euro = new Intl.NumberFormat('de-DE', {
 const euroExact = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
 
 /** Ungefähre Breite eines Zeichens bei 12px, um lange Namen zu kürzen. */
-const CHAR_WIDTH = 7;
+const CHAR_WIDTH = 6.5;
 
 /**
  * Sankey-Diagramm als SVG: Einnahmen links, Konto in der Mitte, Ausgaben rechts.
@@ -119,12 +119,6 @@ export class SankeyChart {
 
   private readonly width = signal(0);
 
-  /** Am iPad (hochkant) etwas schmaler, damit zwei aufgeklappte Ebenen ohne Scrollen passen. */
-  private readonly labelWidth = computed(() => {
-    const width = this.width();
-    return width < 640 ? 96 : width < 1000 ? 120 : 160;
-  });
-
   protected readonly layout = computed(() => {
     const width = this.width();
     if (!width) {
@@ -132,7 +126,9 @@ export class SankeyChart {
     }
     return layoutSankey(this.tree(), this.centerLabel(), this.expanded(), {
       width,
-      labelWidth: this.labelWidth(),
+      labelWidth: width < 640 ? 96 : 160,
+      minLabelWidth: 96,
+      centerGap: width < 640 ? 56 : 80,
       height: width < 640 ? 300 : 420,
     });
   });
@@ -161,7 +157,8 @@ export class SankeyChart {
 
   /** Kürzt Namen, die nicht neben den Knoten passen. */
   protected fit(label: string, expandable: boolean) {
-    const max = Math.floor((this.labelWidth() - 16) / CHAR_WIDTH) - (expandable ? 2 : 0);
+    const labelWidth = this.layout()?.labelWidth ?? 96;
+    const max = Math.floor((labelWidth - 20) / CHAR_WIDTH) - (expandable ? 2 : 0);
     return label.length > max ? `${label.slice(0, max - 1)}…` : label;
   }
 
