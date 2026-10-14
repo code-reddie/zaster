@@ -36,23 +36,28 @@ export interface CategorySheetData {
         </div>
         <fieldset>
           <legend class="z-label">Farbe</legend>
-          <div class="flex flex-wrap gap-2">
-            @if (parentId()) {
-              <button
-                type="button"
+          @if (parentId()) {
+            <button
+              type="button"
+              class="mb-3 flex items-center gap-2 rounded-full text-sm text-muted"
+              [attr.aria-pressed]="color() === null"
+              (click)="color.set(null)"
+            >
+              <span
                 [class]="swatchClass(color() === null)"
                 class="border-2 border-dashed !border-border"
-                title="Wie die übergeordnete Kategorie"
-                aria-label="Wie die übergeordnete Kategorie"
-                (click)="color.set(null)"
-              ></button>
-            }
+              ></span>
+              Wie die übergeordnete Kategorie
+            </button>
+          }
+          <div class="grid w-fit grid-cols-6 gap-2">
             @for (option of colors; track option) {
               <button
                 type="button"
                 [class]="swatchClass(color() === option)"
                 [style.background-color]="option"
                 [attr.aria-label]="'Farbe ' + option"
+                [attr.aria-pressed]="color() === option"
                 (click)="color.set(option)"
               ></button>
             }

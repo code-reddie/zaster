@@ -77,7 +77,7 @@ export class TransactionRow {
   protected readonly avatarStyle = computed(() => {
     const color = this.parts()[0]?.category.effectiveColor;
     return color
-      ? `background-color: color-mix(in srgb, ${color} 16%, transparent); color: ${color}`
+      ? `background-color: color-mix(in srgb, ${color} 16%, transparent); color: color-mix(in srgb, ${color} 70%, var(--z-fg))`
       : 'border: 1.5px dashed var(--z-border); color: var(--z-muted)';
   });
 }

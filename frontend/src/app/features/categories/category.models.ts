@@ -61,20 +61,36 @@ export interface SaveRule {
   categoryId: number;
 }
 
-/** Farben, die im hellen und dunklen Modus gut lesbar sind. */
+/**
+ * Farben, die im hellen und dunklen Modus gut lesbar sind: 18 kräftige Farbtöne nach Farbkreis,
+ * danach 6 dunkle Töne. Badges und Avatare mischen die Farbe mit der Textfarbe, damit auch die
+ * dunklen Töne im dunklen Modus lesbar bleiben.
+ */
 export const CATEGORY_COLORS = [
-  '#ef4444',
-  '#f97316',
-  '#f59e0b',
-  '#84cc16',
-  '#22c55e',
-  '#14b8a6',
-  '#06b6d4',
-  '#3b82f6',
-  '#6366f1',
-  '#a855f7',
-  '#ec4899',
-  '#78716c',
+  '#ef4444', // Rot
+  '#f97316', // Orange
+  '#f59e0b', // Bernstein
+  '#eab308', // Gelb
+  '#84cc16', // Limette
+  '#22c55e', // Grün
+  '#10b981', // Smaragd
+  '#14b8a6', // Türkis
+  '#06b6d4', // Cyan
+  '#0ea5e9', // Himmelblau
+  '#3b82f6', // Blau
+  '#6366f1', // Indigo
+  '#8b5cf6', // Veilchen
+  '#a855f7', // Lila
+  '#d946ef', // Fuchsia
+  '#ec4899', // Pink
+  '#f43f5e', // Rose
+  '#78716c', // Steingrau
+  '#b91c1c', // Dunkelrot
+  '#b45309', // Braun
+  '#15803d', // Dunkelgrün
+  '#1d4ed8', // Dunkelblau
+  '#7e22ce', // Dunkellila
+  '#475569', // Schiefer
 ];
 
 /**

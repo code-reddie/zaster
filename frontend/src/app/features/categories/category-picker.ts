@@ -142,6 +142,10 @@ export class CategoryPicker {
   }
 }
 
+/**
+ * Farbe für die n-te neue Kategorie. Springt jeweils 7 Plätze weiter, damit aufeinanderfolgende
+ * Kategorien nicht fast gleich aussehen (7 und 24 sind teilerfremd, also kommt jede Farbe dran).
+ */
 export function nextColor(index: number): string {
-  return CATEGORY_COLORS[index % CATEGORY_COLORS.length];
+  return CATEGORY_COLORS[(index * 7) % CATEGORY_COLORS.length];
 }
