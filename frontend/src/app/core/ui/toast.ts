@@ -1,11 +1,21 @@
 import { Component, inject, Injectable, signal } from '@angular/core';
 import { Icon } from './icon';
 
+/** Taste in der Meldung, z. B. „Rückgängig“. */
+export interface ToastAction {
+  label: string;
+  run: () => void;
+}
+
 interface Toast {
   id: number;
   text: string;
   kind: 'success' | 'error';
+  action?: ToastAction;
 }
+
+/** Meldungen mit Taste bleiben länger stehen, damit man sie noch erwischt. */
+const ACTION_MS = 8000;
 
 /** Kurze Rückmeldung unten am Bildschirm, z. B. „12 Buchungen übernommen“. */
 @Injectable({ providedIn: 'root' })
@@ -13,8 +23,11 @@ export class ToastService {
   readonly toasts = signal<Toast[]>([]);
   private nextId = 1;
 
-  success(text: string) {
-    this.show(text, 'success');
+  /**
+   * Mit `action` ersetzt die Meldung eine ältere mit Taste: „Rückgängig“ gibt es nur für das Letzte.
+   */
+  success(text: string, action?: ToastAction) {
+    this.show(text, 'success', action);
   }
 
   error(text: string) {
@@ -25,10 +38,19 @@ export class ToastService {
     this.toasts.update((t) => t.filter((toast) => toast.id !== id));
   }
 
-  private show(text: string, kind: Toast['kind']) {
+  /** Taste gedrückt: Meldung schließen und Aktion ausführen. */
+  act(toast: Toast) {
+    this.dismiss(toast.id);
+    toast.action?.run();
+  }
+
+  private show(text: string, kind: Toast['kind'], action?: ToastAction) {
     const id = this.nextId++;
-    this.toasts.update((t) => [...t.slice(-2), { id, text, kind }]);
-    setTimeout(() => this.dismiss(id), kind === 'error' ? 6000 : 3500);
+    this.toasts.update((t) => [
+      ...(action ? t.filter((toast) => !toast.action) : t).slice(-2),
+      { id, text, kind, action },
+    ]);
+    setTimeout(() => this.dismiss(id), action ? ACTION_MS : kind === 'error' ? 6000 : 3500);
   }
 }
 
@@ -53,6 +75,15 @@ export class ToastService {
           [class.text-danger]="toast.kind === 'error'"
         />
         <span>{{ toast.text }}</span>
+        @if (toast.action; as action) {
+          <button
+            type="button"
+            class="-my-1 ml-1 shrink-0 rounded-md px-2 py-1 font-semibold underline underline-offset-2 hover:bg-bg/15"
+            (click)="service.act(toast)"
+          >
+            {{ action.label }}
+          </button>
+        }
         <button
           type="button"
           class="-mr-1 ml-1 rounded-md p-1 opacity-60 hover:opacity-100"

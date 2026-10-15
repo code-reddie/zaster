@@ -298,8 +298,78 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
             open = open.Where(t => ids.Contains(t.Id));
         }
 
-        var updated = await open.ExecuteUpdateAsync(s => s.SetProperty(t => t.Reviewed, true), cancellationToken);
-        return new ReviewResult(updated);
+        var previous = await open.Include(t => t.Splits).ToListAsync(cancellationToken);
+        foreach (var transaction in previous)
+        {
+            transaction.Reviewed = true;
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        // Offen heißt ohne Kategorie und nicht geprüft; nur „geprüft“ hat sich geändert.
+        var states = previous.Select(t => TransactionState.From(t) with { Reviewed = false }).ToList();
+        return new ReviewResult(states.Count, states);
+    }
+
+    /// <summary>
+    /// „Rückgängig“: setzt Kategorien, „geprüft“ und Bemerkung der Buchungen auf den mitgeschickten Zustand
+    /// von vor einer Aktion. Inzwischen gelöschte Buchungen werden übersprungen. Liefert die Buchungen danach.
+    /// </summary>
+    [HttpPost("restore")]
+    public async Task<ActionResult<IReadOnlyList<TransactionDto>>> Restore(
+        int accountId,
+        RestoreTransactions request,
+        CancellationToken cancellationToken)
+    {
+        var states = request.States ?? [];
+        if (states.Select(s => s.Id).Distinct().Count() != states.Count)
+        {
+            return BadRequestProblem("Jede Buchung darf nur einmal vorkommen.");
+        }
+
+        var ids = states.Select(s => s.Id).ToList();
+        var transactions = await context.Transactions
+            .Include(t => t.Splits)
+            .Where(t => t.AccountId == accountId && ids.Contains(t.Id))
+            .ToDictionaryAsync(t => t.Id, cancellationToken);
+
+        var categoryIds = states.SelectMany(s => s.Splits ?? []).Select(p => p.CategoryId).ToHashSet();
+        var known = await context.Categories
+            .Where(c => c.AccountId == accountId && categoryIds.Contains(c.Id))
+            .CountAsync(cancellationToken);
+        if (known != categoryIds.Count)
+        {
+            return BadRequestProblem("Eine der Kategorien gibt es nicht mehr, das lässt sich nicht mehr rückgängig machen.");
+        }
+
+        var restored = new List<Transaction>();
+        foreach (var state in states)
+        {
+            if (!transactions.TryGetValue(state.Id, out var transaction))
+            {
+                continue;
+            }
+
+            var parts = state.Splits ?? [];
+            if (Transaction.ValidateSplit(transaction.Betrag, parts) is { } error)
+            {
+                return BadRequestProblem(error);
+            }
+
+            var bemerkung = Transaction.NormalizeBemerkung(state.Bemerkung);
+            if (bemerkung?.Length > Transaction.MaxBemerkung)
+            {
+                return BadRequestProblem(TooLong);
+            }
+
+            transaction.Split(parts);
+            transaction.Reviewed = state.Reviewed || transaction.IsCategorized;
+            transaction.Bemerkung = bemerkung;
+            restored.Add(transaction);
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+        return restored.Select(TransactionDto.From).ToList();
     }
 
     [HttpDelete("{id:int}")]

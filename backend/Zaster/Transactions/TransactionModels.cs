@@ -158,4 +158,20 @@ public sealed record SetBemerkung(string? Bemerkung);
 /// </summary>
 public sealed record ReviewTransactions(IReadOnlyList<int>? Ids);
 
-public sealed record ReviewResult(int Updated);
+/// <summary>
+/// <paramref name="Previous"/> ist der Zustand der abgehakten Buchungen vorher, zum Rückgängigmachen.
+/// </summary>
+public sealed record ReviewResult(int Updated, IReadOnlyList<TransactionState> Previous);
+
+/// <summary>
+/// Was sich an einer Buchung von Hand oder per Regel ändern lässt: Kategorien, „geprüft“ und Bemerkung.
+/// Das Frontend merkt sich den Zustand vor einer Aktion und schickt ihn für „Rückgängig“ zurück.
+/// </summary>
+public sealed record TransactionState(int Id, IReadOnlyList<TransactionSplitDto> Splits, bool Reviewed, string? Bemerkung)
+{
+    public static TransactionState From(Transaction t) =>
+        new(t.Id, t.Splits.Select(s => new TransactionSplitDto(s.CategoryId, s.Betrag)).ToList(), t.Reviewed, t.Bemerkung);
+}
+
+/// <summary>Setzt die Buchungen auf den angegebenen Zustand zurück („Rückgängig“).</summary>
+public sealed record RestoreTransactions(IReadOnlyList<TransactionState> States);

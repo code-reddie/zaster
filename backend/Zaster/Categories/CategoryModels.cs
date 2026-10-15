@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Zaster.Transactions;
 
 namespace Zaster.Categories;
 
@@ -26,4 +27,7 @@ public sealed record SaveRule(IReadOnlyList<RuleConditionDto> Conditions, int Ca
 
 public sealed record ReorderRules(IReadOnlyList<int> Ids);
 
-public sealed record ApplyRulesResult(int Updated);
+/// <summary>
+/// <paramref name="Previous"/> ist der Zustand der zugeordneten Buchungen vorher, zum Rückgängigmachen.
+/// </summary>
+public sealed record ApplyRulesResult(int Updated, IReadOnlyList<TransactionState> Previous);

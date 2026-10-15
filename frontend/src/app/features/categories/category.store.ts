@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { buildTree, Category, CategoryNode, Rule, SaveCategory, SaveRule } from './category.models';
+import { BulkResult } from '../transactions/transaction.models';
 
 /**
  * Kategorien und Regeln des gewählten Kontos. Wird von Buchungen, „Ohne Kategorie“ und der
@@ -100,11 +101,8 @@ export class CategoryStore {
   }
 
   /** Wendet die Regeln auf alle Buchungen ohne Kategorie an. */
-  async applyRules(): Promise<number> {
-    const result = await firstValueFrom(
-      this.http.post<{ updated: number }>(this.url('rules/apply'), {}),
-    );
-    return result.updated;
+  applyRules(): Promise<BulkResult> {
+    return firstValueFrom(this.http.post<BulkResult>(this.url('rules/apply'), {}));
   }
 
   private url(path: string) {
