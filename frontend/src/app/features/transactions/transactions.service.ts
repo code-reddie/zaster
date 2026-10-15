@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
   BalanceCheck,
+  BulkResult,
   CreateTransaction,
   ImportResult,
   ImportTransaction,
@@ -10,6 +11,7 @@ import {
   TransactionPage,
   TransactionQuery,
   TransactionSplit,
+  TransactionState,
 } from './transaction.models';
 
 @Injectable({ providedIn: 'root' })
@@ -68,11 +70,17 @@ export class TransactionsService {
   }
 
   /** Hakt die angegebenen Buchungen ab, ohne Ids alle offenen des Kontos. */
-  async review(accountId: number, ids?: number[]): Promise<number> {
-    const result = await firstValueFrom(
-      this.http.post<{ updated: number }>(`${this.url(accountId)}/review`, { ids: ids ?? null }),
+  review(accountId: number, ids?: number[]): Promise<BulkResult> {
+    return firstValueFrom(
+      this.http.post<BulkResult>(`${this.url(accountId)}/review`, { ids: ids ?? null }),
     );
-    return result.updated;
+  }
+
+  /** „Rückgängig“: setzt die Buchungen auf den gemerkten Zustand zurück. */
+  restore(accountId: number, states: TransactionState[]): Promise<Transaction[]> {
+    return firstValueFrom(
+      this.http.post<Transaction[]>(`${this.url(accountId)}/restore`, { states }),
+    );
   }
 
   delete(accountId: number, id: number): Promise<unknown> {

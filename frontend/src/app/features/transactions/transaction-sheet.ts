@@ -1,5 +1,5 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { errorMessage } from '../../core/errors';
 import { Button } from '../../core/ui/button';
 import { DialogFooter, DialogFrame, DialogService } from '../../core/ui/dialog';
@@ -16,9 +16,11 @@ import {
   assetClassLabel,
   singleCategoryId,
   SOURCE_LABELS,
+  stateOf,
   Transaction,
 } from './transaction.models';
 import { TransactionsService } from './transactions.service';
+import { UndoService } from './undo.service';
 
 const timeFormat = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
 const shareFormat = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 10 });
@@ -247,6 +249,7 @@ export class TransactionSheet {
   private readonly categories = inject(CategoryStore);
   private readonly dialog = inject(DialogService);
   private readonly toast = inject(ToastService);
+  private readonly undo = inject(UndoService);
 
   protected readonly transaction = signal(inject<Transaction>(DIALOG_DATA));
   protected readonly error = signal<string | null>(null);
@@ -300,6 +303,20 @@ export class TransactionSheet {
     const close = this.ref.close.bind(this.ref);
     this.ref.close = (result, options) =>
       close(result ?? (this.noteSaved ? { updated: this.transaction() } : undefined), options);
+
+    // „Rückgängig“ bei offenem Dialog (z. B. nach „Bemerkung speichern“): Anzeige nachziehen.
+    const seen = this.undo.restored();
+    effect(() => {
+      const restored = this.undo.restored();
+      const updated = restored?.items.find((t) => t.id === untracked(this.transaction).id);
+      if (restored !== seen && updated) {
+        untracked(() => {
+          this.transaction.set(updated);
+          this.note.set(updated.bemerkung ?? '');
+          this.noteSavedHint.set(false);
+        });
+      }
+    });
   }
 
   protected async pickCategory() {
@@ -314,8 +331,11 @@ export class TransactionSheet {
     ) {
       return;
     }
-    await this.save(() =>
-      this.service.setCategory(this.transaction().accountId, this.transaction().id, categoryId),
+    const name = categoryId === null ? null : this.categories.byId().get(categoryId)?.name;
+    await this.save(
+      () =>
+        this.service.setCategory(this.transaction().accountId, this.transaction().id, categoryId),
+      name ? `„${name}“ zugeordnet.` : 'Kategorie entfernt.',
     );
   }
 
@@ -325,18 +345,21 @@ export class TransactionSheet {
       this.transaction(),
     );
     if (updated) {
+      this.undo.offer('Aufgeteilt.', updated.accountId, [stateOf(this.transaction())]);
       this.transaction.set(updated);
       this.ref.close({ updated });
     }
   }
 
   protected async toggleReviewed() {
-    await this.save(() =>
-      this.service.setReviewed(
-        this.transaction().accountId,
-        this.transaction().id,
-        !this.transaction().reviewed,
-      ),
+    await this.save(
+      () =>
+        this.service.setReviewed(
+          this.transaction().accountId,
+          this.transaction().id,
+          !this.transaction().reviewed,
+        ),
+      this.transaction().reviewed ? 'Wieder offen.' : 'Nicht kategorisiert.',
     );
   }
 
@@ -349,11 +372,13 @@ export class TransactionSheet {
     this.error.set(null);
     this.savingNote.set(true);
     try {
+      const before = stateOf(this.transaction());
       const updated = await this.service.setBemerkung(
         this.transaction().accountId,
         this.transaction().id,
         this.note().trim(),
       );
+      this.undo.offer('Bemerkung gespeichert.', updated.accountId, [before]);
       this.transaction.set(updated);
       this.note.set(updated.bemerkung ?? '');
       this.noteSaved = true;
@@ -394,10 +419,12 @@ export class TransactionSheet {
     }
   }
 
-  private async save(action: () => Promise<Transaction>) {
+  private async save(action: () => Promise<Transaction>, done: string) {
     this.error.set(null);
     try {
+      const before = stateOf(this.transaction());
       const updated = await action();
+      this.undo.offer(done, updated.accountId, [before]);
       this.transaction.set(updated);
       this.ref.close({ updated });
     } catch (e) {

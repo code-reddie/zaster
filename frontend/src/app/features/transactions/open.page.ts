@@ -14,12 +14,13 @@ import { CategoryDot } from '../categories/category-dot';
 import { CategoryPicker, CategoryPickerData } from '../categories/category-picker';
 import { CategoryStore } from '../categories/category.store';
 import { RuleSheet, RuleSheetData } from '../categories/rule-sheet';
-import { Transaction } from './transaction.models';
+import { stateOf, Transaction } from './transaction.models';
 import { BemerkungSheet } from './bemerkung-sheet';
 import { SplitSheet } from './split-sheet';
 import { TransactionRow } from './transaction-row';
 import { ruleFromTransaction, TransactionSheet, TransactionSheetResult } from './transaction-sheet';
 import { TransactionsService } from './transactions.service';
+import { UndoService } from './undo.service';
 
 const PAGE_SIZE = 50;
 const RECENT_COUNT = 4;
@@ -86,6 +87,7 @@ export class OpenPage {
   private readonly dialog = inject(DialogService);
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
+  private readonly undo = inject(UndoService);
 
   protected readonly items = signal<Transaction[]>([]);
   protected readonly total = signal(0);
@@ -115,6 +117,18 @@ export class OpenPage {
         });
       }
     });
+    // Nach „Rückgängig“ sind Buchungen wieder offen: neu laden, damit sie auftauchen.
+    const seen = this.undo.restored();
+    effect(() => {
+      const restored = this.undo.restored();
+      if (
+        restored &&
+        restored !== seen &&
+        restored.accountId === untracked(this.accounts.selectedId)
+      ) {
+        untracked(() => this.reload());
+      }
+    });
   }
 
   protected day(value: string) {
@@ -138,8 +152,11 @@ export class OpenPage {
     if (this.settling()) {
       return;
     }
-    await this.run(transaction, () =>
-      this.service.setCategory(transaction.accountId, transaction.id, categoryId),
+    const name = this.categories.byId().get(categoryId)?.name ?? 'Kategorie';
+    await this.run(
+      transaction,
+      () => this.service.setCategory(transaction.accountId, transaction.id, categoryId),
+      `„${name}“ zugeordnet.`,
     );
     this.recentIds.update((ids) =>
       [
@@ -156,7 +173,7 @@ export class OpenPage {
     }
     const updated = await this.dialog.result<Transaction, Transaction>(SplitSheet, transaction);
     if (updated) {
-      await this.run(transaction, async () => updated);
+      await this.run(transaction, async () => updated, 'Aufgeteilt.');
     }
   }
 
@@ -168,6 +185,7 @@ export class OpenPage {
     const updated = await this.dialog.result<Transaction, Transaction>(BemerkungSheet, transaction);
     if (updated) {
       this.items.update((items) => items.map((t) => (t.id === updated.id ? updated : t)));
+      this.undo.offer('Bemerkung gespeichert.', transaction.accountId, [stateOf(transaction)]);
     }
   }
 
@@ -175,8 +193,10 @@ export class OpenPage {
     if (this.settling()) {
       return;
     }
-    await this.run(transaction, () =>
-      this.service.setReviewed(transaction.accountId, transaction.id, true),
+    await this.run(
+      transaction,
+      () => this.service.setReviewed(transaction.accountId, transaction.id, true),
+      'Nicht kategorisiert.',
     );
   }
 
@@ -215,8 +235,12 @@ export class OpenPage {
       return;
     }
     try {
-      const updated = await this.service.review(accountId);
-      this.toast.success(`${updated} Buchungen als geprüft markiert.`);
+      const result = await this.service.review(accountId);
+      this.undo.offer(
+        `${result.updated} Buchungen nicht kategorisiert.`,
+        accountId,
+        result.previous,
+      );
       this.reload();
     } catch (e) {
       this.toast.error(errorMessage(e, 'Das hat nicht geklappt.'));
@@ -224,10 +248,16 @@ export class OpenPage {
   }
 
   protected async applyRules() {
+    const accountId = this.accounts.selectedId();
+    if (accountId === null) {
+      return;
+    }
     try {
-      const updated = await this.categories.applyRules();
-      this.toast.success(
+      const { updated, previous } = await this.categories.applyRules();
+      this.undo.offer(
         updated ? `${updated} Buchungen per Regel zugeordnet.` : 'Keine Regel hat gepasst.',
+        accountId,
+        previous,
       );
       if (updated) {
         this.reload();
@@ -253,12 +283,13 @@ export class OpenPage {
   /**
    * Führt die Änderung aus und nimmt die Buchung aus der Liste. Die Karte blendet erst aus;
    * bis die nächste nachgerückt ist, bleiben alle Tasten gesperrt, damit ein zweiter Tipp
-   * nicht versehentlich die nächste Buchung trifft.
+   * nicht versehentlich die nächste Buchung trifft. Danach bietet eine Meldung „Rückgängig“ an.
    */
-  private async run(transaction: Transaction, action: () => Promise<Transaction>) {
+  private async run(transaction: Transaction, action: () => Promise<Transaction>, done: string) {
     this.busy.set(transaction.id);
     try {
       await action();
+      this.undo.offer(done, transaction.accountId, [stateOf(transaction)]);
       this.leaving.set(transaction.id);
       await new Promise((resolve) => setTimeout(resolve, LEAVE_MS));
       this.items.update((items) => items.filter((t) => t.id !== transaction.id));

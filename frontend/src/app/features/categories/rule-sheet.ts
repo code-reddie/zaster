@@ -8,6 +8,7 @@ import { Icon } from '../../core/ui/icon';
 import { ToastService } from '../../core/ui/toast';
 import { AccountStore } from '../accounts/account.store';
 import { ASSET_CLASSES, assetClassLabel } from '../transactions/transaction.models';
+import { UndoService } from '../transactions/undo.service';
 import { CategoryDot } from './category-dot';
 import { CategoryPicker, CategoryPickerData } from './category-picker';
 import {
@@ -192,6 +193,7 @@ export class RuleSheet {
   private readonly accounts = inject(AccountStore);
   private readonly dialog = inject(DialogService);
   private readonly toast = inject(ToastService);
+  private readonly undo = inject(UndoService);
 
   /** Anlageklassen, die im Konto vorkommen; bei anderen Konten als Trade Republic leer. */
   private readonly accountAssetClasses = computed(
@@ -356,11 +358,17 @@ export class RuleSheet {
       } else {
         await this.store.createRule(dto);
       }
-      const updated = this.apply() ? await this.store.applyRules() : 0;
-      this.toast.success(
+      const { updated, previous } = this.apply()
+        ? await this.store.applyRules()
+        : { updated: 0, previous: [] };
+      // „Rückgängig“ nimmt nur die Zuordnungen zurück, die Regel bleibt.
+      this.undo.offer(
         this.apply()
           ? `Regel gespeichert, ${updated} ${updated === 1 ? 'Buchung' : 'Buchungen'} zugeordnet.`
           : 'Regel gespeichert.',
+        this.accounts.selectedId()!,
+        previous,
+        'Zuordnungen zurückgenommen, die Regel bleibt.',
       );
       this.ref.close(updated);
     } catch (e) {

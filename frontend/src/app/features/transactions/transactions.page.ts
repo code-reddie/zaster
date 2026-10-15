@@ -17,6 +17,7 @@ import { Transaction, TransactionQuery } from './transaction.models';
 import { TransactionRow } from './transaction-row';
 import { TransactionSheet, TransactionSheetResult } from './transaction-sheet';
 import { TransactionsService } from './transactions.service';
+import { UndoService } from './undo.service';
 
 const PAGE_SIZE = 100;
 
@@ -41,6 +42,7 @@ export class TransactionsPage {
   protected readonly categories = inject(CategoryStore);
   private readonly service = inject(TransactionsService);
   private readonly dialog = inject(DialogService);
+  private readonly undo = inject(UndoService);
 
   /** null = alle Zeiträume */
   protected readonly month = signal<Month | null>(currentMonth());
@@ -99,6 +101,15 @@ export class TransactionsPage {
       const query = this.query();
       if (accountId !== null) {
         untracked(() => this.load(accountId, query));
+      }
+    });
+    // Nach „Rückgängig“ die betroffenen Buchungen in der Liste ersetzen.
+    const seen = this.undo.restored();
+    effect(() => {
+      const restored = this.undo.restored();
+      if (restored && restored !== seen) {
+        const byId = new Map(restored.items.map((t) => [t.id, t]));
+        untracked(() => this.items.update((items) => items.map((t) => byId.get(t.id) ?? t)));
       }
     });
   }

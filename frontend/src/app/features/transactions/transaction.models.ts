@@ -32,6 +32,27 @@ export interface TransactionSplit {
   betrag: number;
 }
 
+/**
+ * Was eine Aktion an einer Buchung ändern kann. Vor der Aktion gemerkt, stellt „Rückgängig“
+ * damit den alten Zustand wieder her.
+ */
+export interface TransactionState {
+  id: number;
+  splits: TransactionSplit[];
+  reviewed: boolean;
+  bemerkung: string | null;
+}
+
+export function stateOf(t: Transaction): TransactionState {
+  return { id: t.id, splits: t.splits, reviewed: t.reviewed, bemerkung: t.bemerkung };
+}
+
+/** Ergebnis einer Aktion über viele Buchungen, mit dem Zustand vorher. */
+export interface BulkResult {
+  updated: number;
+  previous: TransactionState[];
+}
+
 /** Die Kategorie, wenn die Buchung genau eine hat (ganzer Betrag), sonst null. */
 export function singleCategoryId(t: Transaction): number | null {
   return t.splits.length === 1 ? t.splits[0].categoryId : null;

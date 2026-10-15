@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Zaster.Common;
 using Zaster.Database;
+using Zaster.Transactions;
 
 namespace Zaster.Categories;
 
@@ -119,10 +120,12 @@ public sealed class RulesController(AppDbContext context) : ApiControllerBase
             .Where(t => t.AccountId == accountId && !t.Splits.Any())
             .ToListAsync(cancellationToken);
 
+        var before = transactions.ToDictionary(t => t.Id, TransactionState.From);
         var updated = RuleEngine.Apply(transactions, rules);
         await context.SaveChangesAsync(cancellationToken);
 
-        return new ApplyRulesResult(updated);
+        var previous = transactions.Where(t => t.IsCategorized).Select(t => before[t.Id]).ToList();
+        return new ApplyRulesResult(updated, previous);
     }
 
     private const int MaxConditions = 10;

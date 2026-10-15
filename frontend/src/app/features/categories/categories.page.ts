@@ -9,6 +9,7 @@ import { Spinner } from '../../core/ui/spinner';
 import { ToastService } from '../../core/ui/toast';
 import { AccountStore } from '../accounts/account.store';
 import { assetClassLabel } from '../transactions/transaction.models';
+import { UndoService } from '../transactions/undo.service';
 import { CategoryDot } from './category-dot';
 import { CategoryNode, Rule, RuleCondition, RULE_FIELDS } from './category.models';
 import { CategorySheet, CategorySheetData } from './category-sheet';
@@ -24,6 +25,7 @@ export class CategoriesPage {
   protected readonly store = inject(CategoryStore);
   private readonly dialog = inject(DialogService);
   private readonly toast = inject(ToastService);
+  private readonly undo = inject(UndoService);
 
   protected readonly rules = computed(() =>
     this.store.rules().map((rule) => ({ rule, category: this.store.byId().get(rule.categoryId) })),
@@ -71,15 +73,18 @@ export class CategoriesPage {
   }
 
   protected async applyRules() {
+    const accountId = this.accounts.selectedId();
+    if (accountId === null) {
+      return;
+    }
     try {
-      const updated = await this.store.applyRules();
-      this.toast.success(
+      const { updated, previous } = await this.store.applyRules();
+      this.undo.offer(
         updated ? `${updated} Buchungen per Regel zugeordnet.` : 'Keine Regel hat gepasst.',
+        accountId,
+        previous,
       );
-      const accountId = this.accounts.selectedId();
-      if (accountId !== null) {
-        this.accounts.refresh(accountId);
-      }
+      this.accounts.refresh(accountId);
     } catch (e) {
       this.toast.error(errorMessage(e, 'Die Regeln konnten nicht angewendet werden.'));
     }
