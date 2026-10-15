@@ -44,12 +44,22 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var pattern = $"%{EscapeLike(query.Search.Trim())}%";
+            var search = query.Search.Trim();
+            var pattern = $"%{EscapeLike(search)}%";
+
+            // Sieht der Begriff wie ein Betrag aus, findet er zusätzlich Buchungen mit genau diesem
+            // Betrag oder Teilbetrag; ohne Vorzeichen Einnahmen und Ausgaben.
+            var isAmount = AmountSearch.TryParse(search, out var amount, out var signed);
+            var amountA = amount;
+            var amountB = signed ? amount : -amount;
+
             transactions = transactions.Where(t =>
                 EF.Functions.Like(t.Auftraggeber, pattern, "\\")
                 || EF.Functions.Like(t.Buchungstext, pattern, "\\")
                 || EF.Functions.Like(t.Verwendungszweck, pattern, "\\")
-                || (t.Bemerkung != null && EF.Functions.Like(t.Bemerkung, pattern, "\\")));
+                || (t.Bemerkung != null && EF.Functions.Like(t.Bemerkung, pattern, "\\"))
+                || (isAmount && (t.Betrag == amountA || t.Betrag == amountB
+                    || t.Splits.Any(s => s.Betrag == amountA || s.Betrag == amountB))));
         }
 
         HashSet<int>? categoryIds = null;
