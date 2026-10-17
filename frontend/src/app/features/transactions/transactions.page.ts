@@ -44,8 +44,8 @@ export class TransactionsPage {
   private readonly dialog = inject(DialogService);
   private readonly undo = inject(UndoService);
 
-  /** null = alle Zeiträume */
-  protected readonly month = signal<Month | null>(currentMonth());
+  /** null = alle Zeiträume (Standard beim Öffnen der Seite) */
+  protected readonly month = signal<Month | null>(null);
   protected readonly searchInput = signal('');
   private readonly search = debounced(this.searchInput, 300);
   /** Kategorie-Id, 'none' = ohne Kategorie, '' = alle */
