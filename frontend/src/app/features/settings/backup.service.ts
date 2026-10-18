@@ -12,7 +12,10 @@ export interface BackupSchedule {
   /** Ob ein Zielordner eingestellt ist (`Backup__Directory`). */
   configured: boolean;
   directory: string | null;
+  /** Namensmuster, z. B. „zaster-JJJJ-MM-TT_HH-MM-SS.db“. */
   fileName: string;
+  /** Wie viele Sicherungen gerade im Zielordner liegen, null wenn er nicht lesbar ist. */
+  count: number | null;
   /** „HH:mm“ oder null, wenn die automatische Sicherung aus ist. */
   time: string | null;
   lastBackupAt: string | null;

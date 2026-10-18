@@ -30,11 +30,13 @@ public sealed record BackupSettings : Entity
 
 /// <param name="Configured">Ob ein Zielordner eingestellt ist (<c>Backup__Directory</c>).</param>
 /// <param name="Directory">Zielordner im Container.</param>
-/// <param name="FileName">Name der Datei im Zielordner.</param>
+/// <param name="FileName">Namensmuster der Sicherungen im Zielordner.</param>
+/// <param name="Count">Wie viele Sicherungen gerade im Zielordner liegen, null wenn der Ordner nicht lesbar ist.</param>
 public sealed record BackupScheduleDto(
     bool Configured,
     string? Directory,
     string FileName,
+    int? Count,
     string? Time,
     DateTime? LastBackupAt,
     string? LastError);

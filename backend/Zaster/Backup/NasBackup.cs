@@ -1,17 +1,24 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Zaster.Database;
+using Zaster.FinTs;
 
 namespace Zaster.Backup;
 
 /// <summary>
-/// Automatische Sicherung in einen Zielordner (z. B. das NAS der FritzBox). Überschreibt jedes Mal dieselbe Datei.
+/// Automatische Sicherung in einen Zielordner (z. B. das NAS der FritzBox). Jede Sicherung bekommt einen Zeitstempel
+/// im Namen, danach werden alte Sicherungen nach <see cref="BackupRetention"/> gelöscht.
 /// </summary>
-public sealed class NasBackup(AppDbContext context, IOptions<BackupOptions> options, TimeProvider timeProvider)
+public sealed class NasBackup(
+    AppDbContext context,
+    IOptions<BackupOptions> options,
+    IOptions<FinTsOptions> finTsOptions,
+    TimeProvider timeProvider)
 {
     /// <summary>
     /// Zeitgesteuerte und von Hand gestartete Sicherung sollen nicht gleichzeitig in dieselbe Datei schreiben.
@@ -39,7 +46,8 @@ public sealed class NasBackup(AppDbContext context, IOptions<BackupOptions> opti
         return new BackupScheduleDto(
             Directory is not null,
             Directory,
-            BackupOptions.FileName,
+            BackupRetention.FileNamePattern,
+            CountBackups(),
             settings.Time,
             // SQLite liefert DateTime ohne Art zurück; als UTC markieren, damit das Frontend die Zeit richtig umrechnet.
             settings.LastBackupAt is { } at ? DateTime.SpecifyKind(at, DateTimeKind.Utc) : null,
@@ -61,10 +69,13 @@ public sealed class NasBackup(AppDbContext context, IOptions<BackupOptions> opti
         try
         {
             var settings = await GetSettingsAsync(cancellationToken);
-            settings.LastError = await TryWriteAsync(directory, cancellationToken);
+            var now = timeProvider.GetUtcNow();
+            var fileName = BackupRetention.FileName(TimeZoneInfo.ConvertTime(now, FindTimeZone()).DateTime);
+            settings.LastError = await TryWriteAsync(directory, fileName, cancellationToken);
             if (settings.LastError is null)
             {
-                settings.LastBackupAt = timeProvider.GetUtcNow().UtcDateTime;
+                settings.LastBackupAt = now.UtcDateTime;
+                DeleteObsolete(directory);
             }
 
             await context.SaveChangesAsync(cancellationToken);
@@ -82,7 +93,7 @@ public sealed class NasBackup(AppDbContext context, IOptions<BackupOptions> opti
     /// auch wenn die Verbindung mittendrin abreißt.
     /// </summary>
     /// <returns>Null bei Erfolg, sonst die Fehlermeldung.</returns>
-    private async Task<string?> TryWriteAsync(string directory, CancellationToken cancellationToken)
+    private async Task<string?> TryWriteAsync(string directory, string fileName, CancellationToken cancellationToken)
     {
         if (!System.IO.Directory.Exists(directory))
         {
@@ -90,7 +101,7 @@ public sealed class NasBackup(AppDbContext context, IOptions<BackupOptions> opti
         }
 
         var local = Path.Combine(Path.GetTempPath(), $"zaster-sicherung-{Guid.NewGuid():N}.db");
-        var target = Path.Combine(directory, BackupOptions.FileName);
+        var target = Path.Combine(directory, fileName);
         var partial = target + ".tmp";
         try
         {
@@ -118,6 +129,54 @@ public sealed class NasBackup(AppDbContext context, IOptions<BackupOptions> opti
         }
     }
 
+    /// <summary>
+    /// Löscht die Sicherungen, die nicht mehr ins Raster passen. Nur nach einer erfolgreichen Sicherung, damit bei
+    /// Ausfällen die alten erhalten bleiben. Klappt das Löschen nicht, wird es beim nächsten Mal wieder versucht.
+    /// </summary>
+    private static void DeleteObsolete(string directory)
+    {
+        try
+        {
+            foreach (var (path, _) in BackupRetention.Obsolete(BackupRetention.Find(directory), b => b.Time))
+            {
+                TryDelete(path);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Ordner nicht lesbar: beim nächsten Mal wieder.
+        }
+    }
+
+    private int? CountBackups()
+    {
+        if (Directory is not { } directory || !System.IO.Directory.Exists(directory))
+        {
+            return null;
+        }
+
+        try
+        {
+            return BackupRetention.Find(directory).Count;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private TimeZoneInfo FindTimeZone()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById(finTsOptions.Value.TimeZone);
+        }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            return TimeZoneInfo.Utc;
+        }
+    }
+
     private static void TryDelete(string path)
     {
         try
@@ -126,7 +185,7 @@ public sealed class NasBackup(AppDbContext context, IOptions<BackupOptions> opti
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // Bleibt liegen und wird beim nächsten Mal überschrieben.
+            // Bleibt liegen und wird beim nächsten Mal wieder versucht.
         }
     }
 }

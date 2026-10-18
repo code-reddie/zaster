@@ -206,8 +206,9 @@
     <div class="mt-6 border-t border-border pt-5">
       <h3 class="font-medium">Automatisch auf das NAS</h3>
       <p class="mt-1 mb-4 text-sm text-muted">
-        Zaster legt jeden Tag eine Sicherung in einem Ordner ab, z. B. auf dem NAS der FritzBox. Die
-        Datei wird jedes Mal überschrieben.
+        Zaster legt jeden Tag eine Sicherung mit Datum und Uhrzeit im Namen in einem Ordner ab, z. B.
+        auf dem NAS der FritzBox. Aufbewahrt wird je die neueste der letzten 5 Tage, 5 Wochen und 5
+        Monate, ältere löscht Zaster selbst.
       </p>
 
       @if (!schedule()) {
@@ -225,8 +226,14 @@
         @let s = schedule()!;
         <dl class="mb-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
           <div class="rounded-xl bg-surface-2 px-3 py-2.5">
-            <dt class="text-muted">Datei</dt>
-            <dd class="truncate font-mono">{{ s.directory }}/{{ s.fileName }}</dd>
+            <dt class="text-muted">Dateien</dt>
+            <dd class="truncate font-mono">{{ s.directory }}/</dd>
+            <dd class="truncate font-mono">{{ s.fileName }}</dd>
+            @if (s.count !== null) {
+              <dd class="text-muted">
+                {{ s.count === 1 ? '1 Sicherung' : s.count + ' Sicherungen' }} im Ordner
+              </dd>
+            }
           </div>
           <div class="rounded-xl bg-surface-2 px-3 py-2.5">
             <dt class="text-muted">Letzte Sicherung</dt>

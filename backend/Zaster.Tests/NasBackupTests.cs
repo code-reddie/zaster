@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Zaster.Accounts;
 using Zaster.Backup;
 using Zaster.Database;
+using Zaster.FinTs;
 
 namespace Zaster.Tests;
 
@@ -51,16 +52,18 @@ public sealed class NasBackupTests : IDisposable
     }
 
     [Fact]
-    public async Task Sicherung_ueberschreibt_dieselbe_Datei()
+    public async Task Sicherung_bekommt_Zeitstempel_in_Ortszeit()
     {
         AddAccount("Girokonto");
         Assert.True(await Backup(_directory).RunAsync(CancellationToken.None));
 
         AddAccount("Tagesgeld");
+        _time.Now = _time.Now.AddMinutes(1);
         Assert.True(await Backup(_directory).RunAsync(CancellationToken.None));
 
+        // Beide am selben Tag: nur die neuere bleibt.
         var file = Assert.Single(Directory.GetFiles(_directory));
-        Assert.Equal("zaster.db", Path.GetFileName(file));
+        Assert.Equal("zaster-2026-10-11_03-01-00.db", Path.GetFileName(file));
         using var copy = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlite($"Data Source={file};Mode=ReadOnly;Pooling=False").Options);
         Assert.Equal(2, await copy.Accounts.CountAsync());
@@ -68,6 +71,28 @@ public sealed class NasBackupTests : IDisposable
         var settings = await Backup(_directory).GetSettingsAsync(CancellationToken.None);
         Assert.Equal(_time.GetUtcNow().UtcDateTime, settings.LastBackupAt);
         Assert.Null(settings.LastError);
+    }
+
+    [Fact]
+    public async Task Alte_Sicherungen_werden_nach_Raster_geloescht_fremde_Dateien_bleiben()
+    {
+        File.WriteAllText(Path.Combine(_directory, "zaster.db"), "alt");
+        File.WriteAllText(Path.Combine(_directory, "notizen.txt"), "x");
+
+        for (var day = 0; day < 200; day++)
+        {
+            Assert.True(await Backup(_directory).RunAsync(CancellationToken.None));
+            _time.Now = _time.Now.AddDays(1);
+        }
+
+        var backups = Directory.GetFiles(_directory, "zaster-*.db");
+        // 5 Tage, dazu die Wochen und Monate davor, die nicht schon dabei sind.
+        Assert.InRange(backups.Length, 11, 15);
+        Assert.True(File.Exists(Path.Combine(_directory, "zaster.db")));
+        Assert.True(File.Exists(Path.Combine(_directory, "notizen.txt")));
+
+        var schedule = await Backup(_directory).GetScheduleAsync(CancellationToken.None);
+        Assert.Equal(backups.Length, schedule.Count);
     }
 
     [Fact]
@@ -92,7 +117,7 @@ public sealed class NasBackupTests : IDisposable
     }
 
     private NasBackup Backup(string? directory) =>
-        new(_context, Options.Create(new BackupOptions { Directory = directory }), _time);
+        new(_context, Options.Create(new BackupOptions { Directory = directory }), Options.Create(new FinTsOptions()), _time);
 
     private void AddAccount(string name)
     {
@@ -102,6 +127,8 @@ public sealed class NasBackupTests : IDisposable
 
     private sealed class FixedTime : TimeProvider
     {
-        public override DateTimeOffset GetUtcNow() => new(2026, 10, 11, 1, 0, 0, TimeSpan.Zero);
+        public DateTimeOffset Now { get; set; } = new(2026, 10, 11, 1, 0, 0, TimeSpan.Zero);
+
+        public override DateTimeOffset GetUtcNow() => Now;
     }
 }
