@@ -32,7 +32,7 @@ Die vollständigen Anforderungen mit Umsetzungsstand und Entscheidungen stehen i
 - „Rückgängig“: Nach Kategorie zuordnen, Aufteilen, „Nicht kategorisieren“, Bemerkung, „Alle nicht kategorisieren“ oder „Regeln anwenden“ steht in der Meldung unten acht Sekunden lang „Rückgängig“; das setzt die Buchungen auf den Stand davor zurück (Kategorien, geprüft, Bemerkung). Nur die letzte Aktion; Löschen, Import und Abruf lassen sich nicht zurücknehmen.
 - Benachrichtigungen über Home Assistant: Bringt ein FinTS-Abruf (von Hand oder automatisch) oder ein CSV-Import Buchungen, die nach den Regeln noch ohne Kategorie sind, bekommen alle Mitglieder des Kontos eine Nachricht, z. B. „3 neue Buchungen ohne Kategorie (insgesamt 12 offen)“. Ein Tipp darauf öffnet die Seite „Ohne Kategorie“ des Kontos, bei Bedarf nach der Anmeldung. Von Hand angelegte Buchungen lösen keine Nachricht aus. Jeder Nutzer wählt unter „Einstellungen“ seine Geräte mit der Home-Assistant-App aus und kann eine Testnachricht schicken.
 - Sicherung: Unter „Einstellungen“ lädt „Datenbank herunterladen“ die komplette Datenbank als Datei herunter (`zaster-<datum>.db`). Die Taste sieht nur, wer Zaster eingerichtet hat (der zuerst registrierte Nutzer), weil die Datei die Daten aller Nutzer enthält. Wiederherstellen: siehe unten.
-- Automatische Sicherung, z. B. auf das NAS der FritzBox: Zaster legt jeden Tag zur eingestellten Uhrzeit (Standard 03:00) eine Kopie der Datenbank als `zaster.db` in einem Ordner ab und überschreibt sie jedes Mal. Schlägt sie fehl, schickt Zaster über Home Assistant eine Nachricht an die Geräte dessen, der Zaster eingerichtet hat. Uhrzeit, letzte Sicherung, Fehler und „Jetzt sichern“ stehen unter „Einstellungen“ → „Sicherung“ (nur für den, der Zaster eingerichtet hat). Den Ordner bindet man auf dem Server ein und reicht ihn per `docker compose` an Zaster weiter, siehe [Sicherung auf die FritzBox](#sicherung-auf-die-fritzbox).
+- Automatische Sicherung, z. B. auf das NAS der FritzBox: Zaster legt jeden Tag zur eingestellten Uhrzeit (Standard 03:00) eine Kopie der Datenbank mit Zeitstempel im Namen in einem Ordner ab (`zaster-2026-10-18_03-00-00.db`, Ortszeit). Aufbewahrt wird je Tag, Kalenderwoche und Monat die neueste Sicherung, für die letzten 5 Tage, 5 Wochen und 5 Monate mit Sicherung (also höchstens 15 Dateien, meist 13); ältere löscht Zaster nach jeder erfolgreichen Sicherung. Schlägt sie fehl, schickt Zaster über Home Assistant eine Nachricht an die Geräte dessen, der Zaster eingerichtet hat. Uhrzeit, letzte Sicherung, Fehler und „Jetzt sichern“ stehen unter „Einstellungen“ → „Sicherung“ (nur für den, der Zaster eingerichtet hat). Den Ordner bindet man auf dem Server ein und reicht ihn per `docker compose` an Zaster weiter, siehe [Sicherung auf die FritzBox](#sicherung-auf-die-fritzbox).
 - Seite „Verteilung“ pro Konto: Sankey-Diagramm, woher das Geld kam (Einnahmen nach Kategorie, links) und wohin es ging (Ausgaben nach Kategorie, rechts), mit dem Konto in der Mitte. Zeitraum wählbar (Monat, Jahr, alles oder von–bis, voreingestellt das laufende Jahr). Am PC und iPad sind alle Unterkategorien von Anfang an aufgeklappt, am iPhone zugeklappt; ein Tipp auf eine Kategorie mit Unterkategorien klappt sie auf oder zu. Darunter dieselben Zahlen als Liste mit Anteil in Prozent. Aufgeteilte Buchungen zählen mit ihren Teilbeträgen, Erstattungen werden mit den Ausgaben derselben Kategorie verrechnet, Buchungen ohne Kategorie stehen als „Ohne Kategorie“ auf beiden Seiten. Die Differenz zeigt „Überschuss“ bzw. „Aus dem Kontostand“.
 
 ## Starten mit Docker Compose
@@ -64,7 +64,7 @@ Wichtig: Das Volume `/data` sichern. Gehen die Schlüssel unter `/data/keys` ver
 
 ### Sicherung auf die FritzBox
 
-Zaster kann jeden Tag eine Sicherung auf das NAS der FritzBox legen (USB-Speicher oder interner Speicher). Der Server bindet dazu die Freigabe `FRITZ.NAS` per SMB als Ordner ein, z. B. `/mnt/fritzbox`, `docker compose` reicht diesen Ordner als `/backup` an den Container weiter. Zaster schreibt dort `zaster.db` und überschreibt sie bei jeder Sicherung.
+Zaster kann jeden Tag eine Sicherung auf das NAS der FritzBox legen (USB-Speicher oder interner Speicher). Der Server bindet dazu die Freigabe `FRITZ.NAS` per SMB als Ordner ein, z. B. `/mnt/fritzbox`, `docker compose` reicht diesen Ordner als `/backup` an den Container weiter. Zaster schreibt dort bei jeder Sicherung eine neue Datei `zaster-JJJJ-MM-TT_HH-MM-SS.db` und löscht ältere, die nicht mehr ins Raster (5 Tage, 5 Wochen, 5 Monate) passen. Andere Dateien im Ordner fasst Zaster nicht an, auch keine `zaster.db` aus älteren Versionen; die kann man selbst löschen.
 
 1. In der FritzBox unter „Heimnetz → USB / Speicher → Heimnetzfreigabe“ den Haken bei „Zugriff über ein Netzlaufwerk (SMB)“ setzen (Name `FRITZ.NAS`, SMBv1 bleibt aus) und unter „System → FRITZ!Box-Benutzer“ einen Benutzer mit Zugang zu NAS-Inhalten (Lesen und Schreiben) anlegen.
 2. Auf dem NAS einen Ordner anlegen, z. B. `Zaster` (bei USB-Speicher liegt er unter dem Namen des Sticks, z. B. `USB-Stick/Zaster`).
@@ -74,11 +74,11 @@ Zaster kann jeden Tag eine Sicherung auf das NAS der FritzBox legen (USB-Speiche
    ```
    Dann `mkdir /mnt/fritzbox`, `systemctl daemon-reload`, `mount /mnt/fritzbox`. `ls /mnt/fritzbox` zeigt danach ohne Fehler den Ordner auf dem NAS.
 4. In `docker-compose.yml` die Zeile `- /mnt/fritzbox:/backup` einkommentieren, in der `.env` `BACKUP_DIR=/backup` setzen, dann `docker compose up -d`.
-5. In Zaster unter „Einstellungen“ → „Sicherung“ auf „Jetzt sichern“ tippen. Klappt es, steht dort die Uhrzeit der letzten Sicherung, sonst die Fehlermeldung. Auf dem NAS liegt dann `zaster.db`.
+5. In Zaster unter „Einstellungen“ → „Sicherung“ auf „Jetzt sichern“ tippen. Klappt es, steht dort die Uhrzeit der letzten Sicherung, sonst die Fehlermeldung. Auf dem NAS liegt dann eine Datei `zaster-<datum>_<uhrzeit>.db`.
 
 **Docker in einem LXC-Container (Proxmox):** Ein unprivilegierter LXC darf keine SMB-Freigaben einbinden (`mount` meldet „operation not permitted“; prüfen mit `systemd-detect-virt`, Ausgabe `lxc`). Dann Schritt 3 in der Shell des Proxmox-Hosts ausführen, mit `uid=100000,gid=100000` zusätzlich in den Optionen (das ist root im LXC), und den Ordner an den LXC durchreichen: `pct set <ID> -mp0 /mnt/fritzbox,mp=/mnt/fritzbox`, danach den LXC neu starten. Schritt 4 wie oben im LXC.
 
-Ist die FritzBox zur Uhrzeit der Sicherung nicht erreichbar, fällt nur diese Sicherung aus: Die vorige `zaster.db` auf dem NAS bleibt erhalten, der Fehler steht in den Einstellungen, und mit eingerichtetem Home Assistant ([Benachrichtigungen](#homeassistant-optional)) bekommt, wer Zaster eingerichtet hat, eine Nachricht auf seine Geräte. Ein Tipp darauf öffnet die Einstellungen. Der nächste Versuch kommt am nächsten Tag. Ist die Freigabe nach einem Neustart des Servers nicht eingebunden (FritzBox war nicht erreichbar, `nofail` lässt den Server trotzdem starten), schreibt Zaster in den leeren Ordner `/mnt/fritzbox` auf dem Server statt auf das NAS; dann `mount /mnt/fritzbox` ausführen.
+Ist die FritzBox zur Uhrzeit der Sicherung nicht erreichbar, fällt nur diese Sicherung aus: Die vorigen Sicherungen auf dem NAS bleiben erhalten (gelöscht wird nur nach einer erfolgreichen Sicherung), der Fehler steht in den Einstellungen, und mit eingerichtetem Home Assistant ([Benachrichtigungen](#homeassistant-optional)) bekommt, wer Zaster eingerichtet hat, eine Nachricht auf seine Geräte. Ein Tipp darauf öffnet die Einstellungen. Der nächste Versuch kommt am nächsten Tag. Ist die Freigabe nach einem Neustart des Servers nicht eingebunden (FritzBox war nicht erreichbar, `nofail` lässt den Server trotzdem starten), schreibt Zaster in den leeren Ordner `/mnt/fritzbox` auf dem Server statt auf das NAS; dann `mount /mnt/fritzbox` ausführen.
 
 Statt der FritzBox geht jeder Ordner, den man nach `/backup` einbindet, z. B. ein anderes NAS oder eine zweite Festplatte.
 
@@ -86,7 +86,7 @@ Auch diese Sicherung enthält die Schlüssel unter `/data/keys` nicht.
 
 ### Sicherung wiederherstellen
 
-Die Datei aus „Datenbank herunterladen“ (oder `zaster.db` vom NAS) ist eine vollständige SQLite-Datenbank. Zum Wiederherstellen:
+Die Datei aus „Datenbank herunterladen“ (oder eine `zaster-<datum>_<uhrzeit>.db` vom NAS) ist eine vollständige SQLite-Datenbank. Zum Wiederherstellen:
 
 ```bash
 docker compose down
@@ -192,9 +192,9 @@ Benachrichtigungen schickt Zaster über die REST-API von Home Assistant an den D
 
 | Schlüssel | Umgebungsvariable | Standard | Bedeutung |
 |---|---|---|---|
-| `Directory` | `Backup__Directory` | leer | Ordner, in den Zaster jeden Tag die Datenbank als `zaster.db` sichert (überschreibt sie jedes Mal). Leer = keine automatische Sicherung. Im Container z. B. `/backup`, siehe [Sicherung auf die FritzBox](#sicherung-auf-die-fritzbox). |
+| `Directory` | `Backup__Directory` | leer | Ordner, in den Zaster jeden Tag die Datenbank als `zaster-JJJJ-MM-TT_HH-MM-SS.db` sichert; behalten werden die letzten 5 Tage, 5 Wochen und 5 Monate. Leer = keine automatische Sicherung. Im Container z. B. `/backup`, siehe [Sicherung auf die FritzBox](#sicherung-auf-die-fritzbox). |
 
-Die Uhrzeit (Standard 03:00, Zeitzone `FinTS:TimeZone`) steht nicht in der Konfiguration, sondern wird in der App unter „Einstellungen“ → „Sicherung“ eingestellt; leer = aus.
+Die Uhrzeit (Standard 03:00, Zeitzone `FinTS:TimeZone`, auch für den Zeitstempel im Dateinamen) steht nicht in der Konfiguration, sondern wird in der App unter „Einstellungen“ → „Sicherung“ eingestellt; leer = aus.
 
 ### Logging und AllowedHosts
 
