@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Zaster.Categories;
 
 namespace Zaster.Transactions;
 
@@ -76,6 +77,7 @@ public sealed record TransactionQuery(
     int? CategoryId,
     bool WithoutCategory = false,
     bool Open = false,
+    RuleDirection Direction = RuleDirection.Beide,
     int Offset = 0,
     int Limit = 100);
 

@@ -13,6 +13,7 @@ import { CategoryStore } from '../categories/category.store';
 import { FinTsSyncSheet } from '../fints/fints-sync-sheet';
 import { CsvImportSheet } from '../import/csv-import-sheet';
 import { CreateTransactionSheet } from './create-transaction-sheet';
+import { RuleDirection } from '../categories/category.models';
 import { Transaction, TransactionQuery } from './transaction.models';
 import { TransactionRow } from './transaction-row';
 import { TransactionSheet, TransactionSheetResult } from './transaction-sheet';
@@ -50,6 +51,8 @@ export class TransactionsPage {
   private readonly search = debounced(this.searchInput, 300);
   /** Kategorie-Id, 'none' = ohne Kategorie, '' = alle */
   protected readonly categoryFilter = signal<string>('');
+  /** Nur Einnahmen oder nur Ausgaben, per Tipp auf die Summe; wird nicht gespeichert. */
+  protected readonly direction = signal<RuleDirection>('Beide');
 
   protected readonly items = signal<Transaction[]>([]);
   protected readonly total = signal(0);
@@ -66,7 +69,7 @@ export class TransactionsPage {
   });
 
   protected readonly filtered = computed(
-    () => !!this.search().trim() || this.categoryFilter() !== '',
+    () => !!this.search().trim() || this.categoryFilter() !== '' || this.direction() !== 'Beide',
   );
 
   protected readonly groups = computed<DayGroup[]>(() => {
@@ -92,6 +95,7 @@ export class TransactionsPage {
       search: this.search().trim() || undefined,
       categoryId: category && category !== 'none' ? Number(category) : undefined,
       withoutCategory: category === 'none',
+      direction: this.direction() === 'Beide' ? undefined : this.direction(),
     };
   });
 
@@ -131,6 +135,19 @@ export class TransactionsPage {
   protected resetFilters() {
     this.searchInput.set('');
     this.categoryFilter.set('');
+    this.direction.set('Beide');
+  }
+
+  protected toggleDirection(direction: RuleDirection) {
+    this.direction.update((current) => (current === direction ? 'Beide' : direction));
+  }
+
+  protected cardClass(direction: RuleDirection) {
+    const current = this.direction();
+    if (current === direction) {
+      return 'ring-2 ring-accent';
+    }
+    return current === 'Beide' ? '' : 'opacity-60';
   }
 
   protected async loadMore() {

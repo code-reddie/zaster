@@ -81,6 +81,14 @@ public sealed class TransactionsController(AppDbContext context, TransactionImpo
             transactions = transactions.Where(t => !t.Splits.Any() && !t.Reviewed);
         }
 
+        // Nur Einnahmen oder nur Ausgaben; Buchungen über 0 € gehören zu keiner Seite.
+        transactions = query.Direction switch
+        {
+            RuleDirection.Eingang => transactions.Where(t => t.Betrag > 0),
+            RuleDirection.Ausgang => transactions.Where(t => t.Betrag < 0),
+            _ => transactions,
+        };
+
         var total = await transactions.CountAsync(cancellationToken);
 
         // SQLite rechnet nicht mit decimal, die Summen entstehen daher im Speicher.

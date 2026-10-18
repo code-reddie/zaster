@@ -87,20 +87,44 @@
   </div>
 </div>
 
-<!-- Summen -->
+<!-- Summen; Einnahmen und Ausgaben filtern zugleich die Liste -->
 <div class="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
-  <div class="z-card px-3 py-3 sm:px-4">
-    <p class="text-xs text-muted">Einnahmen</p>
+  <button
+    type="button"
+    class="z-card px-3 py-3 text-left transition hover:bg-surface-2 sm:px-4"
+    [class]="cardClass('Eingang')"
+    [attr.aria-pressed]="direction() === 'Eingang'"
+    [title]="direction() === 'Eingang' ? 'Wieder alle Buchungen zeigen' : 'Nur Einnahmen zeigen'"
+    (click)="toggleDirection('Eingang')"
+  >
+    <p class="flex items-center gap-1 text-xs text-muted">
+      Einnahmen
+      @if (direction() === 'Eingang') {
+        <z-icon name="x" class="ml-auto size-3.5" />
+      }
+    </p>
     <p class="amount mt-0.5 truncate text-sm font-semibold text-positive sm:text-lg">
       {{ einnahmen() | amount }}
     </p>
-  </div>
-  <div class="z-card px-3 py-3 sm:px-4">
-    <p class="text-xs text-muted">Ausgaben</p>
-    <p class="amount mt-0.5 truncate text-sm font-semibold sm:text-lg">
-      {{ -ausgaben() | amount }}
+  </button>
+  <button
+    type="button"
+    class="z-card px-3 py-3 text-left transition hover:bg-surface-2 sm:px-4"
+    [class]="cardClass('Ausgang')"
+    [attr.aria-pressed]="direction() === 'Ausgang'"
+    [title]="direction() === 'Ausgang' ? 'Wieder alle Buchungen zeigen' : 'Nur Ausgaben zeigen'"
+    (click)="toggleDirection('Ausgang')"
+  >
+    <p class="flex items-center gap-1 text-xs text-muted">
+      Ausgaben
+      @if (direction() === 'Ausgang') {
+        <z-icon name="x" class="ml-auto size-3.5" />
+      }
     </p>
-  </div>
+    <p class="amount mt-0.5 truncate text-sm font-semibold sm:text-lg">
+      {{ -ausgaben() || 0 | amount }}
+    </p>
+  </button>
   <div class="z-card px-3 py-3 sm:px-4">
     <p class="text-xs text-muted">Saldo</p>
     <p

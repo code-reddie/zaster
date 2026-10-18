@@ -1,4 +1,5 @@
 export type TransactionSource = 'Unbekannt' | 'Manuell' | 'Csv' | 'FinTs';
+import type { RuleDirection } from '../categories/category.models';
 
 export interface Transaction extends TransactionDetails {
   id: number;
@@ -72,6 +73,8 @@ export interface TransactionQuery {
   categoryId?: number;
   withoutCategory?: boolean;
   open?: boolean;
+  /** Eingang = nur Einnahmen, Ausgang = nur Ausgaben */
+  direction?: RuleDirection;
   offset?: number;
   limit?: number;
 }
