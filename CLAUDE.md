@@ -72,7 +72,7 @@ API (alle Routen klein geschrieben, Swagger unter `/swagger`):
 - `/api/auth/login`, `/api/auth/register` (ohne Anmeldung), `/api/auth/refresh` (neuer Token, das Frontend holt ihn, wenn der alte älter als einen Tag ist)
 - `/api/me`, `/api/me/notifications…`, `/api/backup` (Datenbank herunterladen), `/api/backup/schedule` (+ `run`)
 - `/api/accounts` (in der eigenen Reihenfolge), `/api/accounts/order` (eigene Reihenfolge speichern), `/api/accounts/{accountId}`, `…/members` (Person per Anmeldename hinzufügen), `…/members/{userId}` (entfernen; die eigene Id heißt verlassen)
-- `/api/accounts/{accountId}/transactions` (Filter `from`, `to`, `search`, `categoryId` inkl. Unterkategorien, `withoutCategory`, `open`, `offset`, `limit`), `…/import`, `…/balance-check`, `…/review`, `…/restore` („Rückgängig“), `…/{id}/category`, `…/{id}/splits`, `…/{id}/reviewed`, `…/{id}/bemerkung`
+- `/api/accounts/{accountId}/transactions` (Filter `from`, `to`, `search`, `categoryId` inkl. Unterkategorien, `withoutCategory`, `open`, `direction` = `Eingang`/`Ausgang` für Betrag über/unter 0, `offset`, `limit`), `…/import`, `…/balance-check`, `…/review`, `…/restore` („Rückgängig“), `…/{id}/category`, `…/{id}/splits`, `…/{id}/reviewed`, `…/{id}/bemerkung`
 - `/api/accounts/{accountId}/categories` (+ `order`), `/api/accounts/{accountId}/rules` (+ `order`, `apply`)
 - `/api/accounts/{accountId}/fints/sync`, `…/fints/times`, `…/fints/pin`
 - `/api/accounts/{accountId}/flows` (Filter `from`, `to`): Beträge je Kategorie für das Sankey-Diagramm
