@@ -47,10 +47,10 @@
               [showPurpose]="false"
               [showBemerkung]="false"
             />
-            <p class="mt-2 text-sm text-muted">
+            <p class="mt-2 text-sm text-muted [overflow-wrap:anywhere]">
               {{ day(transaction.buchung) }}
               @if (transaction.verwendungszweck) {
-                · <span class="break-words">{{ transaction.verwendungszweck }}</span>
+                · {{ transaction.verwendungszweck }}
               }
             </p>
           </button>
@@ -63,7 +63,7 @@
             (click)="note(transaction)"
           >
             <z-icon name="note" class="mt-0.5 size-4 text-accent" />
-            <span class="min-w-0 break-words">{{
+            <span class="min-w-0 [overflow-wrap:anywhere]">{{
               transaction.bemerkung || 'Bemerkung eintragen'
             }}</span>
           </button>

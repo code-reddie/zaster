@@ -18,7 +18,9 @@ import { TransactionsService } from './transactions.service';
     <z-dialog title="Bemerkung" [subtitle]="transaction.auftraggeber || transaction.buchungstext">
       <form id="bemerkung" (ngSubmit)="save()">
         @if (transaction.verwendungszweck) {
-          <p class="mb-3 text-sm break-words text-muted">{{ transaction.verwendungszweck }}</p>
+          <p class="mb-3 text-sm text-muted [overflow-wrap:anywhere]">
+            {{ transaction.verwendungszweck }}
+          </p>
         }
         <z-bemerkung-input [(value)]="value" />
         @if (error()) {

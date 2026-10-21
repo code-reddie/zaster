@@ -79,7 +79,9 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
         >
           {{ transaction().betrag | amount: true }}
         </p>
-        <p class="mt-1 font-medium">{{ transaction().auftraggeber || '–' }}</p>
+        <p class="mt-1 font-medium [overflow-wrap:anywhere]">
+          {{ transaction().auftraggeber || '–' }}
+        </p>
       </div>
 
       @if (parts().length > 1) {
@@ -170,11 +172,13 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
         }
       </div>
 
-      <dl class="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-sm">
+      <dl
+        class="mt-5 grid grid-cols-[fit-content(8.5rem)_minmax(0,1fr)] gap-x-4 gap-y-2.5 text-sm [&>dd]:[overflow-wrap:anywhere]"
+      >
         <dt class="text-muted">Buchungstext</dt>
         <dd>{{ transaction().buchungstext || '–' }}</dd>
         <dt class="text-muted">Verwendungszweck</dt>
-        <dd class="break-words">{{ transaction().verwendungszweck || '–' }}</dd>
+        <dd>{{ transaction().verwendungszweck || '–' }}</dd>
         <dt class="text-muted">Buchungstag</dt>
         <dd>{{ transaction().buchung.split('-').reverse().join('.') }}</dd>
         <dt class="text-muted">Valuta</dt>
@@ -213,7 +217,7 @@ export function ruleFromTransaction(t: Transaction): RuleSheetData {
         }
         @if (transaction().gegenIban) {
           <dt class="text-muted">IBAN</dt>
-          <dd class="amount break-all">{{ transaction().gegenIban | iban }}</dd>
+          <dd class="amount">{{ transaction().gegenIban | iban }}</dd>
         }
         @if (transaction().mcc) {
           <dt class="text-muted">Händlerkategorie (MCC)</dt>
