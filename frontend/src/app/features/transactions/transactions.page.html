@@ -28,34 +28,53 @@
 </z-page-header>
 
 <!-- Zeitraum und Filter -->
-<div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-  <div class="flex items-center rounded-xl border border-border bg-surface shadow-card">
-    <button
-      type="button"
-      class="grid size-10 place-items-center rounded-l-xl text-muted hover:bg-surface-2 hover:text-fg disabled:opacity-40"
-      aria-label="Monat zurück"
-      [disabled]="!month()"
-      (click)="shiftMonth(-1)"
+<div class="mb-4 flex flex-col gap-2">
+  <div class="flex gap-2">
+    <div
+      class="grid shrink-0 grid-cols-3 rounded-xl border border-border bg-surface p-1 shadow-card"
+      role="group"
+      aria-label="Zeitraum"
     >
-      <z-icon name="chevron-left" class="size-4" />
-    </button>
-    <button
-      type="button"
-      class="h-10 min-w-36 flex-1 px-2 text-sm font-medium hover:bg-surface-2"
-      title="Zwischen Monat und allen Zeiträumen wechseln"
-      (click)="toggleAll()"
-    >
-      {{ monthLabel() }}
-    </button>
-    <button
-      type="button"
-      class="grid size-10 place-items-center rounded-r-xl text-muted hover:bg-surface-2 hover:text-fg disabled:opacity-40"
-      aria-label="Monat vor"
-      [disabled]="!month()"
-      (click)="shiftMonth(1)"
-    >
-      <z-icon name="chevron-right" class="size-4" />
-    </button>
+      @for (m of modes; track m.value) {
+        <button
+          type="button"
+          class="h-8 rounded-lg px-2.5 text-sm font-medium text-muted hover:text-fg sm:px-3"
+          [class.!bg-accent-soft]="mode() === m.value"
+          [class.!text-accent]="mode() === m.value"
+          [attr.aria-pressed]="mode() === m.value"
+          (click)="setMode(m.value)"
+        >
+          {{ m.label }}
+        </button>
+      }
+    </div>
+
+    @if (mode() !== 'alles') {
+      <div
+        class="flex min-w-0 flex-1 items-center rounded-xl border border-border bg-surface shadow-card sm:flex-none"
+      >
+        <button
+          type="button"
+          class="grid h-10 w-8 shrink-0 place-items-center rounded-l-xl sm:w-10 text-muted hover:bg-surface-2 hover:text-fg"
+          [attr.aria-label]="mode() === 'monat' ? 'Monat zurück' : 'Jahr zurück'"
+          (click)="shift(-1)"
+        >
+          <z-icon name="chevron-left" class="size-4" />
+        </button>
+        <span class="min-w-0 flex-1 truncate text-center text-sm font-medium sm:min-w-36 sm:px-2">
+          <span class="sm:hidden">{{ shortPeriodLabel() }}</span>
+          <span class="hidden sm:inline">{{ periodLabel() }}</span>
+        </span>
+        <button
+          type="button"
+          class="grid h-10 w-8 shrink-0 place-items-center rounded-r-xl sm:w-10 text-muted hover:bg-surface-2 hover:text-fg"
+          [attr.aria-label]="mode() === 'monat' ? 'Monat vor' : 'Jahr vor'"
+          (click)="shift(1)"
+        >
+          <z-icon name="chevron-right" class="size-4" />
+        </button>
+      </div>
+    }
   </div>
 
   <div class="flex flex-1 gap-2">
@@ -154,13 +173,13 @@
           Filter zurücksetzen
         </button>
       </z-empty-state>
-    } @else if (month()) {
+    } @else if (mode() !== 'alles') {
       <z-empty-state
         icon="list"
-        [title]="'Keine Buchungen im ' + monthLabel()"
+        [title]="'Keine Buchungen ' + periodPhrase()"
         text="Rufe neue Umsätze ab oder schau dir alle Zeiträume an."
       >
-        <button zButton variant="secondary" type="button" (click)="toggleAll()">
+        <button zButton variant="secondary" type="button" (click)="setMode('alles')">
           Alle Zeiträume
         </button>
         <button zButton type="button" (click)="sync()">Umsätze abrufen</button>

@@ -68,3 +68,10 @@ const monthFormat = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'num
 export function monthLabel(year: number, month: number): string {
   return monthFormat.format(new Date(year, month, 1));
 }
+
+const shortMonthFormat = new Intl.DateTimeFormat('de-DE', { month: 'short', year: 'numeric' });
+
+/** Kurzform für schmale Bildschirme, z. B. „Sept. 2026“. */
+export function shortMonthLabel(year: number, month: number): string {
+  return shortMonthFormat.format(new Date(year, month, 1));
+}
