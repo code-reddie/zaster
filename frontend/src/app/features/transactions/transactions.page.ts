@@ -7,7 +7,7 @@ import { DialogService } from '../../core/ui/dialog';
 import { EmptyState } from '../../core/ui/empty-state';
 import { Icon } from '../../core/ui/icon';
 import { Spinner } from '../../core/ui/spinner';
-import { AmountPipe, dayLabel, isoDate, monthLabel } from '../../shared/format';
+import { AmountPipe, dayLabel, isoDate, monthLabel, shortMonthLabel } from '../../shared/format';
 import { AccountStore } from '../accounts/account.store';
 import { CategoryStore } from '../categories/category.store';
 import { FinTsSyncSheet } from '../fints/fints-sync-sheet';
@@ -22,10 +22,8 @@ import { UndoService } from './undo.service';
 
 const PAGE_SIZE = 100;
 
-interface Month {
-  year: number;
-  month: number;
-}
+/** Zeitraum auf „Buchungen“: ein Monat, ein Jahr oder alles. */
+type PeriodMode = 'monat' | 'jahr' | 'alles';
 
 interface DayGroup {
   date: string;
@@ -45,8 +43,15 @@ export class TransactionsPage {
   private readonly dialog = inject(DialogService);
   private readonly undo = inject(UndoService);
 
-  /** null = alle Zeiträume (Standard beim Öffnen der Seite) */
-  protected readonly month = signal<Month | null>(null);
+  protected readonly modes: { value: PeriodMode; label: string }[] = [
+    { value: 'monat', label: 'Monat' },
+    { value: 'jahr', label: 'Jahr' },
+    { value: 'alles', label: 'Alles' },
+  ];
+  /** Beim Öffnen der Seite immer „Alles“; die Auswahl wird nicht gespeichert. */
+  protected readonly mode = signal<PeriodMode>('alles');
+  /** Bezugspunkt für Monat und Jahr (erster Tag des Monats). */
+  protected readonly anchor = signal(firstOfMonth(new Date()));
   protected readonly searchInput = signal('');
   private readonly search = debounced(this.searchInput, 300);
   /** Kategorie-Id, 'none' = ohne Kategorie, '' = alle */
@@ -63,9 +68,42 @@ export class TransactionsPage {
   protected readonly error = signal<string | null>(null);
   private requestId = 0;
 
-  protected readonly monthLabel = computed(() => {
-    const m = this.month();
-    return m ? monthLabel(m.year, m.month) : 'Alle Zeiträume';
+  protected readonly periodLabel = computed(() => {
+    const a = this.anchor();
+    return this.mode() === 'monat'
+      ? monthLabel(a.getFullYear(), a.getMonth())
+      : String(a.getFullYear());
+  });
+
+  /** Am iPhone ist für den ausgeschriebenen Monat neben der Auswahl kein Platz. */
+  protected readonly shortPeriodLabel = computed(() => {
+    const a = this.anchor();
+    return this.mode() === 'monat'
+      ? shortMonthLabel(a.getFullYear(), a.getMonth())
+      : String(a.getFullYear());
+  });
+
+  /** Für die leere Liste: „im Oktober 2026“ bzw. „im Jahr 2026“. */
+  protected readonly periodPhrase = computed(() =>
+    this.mode() === 'jahr' ? `im Jahr ${this.periodLabel()}` : `im ${this.periodLabel()}`,
+  );
+
+  private readonly range = computed(() => {
+    const a = this.anchor();
+    switch (this.mode()) {
+      case 'monat':
+        return {
+          from: isoDate(a),
+          to: isoDate(new Date(a.getFullYear(), a.getMonth() + 1, 0)),
+        };
+      case 'jahr':
+        return {
+          from: isoDate(new Date(a.getFullYear(), 0, 1)),
+          to: isoDate(new Date(a.getFullYear(), 11, 31)),
+        };
+      default:
+        return { from: undefined, to: undefined };
+    }
   });
 
   protected readonly filtered = computed(
@@ -87,11 +125,9 @@ export class TransactionsPage {
   });
 
   private readonly query = computed<TransactionQuery>(() => {
-    const m = this.month();
     const category = this.categoryFilter();
     return {
-      from: m ? isoDate(new Date(m.year, m.month, 1)) : undefined,
-      to: m ? isoDate(new Date(m.year, m.month + 1, 0)) : undefined,
+      ...this.range(),
       search: this.search().trim() || undefined,
       categoryId: category && category !== 'none' ? Number(category) : undefined,
       withoutCategory: category === 'none',
@@ -122,14 +158,17 @@ export class TransactionsPage {
     return '\u00a0'.repeat(depth * 3);
   }
 
-  protected shiftMonth(delta: number) {
-    const m = this.month() ?? currentMonth();
-    const date = new Date(m.year, m.month + delta, 1);
-    this.month.set({ year: date.getFullYear(), month: date.getMonth() });
+  protected setMode(mode: PeriodMode) {
+    this.mode.set(mode);
   }
 
-  protected toggleAll() {
-    this.month.set(this.month() ? null : currentMonth());
+  protected shift(delta: number) {
+    const a = this.anchor();
+    this.anchor.set(
+      this.mode() === 'monat'
+        ? new Date(a.getFullYear(), a.getMonth() + delta, 1)
+        : new Date(a.getFullYear() + delta, a.getMonth(), 1),
+    );
   }
 
   protected resetFilters() {
@@ -242,9 +281,8 @@ export class TransactionsPage {
   }
 }
 
-function currentMonth(): Month {
-  const now = new Date();
-  return { year: now.getFullYear(), month: now.getMonth() };
+function firstOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
 /** Signal, das dem Eingabe-Signal erst nach einer Pause folgt (für die Suche). */
