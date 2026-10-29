@@ -1,10 +1,12 @@
 import { ImportTransaction } from '../transactions/transaction.models';
+import { isN26, parseN26 } from './n26-parser';
 import { parseTradeRepublic, TRADE_REPUBLIC_HEADER } from './trade-republic-parser';
 
 /**
  * Liest Kontoumsätze aus einer CSV. Der Transaktionsexport von Trade Republic (Komma, Kopfzeile
  * `"datetime","date",…`) geht an `parseTradeRepublic`, wirft dort `ImportFileError` bei Zeilen, die
- * Zaster nicht verlustfrei übernehmen kann.
+ * Zaster nicht verlustfrei übernehmen kann. Der Export von N26 (Komma, Kopfzeile mit
+ * `"Amount (EUR)"`) geht an `parseN26`.
  *
  * Sonst: Semikolon, deutsches Datum und Zahlenformat. Zwei Aufbauten
  * kommen vor, beide mit einer Kopfzeile „Buchung;…“, über die die Spalten gefunden werden:
@@ -20,6 +22,9 @@ export function parseCsv(content: string): ImportTransaction[] {
   const commaRecords = splitRecords(content, ',');
   if (TRADE_REPUBLIC_HEADER.every((name, i) => commaRecords[0]?.[i]?.trim() === name)) {
     return parseTradeRepublic(commaRecords);
+  }
+  if (isN26(commaRecords[0])) {
+    return parseN26(commaRecords);
   }
 
   const records = splitRecords(content, ';');

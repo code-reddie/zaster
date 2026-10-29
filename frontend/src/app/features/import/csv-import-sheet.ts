@@ -12,7 +12,7 @@ import { decodeCsv, parseCsv } from './csv-parser';
 import { ImportFileError } from './trade-republic-parser';
 
 /**
- * CSV-Export der ING, Transaktionsexport von Trade Republic oder eine eigene Umsatzliste ins gewählte
+ * CSV-Export der ING oder von N26, Transaktionsexport von Trade Republic oder eine eigene Umsatzliste ins gewählte
  * Konto übernehmen (Aufbau siehe `parseCsv`).
  * Ergebnis true, wenn übernommen.
  */
@@ -47,8 +47,8 @@ import { ImportFileError } from './trade-republic-parser';
           } @else {
             <span class="font-medium">CSV-Datei wählen</span>
             <span class="mt-1 text-sm text-muted"
-              >Umsatzexport der ING, Transaktionsexport von Trade Republic oder eigene Umsatzliste
-              (.csv)</span
+              >Umsatzexport der ING, CSV-Export von N26, Transaktionsexport von Trade Republic oder
+              eigene Umsatzliste (.csv)</span
             >
           }
           <input type="file" accept=".csv,text/csv" class="sr-only" (change)="select($event)" />
