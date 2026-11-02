@@ -103,9 +103,7 @@ export class FlowsPage {
 
   protected readonly tree = computed(() => {
     const flows = this.flows();
-    return flows
-      ? buildFlowTree(flows, this.categories.tree(), this.showUncategorized())
-      : null;
+    return flows ? buildFlowTree(flows, this.categories.tree(), this.showUncategorized()) : null;
   });
 
   protected readonly incomeRows = computed(() => this.rows(this.tree()?.income ?? []));
