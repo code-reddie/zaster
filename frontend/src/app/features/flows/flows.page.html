@@ -55,6 +55,18 @@
 }
 
 @if (tree(); as t) {
+  @if (hasUncategorized()) {
+    <label class="mb-3 flex w-fit cursor-pointer items-center gap-2.5 px-1 text-sm">
+      <input
+        type="checkbox"
+        class="z-checkbox"
+        [checked]="showUncategorized()"
+        (change)="showUncategorized.set($any($event.target).checked)"
+      />
+      „Ohne Kategorie“ einblenden
+    </label>
+  }
+
   <!-- Summen -->
   <div class="mb-4 grid grid-cols-3 gap-2 sm:gap-3" [class.opacity-60]="loading()">
     <div class="z-card px-3 py-3 sm:px-4">
@@ -86,6 +98,14 @@
         icon="flow"
         title="Keine Buchungen im Zeitraum"
         text="Wähle einen anderen Zeitraum oder rufe neue Umsätze ab."
+      />
+    </div>
+  } @else if (!t.income.length && !t.expense.length) {
+    <div class="z-card">
+      <z-empty-state
+        icon="flow"
+        title="Keine Buchung mit Kategorie"
+        text="Im Zeitraum hat noch keine Buchung eine Kategorie. Hake „Ohne Kategorie“ an, um sie trotzdem zu sehen."
       />
     </div>
   } @else {
