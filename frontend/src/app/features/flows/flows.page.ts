@@ -25,6 +25,8 @@ interface Row {
  * „Verteilung“: woher das Geld im gewählten Zeitraum kam und wohin es ging, als Sankey-Diagramm
  * und darunter als Liste. Kategorien mit Unterkategorien lassen sich in beiden auf- und zuklappen.
  * Ab 640 px (iPad, PC) sind sie zu Beginn alle aufgeklappt, auf dem iPhone alle zugeklappt.
+ * Buchungen ohne Kategorie sind zu Beginn ausgeblendet und lassen sich per Haken einblenden;
+ * gespeichert wird das nicht.
  */
 @Component({
   imports: [FormsModule, PageHeader, Icon, Spinner, EmptyState, AmountPipe, SankeyChart],
@@ -50,6 +52,13 @@ export class FlowsPage {
   protected readonly flows = signal<Flows | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+  /** „Ohne Kategorie“ im Diagramm, in der Liste und in den Summen zeigen. */
+  protected readonly showUncategorized = signal(false);
+  /** Ob es im Zeitraum überhaupt Buchungen ohne Kategorie gibt (sonst kein Haken). */
+  protected readonly hasUncategorized = computed(() => {
+    const flows = this.flows();
+    return !!flows && (flows.ohneKategorieEinnahmen !== 0 || flows.ohneKategorieAusgaben !== 0);
+  });
   /** Ab 640 px ist Platz für alle Unterkategorien, darunter (iPhone) sind sie anfangs zu. */
   private readonly wide = signal(false);
   /** Kategorien, die von Hand gegenüber dem Anfangszustand auf- oder zugeklappt wurden. */
@@ -94,7 +103,7 @@ export class FlowsPage {
 
   protected readonly tree = computed(() => {
     const flows = this.flows();
-    return flows ? buildFlowTree(flows, this.categories.tree()) : null;
+    return flows ? buildFlowTree(flows, this.categories.tree(), this.showUncategorized()) : null;
   });
 
   protected readonly incomeRows = computed(() => this.rows(this.tree()?.income ?? []));

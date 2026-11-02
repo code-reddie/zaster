@@ -44,9 +44,15 @@ export interface FlowTree {
  * Eine Kategorie steht auf der Seite, zu der ihr verrechneter Betrag passt; eine Elternkategorie
  * kann daher auf beiden Seiten vorkommen. Hat eine Kategorie eigene Buchungen und Unterkategorien,
  * bekommen die eigenen Buchungen einen Knoten „Ohne Unterkategorie“, damit die Teile die Summe ergeben.
+ * Buchungen ohne Kategorie stehen nur mit `showUncategorized` als „Ohne Kategorie“ im Baum; sonst
+ * fehlen sie ganz, auch in den Summen.
  * Die Differenz gleicht ein Knoten „Überschuss“ (rechts) oder „Aus dem Kontostand“ (links) aus.
  */
-export function buildFlowTree(flows: Flows, categories: CategoryNode[]): FlowTree {
+export function buildFlowTree(
+  flows: Flows,
+  categories: CategoryNode[],
+  showUncategorized = true,
+): FlowTree {
   const own = new Map(flows.categories.map((c) => [c.categoryId, c.betrag]));
   const children = new Map<number | null, CategoryNode[]>();
   for (const category of categories) {
@@ -93,10 +99,10 @@ export function buildFlowTree(flows: Flows, categories: CategoryNode[]): FlowTre
 
   const income = build('in', null);
   const expense = build('out', null);
-  if (flows.ohneKategorieEinnahmen > 0) {
+  if (showUncategorized && flows.ohneKategorieEinnahmen > 0) {
     income.push(uncategorized('in', flows.ohneKategorieEinnahmen));
   }
-  if (flows.ohneKategorieAusgaben < 0) {
+  if (showUncategorized && flows.ohneKategorieAusgaben < 0) {
     expense.push(uncategorized('out', -flows.ohneKategorieAusgaben));
   }
 
