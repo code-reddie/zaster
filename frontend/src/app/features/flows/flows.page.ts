@@ -43,7 +43,8 @@ export class FlowsPage {
     { value: 'alles', label: 'Alles' },
     { value: 'zeitraum', label: 'Zeitraum' },
   ];
-  protected readonly mode = signal<PeriodMode>('jahr');
+  /** Beim Öffnen der laufende Monat; die Auswahl wird nicht gespeichert. */
+  protected readonly mode = signal<PeriodMode>('monat');
   /** Bezugspunkt für Monat und Jahr. */
   protected readonly anchor = signal(firstOfMonth(new Date()));
   protected readonly customFrom = signal(isoDate(new Date(new Date().getFullYear(), 0, 1)));
